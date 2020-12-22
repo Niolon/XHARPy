@@ -339,14 +339,13 @@ def f_core_from_spline(spline, g_k, k=13):
     j0 = onp.zeros_like(gr)
     j0[gr != 0] = onp.sin(2 * np.pi * gr[gr != 0]) / (2 * np.pi * gr[gr != 0])
     j0[gr == 0] = 1
-    dx = r[1]
     y00_factor = 0.5 * onp.pi**(-0.5)
     int_me = 4 * onp.pi * r**2  * spline.map(r) * j0
     return simps(int_me, x=r) * y00_factor
 
 
 def calculate_f0j_core(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs):
-    symm_positions, symm_symbols, inv_indexes = expand_symm_unique(element_symbols,
+    symm_positions, symm_symbols, _ = expand_symm_unique(element_symbols,
                                                                    positions,
                                                                    cell_mat_m,
                                                                    symm_mats_vecs)
@@ -365,7 +364,7 @@ def calculate_f0j_core(cell_mat_m, element_symbols, positions, index_vec_h, symm
     n_steps = 100
     n_per_step = 50
 
-    for name, (phi, phi_t, nc, nct) in list(splines.items()):
+    for name, (_, _, nc, _) in list(splines.items()):
         if name in list(f0j_core.keys()):
             continue
         #if name == 'H':
@@ -401,7 +400,6 @@ def expand_symm_unique(type_symbols, coordinates, cell_mat_m, symm_mats_vec):
     pos_frac0 = coordinates % 1
     positions = onp.zeros((0, 3))
     type_symbols_symm = []
-    generator_symmetries = []
     for coords in (onp.einsum('axy, zy -> azx', symm_mats_r, pos_frac0)+ symm_vecs_t[:,None,:]) % 1:
         positions = onp.concatenate((positions, coords % 1))
         type_symbols_symm += type_symbols
@@ -492,7 +490,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
     construction_instructions = []
     known_torsion_indexes = {}
     names = atom_table['label']   
-    for index, atom in atom_table.iterrows():
+    for _, atom in atom_table.iterrows():
         if atom['label'] in sp2_add.keys():
             bound_atom, plane_atom1, plane_atom2, distance, occupancy = sp2_add[atom['label']]
             bound_index = np.where(names == bound_atom)[0][0]
@@ -648,7 +646,7 @@ def construct_values(parameters, construction_instructions, cell_mat_m):
     cell_mat_g = np.einsum('ja, jb -> ab', cell_mat_m, cell_mat_m)
     cell_mat_f = np.linalg.inv(cell_mat_m)
     cell_mat_g_star = np.einsum('ja, jb -> ab', cell_mat_f, cell_mat_f)
-    n_atoms = len(construction_instructions)
+    #n_atoms = len(construction_instructions)
     xyz = np.array(
         [[resolve_instruction(parameters, inner_instruction) for inner_instruction in instruction.xyz]
           if type(instruction.xyz) in (tuple, list) else np.full(3, -9999.9) for instruction in construction_instructions]
@@ -870,7 +868,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
     print('Preparing')
     index_vec_h = np.array(hkl[['h', 'k', 'l']].values.copy())
     type_symbols = [atom.element for atom in construction_instructions]
-    constructed_xyz, constructed_uij, constructed_cijk, constructed_dijkl, constructed_occupancies = construct_values(parameters,
+    constructed_xyz, *_ = construct_values(parameters,
                                                                                                                       construction_instructions,
                                                                                                                       cell_mat_m)
 
@@ -916,11 +914,8 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
         parameters = jax.ops.index_update(parameters, jax.ops.index[index], val)
     print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)):8.6f}, nit: {x.nit}, {x.message}')
 
-    parameters_min1 = None
     r_opt_density = 1e10
     for refine in range(20):
-        r_opt = 1e10
-
         print(f'  calculating least squares sum')
         x = minimize(calc_lsq,
                      parameters,
@@ -931,20 +926,16 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                      args=(fjs),
                      options={'gtol': 1e-7 * np.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)})
         print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)):8.6f}, nit: {x.nit}, {x.message}')
-        #if parameters_min1 is not None:
-        #	parameters = (np.array(x.x) + 0.5 * parameters_min1) / 1.5
         parameters = np.array(x.x) 
         if x.nit == 0:
             break
         elif x.fun < r_opt_density - atom_fit_tol or refine < 10:
             r_opt_density = x.fun
-            parameters_min1 = np.array(x.x)
+            #parameters_min1 = np.array(x.x)
         else:
             break 
             
-        constructed_xyz, constructed_uij, constructed_cijk, constructed_dijkl, constructed_occupancies = construct_values(parameters,
-                                                                                                                          construction_instructions,
-                                                                                                                          cell_mat_m)
+        constructed_xyz, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
         if refine >= reload_step - 1:
             restart = 'save.gpw'  
         else:
@@ -977,7 +968,7 @@ def distance_with_esd(atom1_name, atom2_name, construction_instructions, paramet
 
     def distance_func(parameters, cell_par):
         cell_mat_m = cell_constants_to_M(*cell_par)
-        constructed_xyz, constructed_uij, constructed_cijk, constructed_dijkl, constructed_occupancies = construct_values(parameters, construction_instructions, cell_mat_m)
+        constructed_xyz, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
         coord1 = constructed_xyz[index1]
         coord2 = constructed_xyz[index2]
 

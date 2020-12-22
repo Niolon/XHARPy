@@ -413,7 +413,7 @@ def calc_f(xyz, uij, cijk, dijkl, occupancies, index_vec_h, cell_mat_f, symm_mat
     
     #einsum indexes: k: n_symm, z: n_atom, h: n_hkl
     symm_mats_r, symm_vecs_t = symm_mats_vecs
-    vec_S = -np.einsum('xy, zy -> zx', cell_mat_f.T, index_vec_h)
+    vec_S = np.einsum('xy, zy -> zx', cell_mat_f.T, index_vec_h)
     vec_S_symm = np.einsum('kxy, zy -> kzx', symm_mats_r, vec_S)
     u_mats = uij[:, np.array([[0, 5, 4], [5, 1, 3], [4, 3, 2]])]
     vib_factors = np.exp(-2 * np.pi**2 * np.einsum('kha, khb, zab -> kzh', vec_S_symm, vec_S_symm, u_mats))

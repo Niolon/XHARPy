@@ -4,8 +4,8 @@ config.update('jax_enable_x64', True)
 import jax.numpy as np
 import pandas as pd
 import os
-from itertools import product
-from collections import OrderedDict, Counter, defaultdict, namedtuple
+from collections import OrderedDict, namedtuple
+import warnings
 import re
 import jax
 import numpy as onp
@@ -258,10 +258,22 @@ def fj_gpaw(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs,
                         cell=cell_mat_m.T)
         calc = gpaw.GPAW(**gpaw_dict)
         atoms.set_calculator(calc)
+        e1 = atoms.get_potential_energy()
     else:
-        atoms, calc = gpaw.restart(restart, txt=gpaw_dict['txt'])
-        atoms.set_scaled_positions(symm_positions % 1)
-        #calc.set(basis={symbol: position for symbol, position in zip(symm_symbols, symm_positions % 1)})
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                atoms, calc = gpaw.restart(restart, txt=gpaw_dict['txt'])
+                atoms.set_scaled_positions(symm_positions % 1)
+                e1 = atoms.get_potential_energy()
+        except:
+            print('  failed to load the density from previous calculation. Starting from scratch')
+            atoms = crystal(symbols=symm_symbols,
+                            basis=symm_positions % 1,
+                            cell=cell_mat_m.T)
+            calc = gpaw.GPAW(**gpaw_dict)
+            atoms.set_calculator(calc)
+            e1 = atoms.get_potential_energy()
 
     e1 = atoms.get_potential_energy()
 
@@ -274,7 +286,7 @@ def fj_gpaw(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs,
     if save is not None:
         calc.write(save, mode='all')
 
-    print('calculated density with energy', e1)
+    print('  calculated density with energy', e1)
 
     partitioning = HirshfeldPartitioning(calc)
     partitioning.initialize()
@@ -359,7 +371,7 @@ def calculate_f0j_core(cell_mat_m, element_symbols, positions, index_vec_h, symm
         #if name == 'H':
         #    f0j_core[name] = onp.zeros_like(g_ks)
         if len(g_ks) > n_steps * n_per_step:
-            print(f'Calculating the core structure factor by spline for {name}')
+            print(f'  Calculating the core structure factor by spline for {name}')
             g_max = g_ks.max() * Bohr + 0.1
             #x_inv = np.linspace(-0.5, g_max, n_steps * n_per_step)
             k = np.log(n_steps * n_per_step)
@@ -370,7 +382,7 @@ def calculate_f0j_core(cell_mat_m, element_symbols, positions, index_vec_h, symm
                f0j[index * n_per_step:(index + 1) * n_per_step] = f_core_from_spline(nc, x_inv[index * n_per_step:(index + 1) * n_per_step], k=19) 
             f0j_core[name] = interp1d(x_inv, f0j, kind='cubic')(g_ks * Bohr)
         else:
-            print(f'Calculating the core structure factor for {name}')
+            print(f'  Calculating the core structure factor for {name}')
             f0j = onp.zeros(len(g_ks))
             for index in range(n_per_step, len(g_ks) + n_per_step, n_per_step):
                 start_index = index - n_per_step
@@ -384,16 +396,17 @@ def calculate_f0j_core(cell_mat_m, element_symbols, positions, index_vec_h, symm
 
 
 def expand_symm_unique(type_symbols, coordinates, cell_mat_m, symm_mats_vec):
+    #TODO: Make clean so that only position with itself is checked
     symm_mats_r, symm_vecs_t = symm_mats_vec
     pos_frac0 = coordinates % 1
-    positions = np.zeros((0, 3))
+    positions = onp.zeros((0, 3))
     type_symbols_symm = []
     generator_symmetries = []
-    for coords in (np.einsum('axy, zy -> azx', symm_mats_r, pos_frac0)+ symm_vecs_t[:,None,:]) % 1:
-        positions = np.concatenate((positions, coords % 1))
+    for coords in (onp.einsum('axy, zy -> azx', symm_mats_r, pos_frac0)+ symm_vecs_t[:,None,:]) % 1:
+        positions = onp.concatenate((positions, coords % 1))
         type_symbols_symm += type_symbols
     _, unique_indexes, inv_indexes = onp.unique(np.round(np.einsum('xy, zy -> zx', cell_mat_m, positions), 2), axis=0, return_index=True, return_inverse=True)
-    return np.round(positions[unique_indexes,:].copy(), 16), [type_symbols_symm[index] for index in unique_indexes], inv_indexes
+    return positions[unique_indexes,:].copy(), [type_symbols_symm[index] for index in unique_indexes], inv_indexes
 
 
 @jax.jit
@@ -614,6 +627,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             occupancy = FixedParameter(value=1.0)
 
         construction_instructions.append(AtomInstructions(
+            name=atom['label'],
             element=atom['type_symbol'],
             dispersion_real = atom['type_scat_dispersion_real'],
             dispersion_imag = atom['type_scat_dispersion_imag'],
@@ -689,12 +703,44 @@ def construct_values(parameters, construction_instructions, cell_mat_m):
             uij = jax.ops.index_update(uij, jax.ops.index[index, 3:], 0.0)
     return xyz, uij, cijk, dijkl, occupancies
 
+def resolve_instruction_esd(esds, instruction):
+    """Resolve fixed and refined parameter esds"""
+    if type(instruction).__name__ == 'RefinedParameter':
+        return_value = instruction.multiplicator * esds[instruction.par_index]
+    elif type(instruction).__name__ == 'FixedParameter':
+        return_value = np.nan # One could pick zero, but this should indicate that an error is not defined
+    return return_value
 
-def calc_wr2_factory(cell_mat_m, symm_mats_vecs, index_vec_h, intensities_obs, stds_obs, construction_instructions, fjs_core=None):
-    """Generates a calc_wr2 function. Doing this with a factory function allows for both flexibility but also
+# TODO Write a constructs ESD function
+def construct_esds(var_cov_mat, construction_instructions):
+    # TODO Build analogous to the distance calculation function to get esds for all non-primitive calculations
+    esds = np.sqrt(np.diag(var_cov_mat))
+    xyz = np.array(
+        [[resolve_instruction_esd(esds, inner_instruction) for inner_instruction in instruction.xyz]
+          if type(instruction.xyz) in (tuple, list) else np.full(3, np.nan) for instruction in construction_instructions]
+    )
+    uij = np.array(
+        [[resolve_instruction_esd(esds, inner_instruction) for inner_instruction in instruction.uij]
+          if type(instruction.uij) in (tuple, list) else np.full(6, np.nan) for instruction in construction_instructions]
+    )
+    
+    cijk = np.array(
+        [[resolve_instruction_esd(esds, inner_instruction) for inner_instruction in instruction.cijk]
+          if type(instruction.cijk) in (tuple, list) else np.full(6, np.nan) for instruction in construction_instructions]
+    )
+    
+    dijkl = np.array(
+        [[resolve_instruction_esd(esds, inner_instruction) for inner_instruction in instruction.dijkl]
+          if type(instruction.dijkl) in (tuple, list) else np.full(6, np.nan) for instruction in construction_instructions]
+    )
+    occupancies = np.array([resolve_instruction_esd(esds, instruction.occupancy) for instruction in construction_instructions])
+    return xyz, uij, cijk, dijkl, occupancies    
+
+def calc_lsq_factory(cell_mat_m, symm_mats_vecs, index_vec_h, intensities_obs, stds_obs, construction_instructions, fjs_core=None):
+    """Generates a calc_lsq function. Doing this with a factory function allows for both flexibility but also
     speed by automatic loop and conditional unrolling for all the stuff that is constant for a given structure."""
-    cell_mat_f = np.linalg.inv(cell_mat_m)
     construct_values_j = jax.jit(construct_values, static_argnums=(1,2))
+    cell_mat_f = np.linalg.inv(cell_mat_m)
     def function(parameters, fjs):
         xyz, uij, cijk, dijkl, occupancies = construct_values_j(parameters, construction_instructions, cell_mat_m)
         if fjs_core is not None:
@@ -711,16 +757,51 @@ def calc_wr2_factory(cell_mat_m, symm_mats_vecs, index_vec_h, intensities_obs, s
             symm_mats_vecs=symm_mats_vecs,
             fjs=fjs
         )
-        structure_factors = structure_factors
-        intensities_calc = np.abs(structure_factors)**2
+        intensities_calc = parameters[0] * np.abs(structure_factors)**2
         weights = 1 / stds_obs**2
 
-        wr2 = np.sqrt(np.sum(weights * (intensities_obs - parameters[0] * intensities_calc)**2) / np.sum(weights * intensities_obs**2))
-        return wr2
+        lsq = np.sum(weights * (intensities_obs - intensities_calc)**2) 
+        return lsq
     return jax.jit(function)
+
+
+def calc_var_cor_mat(cell_mat_m, symm_mats_vecs, index_vec_h, construction_instructions, intensities_obs, stds_obs, parameters, fjs, fjs_core=None):
+    construct_values_j = jax.jit(construct_values, static_argnums=(1,2))
+    cell_mat_f = np.linalg.inv(cell_mat_m)
+    def function(parameters, fjs, index):
+        xyz, uij, cijk, dijkl, occupancies = construct_values_j(parameters, construction_instructions, cell_mat_m)
+        if fjs_core is not None:
+            fjs = parameters[1] * fjs + fjs_core[None, :, :]
+
+        structure_factors = calc_f(
+            xyz=xyz,
+            uij=uij,
+            cijk=cijk,
+            dijkl=dijkl,
+            occupancies=occupancies,
+            index_vec_h=index_vec_h[None, index],
+            cell_mat_f=cell_mat_f,
+            symm_mats_vecs=symm_mats_vecs,
+            fjs=fjs[:, :, index, None]
+        )
+        return parameters[0] * np.abs(structure_factors[0])**2
+    grad_func = jax.jit(jax.grad(function))
+
+    collect = np.zeros((len(parameters), len(parameters)))
+    for index, weight in enumerate(1 / stds_obs**2):
+        val = grad_func(parameters, np.array(fjs), index)[:, None]
+        collect += weight * (val @ val.T)
+
+    lsq_func = calc_lsq_factory(cell_mat_m, symm_mats_vecs, index_vec_h, intensities_obs, stds_obs, construction_instructions, fjs_core)
+
+    chi_sq = lsq_func(parameters, fjs) / (index_vec_h.shape[0] - len(parameters))
+
+    return chi_sq * np.linalg.inv(collect)
+
 
 ### Internal Objects ####
 AtomInstructions = namedtuple('AtomInstructions', [
+    'name', # Name of atom, supposed to be unique
     'element', # Element symbol, e.g. 'Ca'
     'dispersion_real', # dispersion correction f'
     'dispersion_imag', # dispersion correction f''
@@ -729,7 +810,7 @@ AtomInstructions = namedtuple('AtomInstructions', [
     'cijk', # Gram Charlier 3rd Order C111, C222, C333, C112, C122, C113, C133, C223, C233, C123,
     'dijkl', # Gram Charlier 4th Order D1111, D2222, D3333, D1112, D1222, D1113, D1333, D2223, D2333, D1122, D1133, D2233, D1123, D1223, D1233
     'occupancy' # the occupancy
-], defaults=[None, None, None, None, None, None, None, None])
+], defaults= [None, None, None, None, None, None, None, None])
 
 
 RefinedParameter = namedtuple('RefinedParameter', [
@@ -780,13 +861,14 @@ UEquivConstraint = namedtuple('UEquivConstraint', [
 ])
 
 
-def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, atom_fit_tol=1e-7, reload_state=True, gpaw_dict=None, explicit_core=True):
+def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, atom_fit_tol=1e-7, reload_step=2, gpaw_dict=None, explicit_core=True):
     """
     Basic Hirshfeld atom refinement routine. Will calculate the electron density on a grid spanning the unit cell
     First will refine the scaling factor. Afterwards all other parameters defined by the parameters, 
     construction_instructions pair will be refined until 10 cycles are done or the optimizer is converged fully
     """
-    index_vec_h = hkl[['h', 'k', 'l']].values.copy()
+    print('Preparing')
+    index_vec_h = np.array(hkl[['h', 'k', 'l']].values.copy())
     type_symbols = [atom.element for atom in construction_instructions]
     constructed_xyz, constructed_uij, constructed_cijk, constructed_dijkl, constructed_occupancies = construct_values(parameters,
                                                                                                                       construction_instructions,
@@ -801,18 +883,22 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
         f0j_core += f_dash[:, None]
     else:
         f0j_core = None
-    print('building and compiling wR2 function')
-    calc_wr2 = calc_wr2_factory(cell_mat_m, symm_mats_vecs, np.array(hkl[['h', 'k', 'l']]), np.array(hkl['intensity']), np.array(hkl['stderr']), construction_instructions, f0j_core)
-    print('setting up gradients')
-    grad_calc_wr2 = jax.jit(jax.grad(calc_wr2))
-    #hess_calc_wr2 = jax.jacfwd(grad_calc_wr2)
+    print('  building least squares function')
+    calc_lsq = calc_lsq_factory(cell_mat_m, symm_mats_vecs, np.array(hkl[['h', 'k', 'l']]), np.array(hkl['intensity']), np.array(hkl['stderr']), construction_instructions, f0j_core)
+    print('  setting up gradients')
+    grad_calc_lsq = jax.jit(jax.grad(calc_lsq))
+    #hess_calc_lsq = jax.jacfwd(grad_calc_lsq)
 
-    print('calculating first atomic form factors')
+    print('step 0: calculating first atomic form factors')
+    if reload_step == 0:
+        restart = 'save.gpw'
+    else:
+        restart = None
 
     def minimize_scaling(x, fjs, parameters):
         for index, value in enumerate(x):
             parameters_new = jax.ops.index_update(parameters, jax.ops.index[index], value)
-        return calc_wr2(parameters_new, fjs), grad_calc_wr2(parameters_new, fjs)[:len(x)]
+        return calc_lsq(parameters_new, fjs), grad_calc_lsq(parameters_new, fjs)[:len(x)]
     fjs = fj_gpaw(cell_mat_m,
                   type_symbols,
                   constructed_xyz,
@@ -820,29 +906,31 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                   symm_mats_vecs,
                   gpaw_dict=gpaw_dict,
                   save='save.gpw',
+                  restart=restart,
                   explicit_core=explicit_core)
     if not explicit_core:
         fjs += f_dash[None,:,None]
-    print('Optimizing scaling')
-    x = minimize(minimize_scaling, args=(fjs, parameters.copy()), x0=parameters[0], jac=True)
+    print('  Optimizing scaling')
+    x = minimize(minimize_scaling, args=(fjs, parameters.copy()), x0=parameters[0], jac=True, options={'gtol': 1e-6 * index_vec_h.shape[0]})
     for index, val in enumerate(x.x):
         parameters = jax.ops.index_update(parameters, jax.ops.index[index], val)
-    print(f'wR2: {x.fun:8.6f}, nit: {x.nit}, {x.message}')
+    print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)):8.6f}, nit: {x.nit}, {x.message}')
 
     parameters_min1 = None
     r_opt_density = 1e10
     for refine in range(20):
         r_opt = 1e10
 
-        print('calculating wr2')
-        x = minimize(calc_wr2,
+        print(f'  calculating least squares sum')
+        x = minimize(calc_lsq,
                      parameters,
-                     jac=grad_calc_wr2,
-                     #hess=hess_calc_wr2,
+                     jac=grad_calc_lsq,
+                     #hess=hess_calc_lsq,
                      method='BFGS',
                      #method='trust-exact',
-                     args=(fjs))
-        print(f'wR2: {x.fun:8.6f}, nit: {x.nit}, {x.message}')
+                     args=(fjs),
+                     options={'gtol': 1e-7 * np.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)})
+        print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)):8.6f}, nit: {x.nit}, {x.message}')
         #if parameters_min1 is not None:
         #	parameters = (np.array(x.x) + 0.5 * parameters_min1) / 1.5
         parameters = np.array(x.x) 
@@ -857,11 +945,11 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
         constructed_xyz, constructed_uij, constructed_cijk, constructed_dijkl, constructed_occupancies = construct_values(parameters,
                                                                                                                           construction_instructions,
                                                                                                                           cell_mat_m)
-        if refine > 0 and reload_state:
+        if refine >= reload_step - 1:
             restart = 'save.gpw'  
         else:
             restart = None                                                                                                               
-        print('calculating new structure factors')
+        print(f'step {refine + 1}: calculating new structure factors')
         fjs = fj_gpaw(cell_mat_m,
                       type_symbols,
                       constructed_xyz,
@@ -869,12 +957,35 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                       symm_mats_vecs,
                       restart=restart,
                       gpaw_dict=gpaw_dict,
-                      save=restart,
+                      save='save.gpw',
                       explicit_core=explicit_core)
         if not explicit_core:
             fjs += f_dash[None,:,None]
+    print('Calculation finished. calculating variance-covariance matrix.')
+    var_cor_mat = calc_var_cor_mat(cell_mat_m, symm_mats_vecs, index_vec_h, construction_instructions, np.array(hkl['intensity']), np.array(hkl['stderr']), parameters, fjs, f0j_core)
     if explicit_core:
         fjs_return = fjs + f0j_core[None, :, :]
     else:
         fjs_return = fjs
-    return parameters, fjs_return, fjs, calc_wr2, grad_calc_wr2
+    return parameters, fjs_return, fjs, var_cor_mat
+
+
+def distance_with_esd(atom1_name, atom2_name, construction_instructions, parameters, var_cov_mat, cell_par, cell_std):
+    names = [instr.name for instr in construction_instructions]
+    index1 = names.index(atom1_name)
+    index2 = names.index(atom2_name)
+
+    def distance_func(parameters, cell_par):
+        cell_mat_m = cell_constants_to_M(*cell_par)
+        constructed_xyz, constructed_uij, constructed_cijk, constructed_dijkl, constructed_occupancies = construct_values(parameters, construction_instructions, cell_mat_m)
+        coord1 = constructed_xyz[index1]
+        coord2 = constructed_xyz[index2]
+
+        return np.linalg.norm(cell_mat_m @ (coord1 - coord2))
+    
+    distance = distance_func(parameters, cell_par)
+
+    jac1, jac2 = jax.grad(distance_func, [0, 1])(parameters, cell_par)
+
+    esd = np.sqrt(jac1[None, :] @ var_cov_mat @ jac1[None, :].T + jac2[None,:] @ np.diag(cell_std) @ jac2[None,:].T)
+    return distance, esd[0, 0]

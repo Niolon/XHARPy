@@ -510,7 +510,9 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             bound_atom, angle_atom, torsion_atom, distance, angle, torsion_angle_add, group_index, occupancy = torsion_add[atom['label']]
             if group_index not in known_torsion_indexes.keys():
                 known_torsion_indexes[group_index] = current_index
-                parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], torsion_add_starts[group_index])
+                #TODO: The torsion add_start needs to be calculated for each group
+                torsion_add_start = 0.0
+                parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], torsion_add_start)
                 current_index += 1
             bound_index = np.where(names == bound_atom)[0][0]
             angle_index = np.where(names == angle_atom)[0][0]
@@ -868,9 +870,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
     print('Preparing')
     index_vec_h = np.array(hkl[['h', 'k', 'l']].values.copy())
     type_symbols = [atom.element for atom in construction_instructions]
-    constructed_xyz, *_ = construct_values(parameters,
-                                                                                                                      construction_instructions,
-                                                                                                                      cell_mat_m)
+    constructed_xyz, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
 
     dispersion_real = np.array([atom.dispersion_real for atom in construction_instructions])
     dispersion_imag = np.array([atom.dispersion_imag for atom in construction_instructions])

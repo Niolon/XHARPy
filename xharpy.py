@@ -412,11 +412,14 @@ def calc_f(xyz, uij, cijk, dijkl, occupancies, index_vec_h, cell_mat_f, symm_mat
     """Calculate the overall structure factors for given indexes of hkl"""
     
     #einsum indexes: k: n_symm, z: n_atom, h: n_hkl
+    lengths_star = np.linalg.norm(cell_mat_f, axis=1)
     symm_mats_r, symm_vecs_t = symm_mats_vecs
-    vec_S = np.einsum('xy, zy -> zx', cell_mat_f.T, index_vec_h)
+    vec_S = np.einsum('xy, zy -> zx', cell_mat_f, index_vec_h)
     vec_S_symm = np.einsum('kxy, zy -> kzx', symm_mats_r, vec_S)
+    vec_h_symm = np.einsum('kxy, zy -> kzx', symm_mats_r, index_vec_h)
     u_mats = uij[:, np.array([[0, 5, 4], [5, 1, 3], [4, 3, 2]])]
-    vib_factors = np.exp(-2 * np.pi**2 * np.einsum('kha, khb, zab -> kzh', vec_S_symm, vec_S_symm, u_mats))
+    vib_factors = np.exp(-2 * np.pi**2 * np.einsum('kha, khb, zab -> kzh', vec_h_symm, vec_h_symm, u_mats * np.outer(lengths_star, lengths_star)))
+    #TODO Check if Gram-Charlier is correct this way
     gram_charlier3_indexes = np.array([[[0, 3, 5], [3, 4, 9], [5, 9, 6]],
                                        [[3, 4, 9], [4, 1, 7], [9, 7, 8]],
                                        [[5, 9, 6], [9, 7, 8], [6, 8, 2]]])

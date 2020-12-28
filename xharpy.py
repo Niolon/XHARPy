@@ -783,10 +783,12 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
     additional_parameters = 0
     if 'core' in refinement_dict:
         assert (f0j_source not in ('iam')), 'core description is not possible with this f0j source'
-        if refinement_dict['core'] in ('scale' or 'constant'):
+        if refinement_dict['core'] in ('scale', 'constant'):
             if refinement_dict['core'] == 'scale':
                 core_parameter = 1
                 additional_parameters += 1
+            else:
+                core_parameter = None
             f0j_core = jnp.array(calculate_f0j_core(cell_mat_m, type_symbols, constructed_xyz, index_vec_h, symm_mats_vecs))
             f0j_core += f_dash[:, None]
         elif refinement_dict['core'] == 'fft':
@@ -909,7 +911,10 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                                    extinction_parameter,
                                    wavelength)
     if f0j_core is not None:
-        fjs_return = parameters[core_parameter] * fjs + f0j_core[None, :, :]
+        if core_parameter is not None:
+            fjs_return = parameters[core_parameter] * fjs + f0j_core[None, :, :]
+        else:
+            fjs_return = fjs + f0j_core[None, :, :]
     else:
         fjs_return = fjs
     return parameters, fjs_return, fjs, var_cor_mat

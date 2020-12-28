@@ -327,7 +327,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], 1.0)
             current_index += 1
     if 'extinction' in refinement_dict:
-        if refinement_dict['extinction'] == 'secondary':
+        if refinement_dict['extinction'] != 'none':
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], 0.0)
             current_index += 1            
     construction_instructions = []
@@ -565,7 +565,6 @@ def resolve_instruction_esd(esds, instruction):
         return_value = jnp.nan # One could pick zero, but this should indicate that an error is not defined
     return return_value
 
-# TODO Write a constructs ESD function
 def construct_esds(var_cov_mat, construction_instructions):
     # TODO Build analogous to the distance calculation function to get esds for all non-primitive calculations
     esds = jnp.sqrt(np.diag(var_cov_mat))
@@ -590,11 +589,16 @@ def construct_esds(var_cov_mat, construction_instructions):
     occupancies = jnp.array([resolve_instruction_esd(esds, instruction.occupancy) for instruction in construction_instructions])
     return xyz, uij, cijk, dijkl, occupancies    
 
-def calc_lsq_factory(cell_mat_m, symm_mats_vecs, index_vec_h, intensities_obs, stds_obs, construction_instructions, fjs_core, core_parameter, extinction_parameter):
+def calc_lsq_factory(cell_mat_m, symm_mats_vecs, index_vec_h, intensities_obs, stds_obs, construction_instructions, fjs_core, core_parameter, extinction_parameter, wavelength):
     """Generates a calc_lsq function. Doing this with a factory function allows for both flexibility but also
     speed by automatic loop and conditional unrolling for all the stuff that is constant for a given structure."""
     construct_values_j = jax.jit(construct_values, static_argnums=(1,2))
     cell_mat_f = jnp.linalg.inv(cell_mat_m).T
+    if wavelength is not None:
+        # This means a shelxl style extinction correction as that is currently the only reason to pass a wavelength
+        sintheta = jnp.linalg.norm(jnp.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 * wavelength
+        sintwotheta = 2 * sintheta * jnp.sqrt(1 - sintheta**2)
+        extinction_factors = 0.001 * wavelength**3 / sintwotheta
     def function(parameters, fjs):
         xyz, uij, cijk, dijkl, occupancies = construct_values_j(parameters, construction_instructions, cell_mat_m)
         if fjs_core is not None:
@@ -618,7 +622,11 @@ def calc_lsq_factory(cell_mat_m, symm_mats_vecs, index_vec_h, intensities_obs, s
             intensities_calc = parameters[0] * jnp.abs(structure_factors)**2
         else:
             i_calc0 = jnp.abs(structure_factors)**2
-            intensities_calc = parameters[0] * i_calc0 / (1 + parameters[extinction_parameter] * i_calc0)
+            if wavelength is None:
+                # Secondary exctinction, as shelxl needs a wavelength                
+                intensities_calc = parameters[0] * i_calc0 / (1 + parameters[extinction_parameter] * i_calc0)
+            else:
+                intensities_calc = parameters[0] * i_calc0 / jnp.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0)
         weights = 1 / stds_obs**2
 
         lsq = jnp.sum(weights * (intensities_obs - intensities_calc)**2) 
@@ -626,9 +634,23 @@ def calc_lsq_factory(cell_mat_m, symm_mats_vecs, index_vec_h, intensities_obs, s
     return jax.jit(function)
 
 
-def calc_var_cor_mat(cell_mat_m, symm_mats_vecs, index_vec_h, construction_instructions, intensities_obs, stds_obs, parameters, fjs, fjs_core, core_parameter, extinction_parameter):
+def calc_var_cor_mat(cell_mat_m,
+                     symm_mats_vecs,
+                     index_vec_h,
+                     construction_instructions,
+                     intensities_obs, stds_obs,
+                     parameters, fjs,
+                     fjs_core,
+                     core_parameter,
+                     extinction_parameter,
+                     wavelength):
     construct_values_j = jax.jit(construct_values, static_argnums=(1,2))
     cell_mat_f = jnp.linalg.inv(cell_mat_m).T
+    if wavelength is not None:
+        # This means a shelxl style extinction correction as that is currently the only reason to pass a wavelength
+        sintheta = jnp.linalg.norm(jnp.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 * wavelength
+        sintwotheta = 2 * sintheta * jnp.sqrt(1 - sintheta**2)
+        extinction_factors = 0.001 * wavelength**3 / sintwotheta
     def function(parameters, fjs, index):
         xyz, uij, cijk, dijkl, occupancies = construct_values_j(parameters, construction_instructions, cell_mat_m)
         if fjs_core is not None:
@@ -652,8 +674,12 @@ def calc_var_cor_mat(cell_mat_m, symm_mats_vecs, index_vec_h, construction_instr
             intensities_calc = parameters[0] * jnp.abs(structure_factors)**2
         else:
             i_calc0 = jnp.abs(structure_factors)**2
-            intensities_calc = (parameters[0] * i_calc0 / (1 + parameters[extinction_parameter] * i_calc0))[0]
-        return intensities_calc
+            if wavelength is None:
+                # Secondary exctinction, as shelxl needs a wavelength                
+                intensities_calc = parameters[0] * i_calc0 / (1 + parameters[extinction_parameter] * i_calc0)
+            else:
+                intensities_calc = parameters[0] * i_calc0 / jnp.sqrt(1 + parameters[extinction_parameter] * extinction_factors[index] * i_calc0)
+        return intensities_calc[0]
     grad_func = jax.jit(jax.grad(function))
 
     collect = jnp.zeros((len(parameters), len(parameters)))
@@ -661,7 +687,7 @@ def calc_var_cor_mat(cell_mat_m, symm_mats_vecs, index_vec_h, construction_instr
         val = grad_func(parameters, jnp.array(fjs), index)[:, None]
         collect += weight * (val @ val.T)
 
-    lsq_func = calc_lsq_factory(cell_mat_m, symm_mats_vecs, index_vec_h, intensities_obs, stds_obs, construction_instructions, fjs_core, core_parameter, extinction_parameter)
+    lsq_func = calc_lsq_factory(cell_mat_m, symm_mats_vecs, index_vec_h, intensities_obs, stds_obs, construction_instructions, fjs_core, core_parameter, extinction_parameter, wavelength)
 
     chi_sq = lsq_func(parameters, fjs) / (index_vec_h.shape[0] - len(parameters))
 
@@ -785,7 +811,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
             wavelength = refinement_dict['wavelength']
             additional_parameters += 1
         else:
-            raise ValueError('Choose either shelx, secondary or none for extinction description')
+            raise ValueError('Choose either shelxl, secondary or none for extinction description')
     else:
         extinction_parameter = None
 
@@ -870,12 +896,23 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
         if f0j_core is None:
             fjs += f_dash[None,:,None]
     print('Calculation finished. calculating variance-covariance matrix.')
-    #var_cor_mat = calc_var_cor_mat(cell_mat_m, symm_mats_vecs, index_vec_h, construction_instructions, jnp.array(hkl['intensity']), jnp.array(hkl['stderr']), parameters, fjs, f0j_core, core_parameter, extinction_parameter)
+    var_cor_mat = calc_var_cor_mat(cell_mat_m,
+                                   symm_mats_vecs,
+                                   index_vec_h,
+                                   construction_instructions,
+                                   jnp.array(hkl['intensity']),
+                                   jnp.array(hkl['stderr']),
+                                   parameters,
+                                   fjs,
+                                   f0j_core,
+                                   core_parameter,
+                                   extinction_parameter,
+                                   wavelength)
     if f0j_core is not None:
         fjs_return = parameters[core_parameter] * fjs + f0j_core[None, :, :]
     else:
         fjs_return = fjs
-    return parameters, fjs_return, fjs, #var_cor_mat
+    return parameters, fjs_return, fjs, var_cor_mat
 
 
 def distance_with_esd(atom1_name, atom2_name, construction_instructions, parameters, var_cov_mat, cell_par, cell_std):

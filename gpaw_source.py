@@ -280,6 +280,8 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
                 h_rot, k_rot, l_rot = np.einsum('xy, zy -> zx', symm_matrix, index_vec_h).astype(np.int64).T
                 f0j[symm_index, atom_index, :] = f0j_sum[h_rot, k_rot, l_rot]
     else:
+        #TODO Is a discrete Fourier Transform just of the hkl we need possibly faster? Can we then interpolate the density to get even better factors?
+        # This should also save memory
         h_vec, k_vec, l_vec = index_vec_h.T
         already_known = {}
         for atom_index, symm_atom_indexes in enumerate(f0j_indexes.T):

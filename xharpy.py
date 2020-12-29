@@ -183,6 +183,15 @@ def cell_constants_to_M(a, b, c, alpha, beta, gamma):
     return M.T
 
 
+def ucif2ucart(cell_mat_m, u_mats):
+    # see R. W. Grosse-Kunstleve and P. D. Adams J. Appl. Cryst 2002, p.478 eq. 3a + 4a
+    cell_mat_f = np.linalg.inv(cell_mat_m).T
+    cell_mat_n = np.eye(3) * np.linalg.norm(cell_mat_f, axis=1)
+
+    u_star = np.einsum('ab, zbc, cd -> zad', cell_mat_n, u_mats, cell_mat_n.T)
+    return np.einsum('ab, zbc, cd -> zad', cell_mat_m, u_star, cell_mat_m.T)
+
+
 def symm_to_matrix_vector(instruction):
     """
     Converts a instruction such as -x, -y, 0.5+z to a symmetry matrix and a 
@@ -259,9 +268,9 @@ def calc_f(xyz, uij, cijk, dijkl, occupancies, index_vec_h, cell_mat_f, symm_mat
                                         [[3, 4, 9], [4, 1, 7], [9, 7, 8]],
                                         [[5, 9, 6], [9, 7, 8], [6, 8, 2]]])
     cijk_inner_sum = jnp.einsum('kha, khb, khc, zabc -> kzh',
-                               vec_S_symm,
-                               vec_S_symm,
-                               vec_S_symm,
+                               vec_h_symm,
+                               vec_h_symm,
+                               vec_h_symm,
                                cijk[:, gram_charlier3_indexes])
     gram_charlier3 = (4.0j * jnp.pi**3 / 3) * cijk_inner_sum
     gram_charlier4_indexes = jnp.array([[[[0, 3, 5],    [3, 9, 12],   [5, 12, 10]],
@@ -274,10 +283,10 @@ def calc_f(xyz, uij, cijk, dijkl, occupancies, index_vec_h, cell_mat_f, symm_mat
                                          [[12, 13, 14], [13, 7, 11], [14, 11, 8]],
                                          [[10, 14, 6], [14, 11, 8], [6, 8, 2]]]])
     dijkl_inner_sum = jnp.einsum('kha, khb, khc, khd, zabcd -> kzh',
-                                 vec_S_symm,
-                                 vec_S_symm,
-                                 vec_S_symm,
-                                 vec_S_symm,
+                                 vec_h_symm,
+                                 vec_h_symm,
+                                 vec_h_symm,
+                                 vec_h_symm,
                                  dijkl[:, gram_charlier4_indexes])
     gram_charlier4 = (2.0 * jnp.pi**2 / 3.0) * dijkl_inner_sum
     gc_factor = 1 - gram_charlier3 + gram_charlier4

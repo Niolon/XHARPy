@@ -214,6 +214,12 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
         del(gpaw_dict['average_symmequiv'])
     else:
         average_symmequiv = False
+    if 'wall_sampling' in gpaw_dict:
+        wall_sampling = gpaw_dict['wall_sampling']
+        del(gpaw_dict['wall_sampling'])
+    else:
+        wall_sampling = False
+
     #assert not (not average_symmequiv and not do_not_move)
     symm_positions, symm_symbols, inv_indexes = expand_symm_unique(element_symbols,
                                                                    positions,
@@ -266,6 +272,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
     f0j = np.zeros((symm_mats_vecs[0].shape[0], positions.shape[0], index_vec_h.shape[0]), dtype=np.complex128)
 
     if average_symmequiv:
+        assert not wall_sampling, 'Averaging symmetries is currently not supported with wall sampling'
         for atom_index, symm_atom_indexes in enumerate(f0j_indexes.T):
             f0j_sum = np.zeros_like(h, dtype=np.complex128)
             for symm_matrix, symm_atom_index in zip(symm_mats_vecs[0], symm_atom_indexes):
@@ -281,7 +288,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
                 f0j[symm_index, atom_index, :] = f0j_sum[h_rot, k_rot, l_rot]
     else:
         #TODO Is a discrete Fourier Transform just of the hkl we need possibly faster? Can we then interpolate the density to get even better factors?
-        # This should also save memory
+        # This could also save memory
         h_vec, k_vec, l_vec = index_vec_h.T
         already_known = {}
         for atom_index, symm_atom_indexes in enumerate(f0j_indexes.T):
@@ -293,11 +300,16 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
                 else:
                     h_density = density * partitioning.hdensity.get_density([symm_atom_index], gridrefinement=gridrefinement, skip_core=explicit_core)[0] / overall_hdensity
                     frac_position = symm_positions[symm_atom_index]
-                    phase_to_zero = np.exp(-2j * np.pi * (frac_position[0] * h_vec + frac_position[1] * k_vec + frac_position[2] * l_vec))
+                    if not wall_sampling:
+                        phase_to_zero = np.exp(-2j * np.pi * (frac_position[0] * h_vec + frac_position[1] * k_vec + frac_position[2] * l_vec))
+                    else:
+                        phase_to_zero = 1
                     f0j[symm_index, atom_index, :] = (np.fft.ifftn(h_density) * np.prod(h.shape))[h_vec, k_vec, l_vec] * phase_to_zero
                     already_known[symm_atom_index] = (symm_index, atom_index)
-
-    return f0j
+    if wall_sampling:
+        return f0j, density.shape
+    else:
+        return f0j, None
 
 
 def f_core_from_spline(spline, g_k, k=13):

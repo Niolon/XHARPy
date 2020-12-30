@@ -307,7 +307,7 @@ def calc_f(xyz, uij, cijk, dijkl, occupancies, index_vec_h, cell_mat_f, symm_mat
 
         phases = jnp.exp(-2j * jnp.pi * jnp.einsum('khx, zx -> kzh', vec_h_symm / jnp.array(n_gd), uvw0)) * val
     else:
-        phases = jnp.exp(-2j * jnp.pi * jnp.einsum('kzx, hx -> kzh', positions_symm, index_vec_h))
+        phases = jnp.exp(2j * jnp.pi * jnp.einsum('kzx, hx -> kzh', positions_symm, index_vec_h))
     structure_factors = jnp.sum(occupancies[None, :] *  jnp.einsum('kzh, kzh, kzh, kzh -> hz', phases,  vib_factors, fjs, gc_factor), axis=-1)
     #structure_factors = jnp.sum(occupancies[None, :] * vib_factors * jnp.einsum('hzk, kzh -> hz', phases, fjs), axis=-1)
     return structure_factors

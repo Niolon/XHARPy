@@ -302,9 +302,9 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
                     frac_position = symm_positions[symm_atom_index]
                     if not wall_sampling:
                         phase_to_zero = np.exp(-2j * np.pi * (frac_position[0] * h_vec + frac_position[1] * k_vec + frac_position[2] * l_vec))
+                        f0j[symm_index, atom_index, :] = (np.fft.ifftn(h_density) * np.prod(h.shape))[h_vec, k_vec, l_vec] * phase_to_zero
                     else:
-                        phase_to_zero = 1
-                    f0j[symm_index, atom_index, :] = (np.fft.ifftn(h_density) * np.prod(h.shape))[h_vec, k_vec, l_vec] * phase_to_zero
+                        f0j[symm_index, atom_index, :] = (np.fft.fftn(h_density))[h_vec, k_vec, l_vec]                    
                     already_known[symm_atom_index] = (symm_index, atom_index)
     if wall_sampling:
         return f0j, density.shape

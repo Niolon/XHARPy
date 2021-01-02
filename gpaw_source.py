@@ -222,8 +222,8 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
 
     #assert not (not average_symmequiv and not do_not_move)
     symm_positions, symm_symbols, inv_indexes = expand_symm_unique(element_symbols,
-                                                                   positions,
-                                                                   cell_mat_m,
+                                                                   np.array(positions),
+                                                                   np.array(cell_mat_m),
                                                                    symm_mats_vecs)
     if restart is None:
         atoms = crystal(symbols=symm_symbols,
@@ -278,7 +278,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
             for symm_matrix, symm_atom_index in zip(symm_mats_vecs[0], symm_atom_indexes):
                 h_density = density * partitioning.hdensity.get_density([symm_atom_index], gridrefinement=gridrefinement, skip_core=explicit_core)[0] / overall_hdensity
                 frac_position = symm_positions[symm_atom_index]
-                h_rot, k_rot, l_rot = np.einsum('xy, y... -> x...', symm_matrix, np.array((h, k, l))).astype(np.int64)
+                h_rot, k_rot, l_rot = np.einsum('yx, y... -> x...', symm_matrix, np.array((h, k, l))).astype(np.int64)
                 phase_to_zero = np.exp(-2j * np.pi * (frac_position[0] * h + frac_position[1] * k + frac_position[2] * l))
                 f0j_sum += (np.fft.ifftn(h_density) * phase_to_zero * np.prod(h.shape))[h_rot, k_rot, l_rot]
             f0j_sum /= len(symm_atom_indexes)

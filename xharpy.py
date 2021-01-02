@@ -432,7 +432,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             raise ValueError('Unknown ADP type in cif. Please use the Uiso or Uani convention')
 
         if 'C_111' in atom.keys():
-            cijk = atom[['C111', 'C222', 'C333', 'C112', 'C122', 'C113', 'C133', 'C223', 'C233', 'C123']].values.astype(np.float64)
+            cijk = atom[['C_111', 'C_222', 'C_333', 'C_112', 'C_122', 'C_113', 'C_133', 'C_223', 'C_233', 'C_123']].values.astype(np.float64)
         else:
             cijk = jnp.zeros(10)
 
@@ -456,7 +456,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             cijk_instructions = tuple(FixedParameter(value=0.0) for index in range(10))
 
         if 'D_1111' in atom.keys():
-            dijkl = atom[['D1111', 'D2222', 'D3333', 'D1112', 'D1222', 'D1113', 'D1333', 'D2223', 'D2333', 'D1122', 'D1133', 'D2233', 'D1123', 'D1223', 'D1233']].values.astype(np.float64)
+            dijkl = atom[['D_1111', 'D_2222', 'D_3333', 'D_1112', 'D_1222', 'D_1113', 'D_1333', 'D_2223', 'D_2333', 'D_1122', 'D_1133', 'D_2233', 'D_1123', 'D_1223', 'D_1233']].values.astype(np.float64)
         else:
             dijkl = jnp.zeros(15)
 
@@ -509,21 +509,21 @@ def construct_values(parameters, construction_instructions, cell_mat_m):
     cell_mat_g_star = jnp.einsum('ja, jb -> ab', cell_mat_f, cell_mat_f)
     #n_atoms = len(construction_instructions)
     xyz = jnp.array(
-        [[resolve_instruction(parameters, inner_instruction) for inner_instruction in instruction.xyz]
+        [jnp.array([resolve_instruction(parameters, inner_instruction) for inner_instruction in instruction.xyz])
           if type(instruction.xyz) in (tuple, list) else jnp.full(3, -9999.9) for instruction in construction_instructions]
     )
     uij = jnp.array(
-        [[resolve_instruction(parameters, inner_instruction) for inner_instruction in instruction.uij]
+        [jnp.array([resolve_instruction(parameters, inner_instruction) for inner_instruction in instruction.uij])
           if type(instruction.uij) in (tuple, list) else jnp.full(6, -9999.9) for instruction in construction_instructions]
     )
     
     cijk = jnp.array(
-        [[resolve_instruction(parameters, inner_instruction) for inner_instruction in instruction.cijk]
+        [jnp.array([resolve_instruction(parameters, inner_instruction) for inner_instruction in instruction.cijk])
           if type(instruction.cijk) in (tuple, list) else jnp.full(6, -9999.9) for instruction in construction_instructions]
     )
     
     dijkl = jnp.array(
-        [[resolve_instruction(parameters, inner_instruction) for inner_instruction in instruction.dijkl]
+        [jnp.array([resolve_instruction(parameters, inner_instruction) for inner_instruction in instruction.dijkl])
           if type(instruction.dijkl) in (tuple, list) else jnp.full(6, -9999.9) for instruction in construction_instructions]
     )
     occupancies = jnp.array([resolve_instruction(parameters, instruction.occupancy) for instruction in construction_instructions])    
@@ -631,17 +631,20 @@ def calc_lsq_factory(cell_mat_m, symm_mats_vecs, index_vec_h, intensities_obs, s
         )
         if extinction_parameter is None:
             intensities_calc = parameters[0] * jnp.abs(structure_factors)**2
+            #restraint_addition = 0
         else:
             i_calc0 = jnp.abs(structure_factors)**2
             if wavelength is None:
                 # Secondary exctinction, as shelxl needs a wavelength                
                 intensities_calc = parameters[0] * i_calc0 / (1 + parameters[extinction_parameter] * i_calc0)
+                #restraint_addition = 0
             else:
                 intensities_calc = parameters[0] * i_calc0 / jnp.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0)
+                #restraint_addition = 1.0 / 0.1 * parameters[extinction_parameter]**2
         weights = 1 / stds_obs**2
 
         lsq = jnp.sum(weights * (intensities_obs - intensities_calc)**2) 
-        return lsq
+        return lsq #+ restraint_addition
     return jax.jit(function)
 
 
@@ -831,6 +834,11 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
     else:
         extinction_parameter = None
 
+    if 'max_diff_recalc' in refinement_dict:
+        max_distance_diff = refinement_dict['max_distance_recalc']
+    else:
+        max_distance_diff = 1e-6
+
     print('  calculating first atomic form factors')
     if reload_step == 0:
         restart = 'save.gpw'
@@ -848,6 +856,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                          explicit_core=f0j_core is not None)
     if f0j_core is None:
         fjs += f_dash[None,:,None]
+    xyz_density = constructed_xyz
 
     print('  building least squares function')
     calc_lsq = calc_lsq_factory(cell_mat_m,
@@ -896,24 +905,28 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
             #parameters_min1 = jnp.array(x.x)
         else:
             break 
-            
+        
         constructed_xyz, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
         if refine >= reload_step - 1:
             restart = 'save.gpw'  
         else:
-            restart = None                                                                                                               
-        print(f'step {refine + 1}: calculating new structure factors')
-        fjs, n_gd = calc_f0j(cell_mat_m,
-                            type_symbols,
-                            constructed_xyz,
-                            index_vec_h,
-                            symm_mats_vecs,
-                            restart=restart,
-                            gpaw_dict=options_dict,
-                            save='save.gpw',
-                            explicit_core=f0j_core is not None)
-        if f0j_core is None:
-            fjs += f_dash[None,:,None]
+            restart = None  
+        if np.max(np.linalg.norm(np.einsum('xy, zy -> zx', cell_mat_m, constructed_xyz - xyz_density), axis=-1)) > max_distance_diff:
+            print(f'step {refine + 1}: calculating new structure factors')
+            fjs, n_gd = calc_f0j(cell_mat_m,
+                                type_symbols,
+                                constructed_xyz,
+                                index_vec_h,
+                                symm_mats_vecs,
+                                restart=restart,
+                                gpaw_dict=options_dict,
+                                save='save.gpw',
+                                explicit_core=f0j_core is not None)
+            if f0j_core is None:
+                fjs += f_dash[None,:,None]
+            xyz_density = constructed_xyz
+        else:
+            print(f'step {refine + 1}: atom_positions are converged. No new structure factor calculation.')
     print('Calculation finished. calculating variance-covariance matrix.')
     var_cor_mat = calc_var_cor_mat(cell_mat_m,
                                    symm_mats_vecs,

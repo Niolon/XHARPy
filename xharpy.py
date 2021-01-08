@@ -898,9 +898,9 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                      options={'gtol': 1e-7 * jnp.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)})
         print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)):8.6f}, nit: {x.nit}, {x.message}')
         parameters = jnp.array(x.x) 
-        if x.nit == 0:
-            break
-        elif x.fun < r_opt_density or refine < 10:
+        #if x.nit == 0:
+        #    break
+        if x.fun < r_opt_density or refine < 10:
             r_opt_density = x.fun
             #parameters_min1 = jnp.array(x.x)
         else:

@@ -27,10 +27,16 @@ class HirshfeldDensity(RealSpaceDensity):
     def __init__(self, calculator, log=None):
         self.calculator = calculator
         dens = calculator.density
-        RealSpaceDensity.__init__(self, dens.gd, dens.finegd,
-                                  dens.nspins, collinear=True, charge=0.0,
-                                  stencil=dens.stencil,
-                                  redistributor=dens.redistributor)
+        try:
+            RealSpaceDensity.__init__(self, dens.gd, dens.finegd,
+                                    dens.nspins, collinear=True, charge=0.0,
+                                    stencil=dens.stencil, 
+                                    redistributor=dens.redistributor)
+        except:
+            RealSpaceDensity.__init__(self, dens.gd, dens.finegd,
+                                    dens.nspins, collinear=True, charge=0.0,
+                                    stencil=2, 
+                                    redistributor=dens.redistributor)
         self.log = GPAWLogger(world=world)
         if log is None:
             self.log.fd = None
@@ -260,7 +266,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
         try:
             calc.write(save, mode='all')
         except:
-            print('Could not save to file')
+            print('  Could not save to file')
 
     print('  calculated density with energy', e1)
 

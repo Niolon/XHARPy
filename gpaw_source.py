@@ -227,7 +227,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
         wall_sampling = False
 
     #assert not (not average_symmequiv and not do_not_move)
-    symm_positions, symm_symbols, inv_indexes = expand_symm_unique(element_symbols,
+    symm_positions, symm_symbols, f0j_indexes = expand_symm_unique(element_symbols,
                                                                    np.array(positions),
                                                                    np.array(cell_mat_m),
                                                                    symm_mats_vecs)
@@ -274,7 +274,6 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
     partitioning.initialize()
     overall_hdensity = partitioning.hdensity.get_density(list(range(symm_positions.shape[0])), gridrefinement=gridrefinement, skip_core=explicit_core)[0]
     h, k, l = np.meshgrid(*map(lambda n: np.fft.fftfreq(n, 1/n).astype(np.int64), density.shape), indexing='ij')
-    f0j_indexes = inv_indexes.reshape((symm_mats_vecs[0].shape[0], positions.shape[0]))
     f0j = np.zeros((symm_mats_vecs[0].shape[0], positions.shape[0], index_vec_h.shape[0]), dtype=np.complex128)
 
     if average_symmequiv:

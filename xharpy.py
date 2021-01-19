@@ -233,16 +233,29 @@ def symm_to_matrix_vector(instruction):
 
 
 def expand_symm_unique(type_symbols, coordinates, cell_mat_m, symm_mats_vec):
-    #TODO: Make clean so that only position with itself is checked
+    """Expand the type_symbols and coordinates for one complete unit cell
+    Will return an atom coordinate on a special position only once 
+    also returns the matrix inv_indexes with shape n_symm * n_at for
+    reconstructing the complete atom list including multiples of special position atoms"""
     symm_mats_r, symm_vecs_t = symm_mats_vec
     pos_frac0 = coordinates % 1
-    positions = np.zeros((0, 3))
+    un_positions = np.zeros((0, 3))
+    n_atoms = 0
     type_symbols_symm = []
-    for coords in (np.einsum('axy, zy -> azx', symm_mats_r, pos_frac0)+ symm_vecs_t[:,None,:]) % 1:
-        positions = np.concatenate((positions, coords % 1))
-        type_symbols_symm += type_symbols
-    _, unique_indexes, inv_indexes = np.unique(np.round(np.einsum('xy, zy -> zx', cell_mat_m, positions), 2), axis=0, return_index=True, return_inverse=True)
-    return positions[unique_indexes,:].copy(), [type_symbols_symm[index] for index in unique_indexes], inv_indexes
+    inv_indexes = np.zeros((symm_mats_r.shape[0], coordinates.shape[0]), dtype=np.int64)
+    # Only check atom with itself
+    for index, (pos0, type_symbol) in enumerate(zip(pos_frac0, type_symbols)):
+        symm_positions = (np.einsum('kxy, y -> kx', symm_mats_r, pos0) + symm_vecs_t) % 1
+        _, unique_indexes, inv_indexes_at = np.unique(np.round(np.einsum('xy, zy -> zx', cell_mat_m, symm_positions), 5), axis=0, return_index=True, return_inverse=True)
+        # make sure that the original position is first in the position_list for each atom
+        index_argsort = np.argsort(unique_indexes)
+        unique_indexes = unique_indexes[index_argsort]
+        inv_indexes_at = index_argsort[inv_indexes_at]
+        un_positions = np.concatenate((un_positions, symm_positions[unique_indexes]))
+        type_symbols_symm += [type_symbol] * unique_indexes.shape[0]
+        inv_indexes[:,index] = inv_indexes_at + n_atoms 
+        n_atoms += unique_indexes.shape[0]
+    return un_positions.copy(), type_symbols_symm, inv_indexes
 
 
 @jax.jit
@@ -795,6 +808,8 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
         from .gpaw_source import calc_f0j, calculate_f0j_core
     elif f0j_source == 'iam':
         from .iam_source import calc_f0j
+    elif f0j_source == 'gpaw_spherical':
+        from .gpaw_spherical_source import calc_f0j, calculate_f0j_core
 
 
     additional_parameters = 0
@@ -825,7 +840,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
             extinction_parameter = None
             wavelength = None
         elif refinement_dict['extinction'] == 'shelxl':
-            assert 'wavelength' in refinement_dict
+            assert 'wavelength' in refinement_dict, 'Wavelength needs to be defined in refinement_dict for shelxl extinction'
             extinction_parameter = additional_parameters + 1
             wavelength = refinement_dict['wavelength']
             additional_parameters += 1
@@ -833,6 +848,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
             raise ValueError('Choose either shelxl, secondary or none for extinction description')
     else:
         extinction_parameter = None
+        wavelength = None
 
     if 'max_diff_recalc' in refinement_dict:
         max_distance_diff = refinement_dict['max_distance_recalc']
@@ -892,11 +908,11 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                      parameters,
                      jac=grad_calc_lsq,
                      #hess=hess_calc_lsq,
-                     method='BFGS',
+                     #method='COBYLA',
                      #method='trust-exact',
                      args=(jnp.array(fjs), jnp.array(constructed_xyz)),
-                     options={'gtol': 1e-7 * jnp.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)})
-        print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)):8.6f}, nit: {x.nit}, {x.message}')
+                     options={'gtol': 1e-8 * jnp.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)})
+        print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)):8.6f}, {x.message}')
         parameters = jnp.array(x.x) 
         #if x.nit == 0:
         #    break

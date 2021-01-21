@@ -104,22 +104,24 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
     f0j = np.zeros((symm_mats_r.shape[0], inv_indexes.shape[1], index_vec_h.shape[0]), dtype=np.complex128)
     vec_s = np.einsum('xy, zy -> zx', np.linalg.inv(cell_mat_m / Bohr).T, index_vec_h)
     vec_s_norm = np.linalg.norm(vec_s, axis=-1)
+    vec_s_symm = np.einsum('kxy, zx -> kzy', symm_mats_r, vec_s)
 
     r_low = 1e-10
+    l_fit_max = 16
 
     for z_atom_index, grid_atom_index in enumerate(inv_indexes[0]):
         setup_at = calc.setups[grid_atom_index]
 
         spline_at = spline_dict[setup_at.symbol]
-        distance_cut = get_cov_radii(setup_at.Z) / Bohr * 2
-        powergrid = PowerRTransform(r_low, distance_cut).transform_1d_grid(HortonLinear(int(distance_cut * 40)))
+        distance_cut = get_cov_radii(setup_at.Z)[0] / Bohr * 2 + 2.0
+        powergrid = PowerRTransform(r_low, distance_cut).transform_1d_grid(HortonLinear(int(distance_cut * 30)))
         center = atoms.get_positions()[grid_atom_index] / Bohr
         sp_grid = AtomGrid.from_predefined(setup_at.Z, powergrid, 'fine', center=center)
-        print(f'  Integrating atom {z_atom_index + 1}/{len(inv_indexes[0])}, n(Points): {sp_grid.points.shape[0]}')
+        print(f'  Integrating atom {z_atom_index + 1}/{len(inv_indexes[0])}, n(Points): {sp_grid.points.shape[0]}, r(max): {np.round(distance_cut * Bohr, 4)} Ang')
         xxx, yyy, zzz = np.meshgrid(np.arange(-2, 3, 1), np.arange(-2, 3, 1), np.arange(-2, 3, 1))
         supercell = np.array((np.ravel(xxx), np.ravel(yyy), np.ravel(zzz)))
 
-        grid = np.concatenate((np.array([[0.0, 0.0, 0.0]]), sp_grid.points)).T
+        grid = np.concatenate((np.array([sp_grid.center]), sp_grid.points)).T
         dens_mats = [calc.wfs.calculate_density_matrix(kpt.f_n, kpt.C_nM) for kpt in calc.wfs.kpt_u]
         atomic_wfns_gd = np.zeros((dens_mats[0].shape[0], *grid.shape[1:]))
         density_atom = np.zeros(grid.shape[1:])
@@ -173,21 +175,24 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
             direction_cosines[np.isnan(direction_cosines)] = 0
         h_density = density_atom * spline_at(distances) / collect_har
         if explicit_core:
-            print(f'  Integrated Hirshfeld Charge: {setup_at.Z - setup_at.Nc - sp_grid.integrate(h_density[1:])}')
+            print(f'  Integrated Hirshfeld Charge: {np.round(setup_at.Z - setup_at.Nc - sp_grid.integrate(h_density[1:]), 5)}')
         else:
-            print(f'  Integrated Hirshfeld Charge: {setup_at.Z - sp_grid.integrate(h_density[1:])}')
+            print(f'  Integrated Hirshfeld Charge: {np.round(setup_at.Z - sp_grid.integrate(h_density[1:]), 5)}')
         radial_values = np.array([h_density[0]] + [np.sum(h_density[i1+ 1:i2 + 1] * sp_grid.weights[i1:i2]) / np.sum(sp_grid.weights[i1:i2])
                                 for i1, i2 in zip(sp_grid.indices[:-1], sp_grid.indices[1:])])
         radial_spl = interp1d(np.concatenate(([0], sp_grid.rgrid.points)),
                             radial_values, 'cubic', fill_value=(np.nan, 0), bounds_error=False)
-        lsq_a = radial_spl(distances)[:, None] * np.array([distances**exponent * y_f(direction_cosines) for (exponent, _), y_f in ylm_func_dict.items()]).T
+        lsq_a = radial_spl(distances)[:, None] * np.array([distances**exponent * y_f(direction_cosines) 
+                                                          for (exponent, _), y_f in ylm_func_dict.items() if exponent <= l_fit_max]).T
         lsq_x, lsq_resi, *_ = np.linalg.lstsq(lsq_a,# * sp_grid.weights[:, None],
                                               h_density,# * sp_grid.weights,
                                               rcond=None)
 
+        j_l_int_dict = {l: f_from_spline(radial_spl, vec_s_norm, l=l, r_min=0, r_max=distance_cut, k=12) for l in range(l_fit_max + 1)}
         for ((l, _), y_func), par in zip(ylm_func_dict.items(), lsq_x):
-            j_l_int = f_from_spline(radial_spl, vec_s_norm, l=l, r_min=0, r_max=distance_cut, k=12)
-            f0j[:, z_atom_index, :] += par * 4 * np.pi * (1j)**l * j_l_int * y_func(np.einsum('kxy, zx -> kzy', symm_mats_r, vec_s / vec_s_norm[:, None]))
+            if l > l_fit_max:
+                continue
+            f0j[:, z_atom_index, :] += par * 4 * np.pi * (1j)**l * j_l_int_dict[l] * y_func(vec_s_symm / vec_s_norm[:, None])
     return f0j, None
 
 

@@ -910,6 +910,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                      #hess=hess_calc_lsq,
                      #method='COBYLA',
                      #method='trust-exact',
+                     method='BFGS',
                      args=(jnp.array(fjs), jnp.array(constructed_xyz)),
                      options={'gtol': 1e-8 * jnp.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)})
         print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)):8.6f}, {x.message}')

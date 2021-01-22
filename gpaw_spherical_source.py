@@ -117,7 +117,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
         powergrid = PowerRTransform(r_low, distance_cut).transform_1d_grid(HortonLinear(int(distance_cut * 30)))
         center = atoms.get_positions()[grid_atom_index] / Bohr
         sp_grid = AtomGrid.from_predefined(setup_at.Z, powergrid, 'fine', center=center)
-        print(f'  Integrating atom {z_atom_index + 1}/{len(inv_indexes[0])}, n(Points): {sp_grid.points.shape[0]}, r(max): {np.round(distance_cut * Bohr, 4)} Ang')
+        print(f'  Integrating atom {z_atom_index + 1}/{len(inv_indexes[0])}, n(Points): {sp_grid.points.shape[0]}, r(max): {distance_cut * Bohr:6.4f} Ang')
         xxx, yyy, zzz = np.meshgrid(np.arange(-2, 3, 1), np.arange(-2, 3, 1), np.arange(-2, 3, 1))
         supercell = np.array((np.ravel(xxx), np.ravel(yyy), np.ravel(zzz)))
 
@@ -175,9 +175,9 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
             direction_cosines[np.isnan(direction_cosines)] = 0
         h_density = density_atom * spline_at(distances) / collect_har
         if explicit_core:
-            print(f'  Integrated Hirshfeld Charge: {np.round(setup_at.Z - setup_at.Nc - sp_grid.integrate(h_density[1:]), 5)}')
+            print(f'  Integrated Hirshfeld Charge: {setup_at.Z - setup_at.Nc - sp_grid.integrate(h_density[1:]):6.4f}')
         else:
-            print(f'  Integrated Hirshfeld Charge: {np.round(setup_at.Z - sp_grid.integrate(h_density[1:]), 5)}')
+            print(f'  Integrated Hirshfeld Charge: {setup_at.Z - sp_grid.integrate(h_density[1:]):6.4f}')
         radial_values = np.array([h_density[0]] + [np.sum(h_density[i1+ 1:i2 + 1] * sp_grid.weights[i1:i2]) / np.sum(sp_grid.weights[i1:i2])
                                 for i1, i2 in zip(sp_grid.indices[:-1], sp_grid.indices[1:])])
         radial_spl = interp1d(np.concatenate(([0], sp_grid.rgrid.points)),

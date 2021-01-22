@@ -247,10 +247,6 @@ def expand_symm_unique(type_symbols, coordinates, cell_mat_m, symm_mats_vec):
     for index, (pos0, type_symbol) in enumerate(zip(pos_frac0, type_symbols)):
         symm_positions = (np.einsum('kxy, y -> kx', symm_mats_r, pos0) + symm_vecs_t) % 1
         _, unique_indexes, inv_indexes_at = np.unique(np.round(np.einsum('xy, zy -> zx', cell_mat_m, symm_positions), 5), axis=0, return_index=True, return_inverse=True)
-        # make sure that the original position is first in the position_list for each atom
-        index_argsort = np.argsort(unique_indexes)
-        unique_indexes = unique_indexes[index_argsort]
-        inv_indexes_at = index_argsort[inv_indexes_at]
         un_positions = np.concatenate((un_positions, symm_positions[unique_indexes]))
         type_symbols_symm += [type_symbol] * unique_indexes.shape[0]
         inv_indexes[:,index] = inv_indexes_at + n_atoms 

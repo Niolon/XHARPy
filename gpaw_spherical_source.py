@@ -103,11 +103,9 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
 
     f0j = np.zeros((symm_mats_r.shape[0], inv_indexes.shape[1], index_vec_h.shape[0]), dtype=np.complex128)
     vec_s = np.einsum('xy, zy -> zx', np.linalg.inv(cell_mat_m / Bohr).T, index_vec_h)
-    vec_s_norm = np.linalg.norm(vec_s, axis=-1)
     vec_s_symm = np.einsum('kxy, zx -> kzy', symm_mats_r, vec_s)
 
     r_low = 1e-10
-    l_fit_max = 16
 
     for z_atom_index, grid_atom_index in enumerate(inv_indexes[0]):
         setup_at = calc.setups[grid_atom_index]

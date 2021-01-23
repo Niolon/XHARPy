@@ -178,21 +178,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
             print(f'  Integrated Hirshfeld Charge: {setup_at.Z - setup_at.Nc - sp_grid.integrate(h_density[1:]):6.4f}')
         else:
             print(f'  Integrated Hirshfeld Charge: {setup_at.Z - sp_grid.integrate(h_density[1:]):6.4f}')
-        radial_values = np.array([h_density[0]] + [np.sum(h_density[i1+ 1:i2 + 1] * sp_grid.weights[i1:i2]) / np.sum(sp_grid.weights[i1:i2])
-                                for i1, i2 in zip(sp_grid.indices[:-1], sp_grid.indices[1:])])
-        radial_spl = interp1d(np.concatenate(([0], sp_grid.rgrid.points)),
-                            radial_values, 'cubic', fill_value=(np.nan, 0), bounds_error=False)
-        lsq_a = radial_spl(distances)[:, None] * np.array([distances**exponent * y_f(direction_cosines) 
-                                                          for (exponent, _), y_f in ylm_func_dict.items() if exponent <= l_fit_max]).T
-        lsq_x, lsq_resi, *_ = np.linalg.lstsq(lsq_a,# * sp_grid.weights[:, None],
-                                              h_density,# * sp_grid.weights,
-                                              rcond=None)
-
-        j_l_int_dict = {l: f_from_spline(radial_spl, vec_s_norm, l=l, r_min=0, r_max=distance_cut, k=12) for l in range(l_fit_max + 1)}
-        for ((l, _), y_func), par in zip(ylm_func_dict.items(), lsq_x):
-            if l > l_fit_max:
-                continue
-            f0j[:, z_atom_index, :] += par * 4 * np.pi * (1j)**l * j_l_int_dict[l] * y_func(vec_s_symm / vec_s_norm[:, None])
+        f0j[:, z_atom_index, :] = np.array([[sp_grid.integrate(h_density[1:] * np.exp(2j * np.pi * np.einsum('x, zx -> z', vec, sp_grid.points - sp_grid.center))) for vec in vec_s] for vec_s in vec_s_symm])
     return f0j, None
 
 

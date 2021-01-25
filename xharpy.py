@@ -259,7 +259,7 @@ def calc_f(xyz, uij, cijk, dijkl, occupancies, index_vec_h, cell_mat_f, symm_mat
     """Calculate the overall structure factors for given indexes of hkl"""
     
     #einsum indexes: k: n_symm, z: n_atom, h: n_hkl
-    lengths_star = jnp.linalg.norm(cell_mat_f, axis=1)
+    lengths_star = jnp.linalg.norm(cell_mat_f, axis=0)
     #cell_mat_g_star = jnp.einsum('ja, jb -> ab', cell_mat_f, cell_mat_f)
     symm_mats_r, symm_vecs_t = symm_mats_vecs
     #vec_S = jnp.einsum('xy, zy -> zx', cell_mat_f, index_vec_h)
@@ -335,7 +335,7 @@ def resolve_instruction(parameters, instruction):
 def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsion_add, atoms_for_gc3, atoms_for_gc4, scaling0=1.0, refinement_dict={}):
     """
     Creates the instructions that are needed for reconstructing all atomic parameters from the refined parameters
-    Additioally returns an initial guesss for the refined parameter list from the atom table.
+    Additionally returns an initial guesss for the refined parameter list from the atom table.
     """
     parameters = jnp.full(10000, jnp.nan)
     current_index = 1
@@ -884,7 +884,6 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                                 n_gd)
     print('  setting up gradients')
     grad_calc_lsq = jax.jit(jax.grad(calc_lsq))
-    #hess_calc_lsq = jax.jacfwd(grad_calc_lsq)
 
 
     def minimize_scaling(x, parameters):
@@ -903,13 +902,10 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
         x = minimize(calc_lsq,
                      parameters,
                      jac=grad_calc_lsq,
-                     #hess=hess_calc_lsq,
-                     #method='COBYLA',
-                     #method='trust-exact',
                      method='BFGS',
                      args=(jnp.array(fjs), jnp.array(constructed_xyz)),
                      options={'gtol': 1e-8 * jnp.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)})
-        print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)):8.6f}, {x.message}')
+        print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)):8.6f}, nit: {x.nit}, {x.message}')
         parameters = jnp.array(x.x) 
         #if x.nit == 0:
         #    break

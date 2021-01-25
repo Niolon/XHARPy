@@ -24,15 +24,6 @@ from .grid.utils import get_cov_radii
 from .real_spher_harm import ylm_func_dict
 from . import rho
 
-def f_from_spline(spline, g_k, l=0, r_min=0.0, r_max=1.0, k=10):
-    span = r_max - r_min
-    r0 = np.exp(-1.25 * k)
-    r = r_min + (np.exp(-1 * np.linspace(1.25 * k, 0.0 , 2**k)) - r0) * span * (1 + r0)
-    gr = r[None,:] * g_k[:,None]
-    j = spherical_jn(l, 2 * np.pi * gr)
-    int_me = r**2 * spline(r) * j
-    return simps(int_me, x=r)
-
 
 def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs, gpaw_dict=None, restart=None, save='gpaw.gpw', explicit_core=True):
     """
@@ -111,18 +102,18 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
         setup_at = calc.setups[grid_atom_index]
 
         spline_at = spline_dict[setup_at.symbol]
-        distance_cut = get_cov_radii(setup_at.Z)[0] / Bohr * 2 + 2.0
-        powergrid = PowerRTransform(r_low, distance_cut).transform_1d_grid(HortonLinear(int(distance_cut * 30)))
+        distance_cut = get_cov_radii(setup_at.Z)[0] / Bohr * 4 + 1.0
+        powergrid = PowerRTransform(r_low, distance_cut).transform_1d_grid(HortonLinear(int(distance_cut * 40)))
         center = atoms.get_positions()[grid_atom_index] / Bohr
         sp_grid = AtomGrid.from_predefined(setup_at.Z, powergrid, 'fine', center=center)
-        print(f'  Integrating atom {z_atom_index + 1}/{len(inv_indexes[0])}, n(Points): {sp_grid.points.shape[0]}, r(max): {distance_cut * Bohr:6.4f} Ang')
+        #print(f'  Integrating atom {z_atom_index + 1}/{len(inv_indexes[0])}, n(Points): {sp_grid.points.shape[0]}, r(max): {distance_cut * Bohr:6.4f} Ang')
         xxx, yyy, zzz = np.meshgrid(np.arange(-2, 3, 1), np.arange(-2, 3, 1), np.arange(-2, 3, 1))
         supercell = np.array((np.ravel(xxx), np.ravel(yyy), np.ravel(zzz)))
 
         grid = np.concatenate((np.array([sp_grid.center]), sp_grid.points)).T
         dens_mats = [calc.wfs.calculate_density_matrix(kpt.f_n, kpt.C_nM) for kpt in calc.wfs.kpt_u]
         atomic_wfns_gd = np.zeros((dens_mats[0].shape[0], *grid.shape[1:]))
-        density_atom = np.zeros(grid.shape[1:])
+        density_atom = np.zeros(grid.shape[1:])#, dtype=np.complex128)
         collect_har = np.zeros_like(grid[0])
         wfs_index = 0
         D_asp = calc.density.D_asp
@@ -144,11 +135,19 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
             projector_wave_t = np.zeros((n_projector, *distances.shape[1:]))
             projector_index = 0
             for phi, phit in zip(phis, phits):
-                phi_map = phi.map(distances)
-                phit_map = phit.map(distances)
+                assert phi.get_cutoff() == phit.get_cutoff()
+                phi_map = np.zeros_like(distances)
+                phit_map = np.zeros_like(distances)
+                condition = distances < phi.get_cutoff()
+                phi_map[condition] = phi.map(distances[condition])
+                phit_map[condition] = phit.map(distances[condition])
                 for y_index in range(phi.l**2, (phi.l + 1)**2):
-                    projector_wave[projector_index] = np.sum(phi_map * Ys[y_index], axis=0)
-                    projector_wave_t[projector_index] = np.sum(phit_map * Ys[y_index], axis=0)
+                    inner = phi_map.copy()
+                    inner[condition] *= Ys[y_index][condition]
+                    projector_wave[projector_index] = np.sum(inner, axis=0)
+                    inner = phit_map.copy()
+                    inner[condition] *= Ys[y_index][condition]
+                    projector_wave_t[projector_index] = np.sum(inner, axis=0)
                     projector_index += 1
             if not explicit_core:
                 density_atom += np.sum(nc.map(distances) * Ys[0], axis=0)
@@ -158,9 +157,13 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
                 density_atom -= np.einsum('x..., y..., xy -> ...', projector_wave_t, projector_wave_t, unpack2(D_p))
 
             for basis_func in basis_funcs:
-                value = basis_func.map(distances)
+                condition = distances < basis_func.get_cutoff()
+                value = np.zeros_like(distances)
+                value[condition] = basis_func.map(distances[condition])
                 for y_index in range(basis_func.l**2, (basis_func.l + 1)**2):
-                    atomic_wfns_gd[wfs_index] = np.sum(value * Ys[y_index], axis=0)
+                    inner = value.copy()
+                    inner[condition] *= Ys[y_index][condition]
+                    atomic_wfns_gd[wfs_index] = np.sum(inner, axis=0)
                     wfs_index += 1
             collect_har += np.sum(spline_dict[setup.symbol](distances), axis=0)
 
@@ -172,10 +175,10 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
             direction_cosines = (grid.T - sp_grid.center) / distances[:, None]
             direction_cosines[np.isnan(direction_cosines)] = 0
         h_density = density_atom * spline_at(distances) / collect_har
-        if explicit_core:
-            print(f'  Integrated Hirshfeld Charge: {setup_at.Z - setup_at.Nc - sp_grid.integrate(h_density[1:]):6.4f}')
-        else:
-            print(f'  Integrated Hirshfeld Charge: {setup_at.Z - sp_grid.integrate(h_density[1:]):6.4f}')
+        #if explicit_core:
+        #    print(f'  Integrated Hirshfeld Charge: {setup_at.Z - setup_at.Nc - np.real(sp_grid.integrate(h_density[1:])):6.4f}')
+        #else:
+        #    print(f'  Integrated Hirshfeld Charge: {setup_at.Z - np.real(sp_grid.integrate(h_density[1:])):6.4f}')
         f0j[:, z_atom_index, :] = np.array([[sp_grid.integrate(h_density[1:] * np.exp(2j * np.pi * np.einsum('x, zx -> z', vec, sp_grid.points - sp_grid.center))) for vec in vec_s] for vec_s in vec_s_symm])
     return f0j, None
 

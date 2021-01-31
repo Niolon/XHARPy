@@ -2,7 +2,7 @@ from .xharpy import calc_f, construct_values
 import numpy as np
 
 def calculate_quality_indicators(construction_instructions, parameters, fjs, cell_mat_m, index_vec_h, intensities, stderr):
-    xyz, uij, cijk, dijkl, occupancies = construct_values_j(parameters, construction_instructions, cell_mat_m)
+    xyz, uij, cijk, dijkl, occupancies = construct_values(parameters, construction_instructions, cell_mat_m)
 
     structure_factors = calc_f(
             xyz=xyz,

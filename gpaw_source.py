@@ -242,7 +242,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
         try:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                atoms, calc = gpaw.restart(restart, **gpaw_dict)
+                atoms, calc = gpaw.restart(restart, txt=gpaw_dict['txt'])
                 atoms.set_scaled_positions(symm_positions % 1)
                 e1 = atoms.get_potential_energy()
         except:

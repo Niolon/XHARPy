@@ -332,7 +332,7 @@ def resolve_instruction(parameters, instruction):
 
 
 # construct the instructions for building the atomic parameters back from the linear parameter matrix
-def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsion_add, atoms_for_gc3, atoms_for_gc4, scaling0=1.0, refinement_dict={}):
+def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsion_add, atoms_for_gc3, atoms_for_gc4, scaling0=1.0, exti0=0.0, refinement_dict={}):
     """
     Creates the instructions that are needed for reconstructing all atomic parameters from the refined parameters
     Additionally returns an initial guesss for the refined parameter list from the atom table.
@@ -346,7 +346,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             current_index += 1
     if 'extinction' in refinement_dict:
         if refinement_dict['extinction'] != 'none':
-            parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], 0.0)
+            parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], exti0)
             current_index += 1            
     construction_instructions = []
     known_torsion_indexes = {}

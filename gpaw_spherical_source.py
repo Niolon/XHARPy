@@ -5,7 +5,6 @@ from ase.units import Bohr
 from gpaw.spherical_harmonics import Y
 from gpaw.utilities import unpack2
 
-
 import ase
 from ase import Atoms
 from ase.spacegroup import crystal
@@ -43,6 +42,11 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
     if 'wall_sampling' in gpaw_dict:
         warnings.warn("'wall_sampling' is not allowed in spherical mode")
         del(gpaw_dict['wall_sampling'])
+    if 'spherical_grid' in gpaw_dict:
+        grid_name = gpaw_dict['spherical_grid']
+        del(gpaw_dict['spherical_grid'])
+    else:
+        grid_name = 'fine'
 
     #assert not (not average_symmequiv and not do_not_move)
     symm_positions, symm_symbols, inv_indexes = expand_symm_unique(element_symbols,
@@ -92,25 +96,46 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
         spline_dict[symbol] = interp1d(atom_grid_1d, rho, 'cubic', fill_value=(np.nan, 0.0), bounds_error=False)
     symm_mats_r, _ = symm_mats_vecs
 
+    grid_to_file = {
+        'coarse':    'tv-13.7-3.txt',
+        'medium':    'tv-13.7-4.txt',
+        'fine':      'tv-13.7-5.txt',
+        'veryfine':  'tv-13.7-6.txt',
+        'ultrafine': 'tv-13.7-7.txt',
+        'insane':    'tv-13.7-8.txt'
+    }
+
+    with pkg_resources.open_text('xharpylib.horton2-grids', grid_to_file[grid_name]) as fo:
+        lines = [line.strip() for line in fo.readlines() if len(line.strip()) > 1 and line[0] != '#']
+    grid_dict = {}
+    for line1, line2, line3 in zip(lines[::3], lines[1::3], lines[2::3]):
+        z = int(line1.strip().split()[0])
+        _, lower_str, upper_str, npoints_str = line2.strip().split()
+        shells = [int(val) for val in line3.split()]
+        grid_dict[z] = {
+            'lowlim': float(lower_str),
+            'highlim': float(upper_str),
+            'r_points': int(npoints_str),
+            'shells': shells
+        }
     f0j = np.zeros((symm_mats_r.shape[0], inv_indexes.shape[1], index_vec_h.shape[0]), dtype=np.complex128)
     vec_s = np.einsum('xy, zy -> zx', np.linalg.inv(cell_mat_m / Bohr).T, index_vec_h)
     vec_s_symm = np.einsum('kxy, zx -> kzy', symm_mats_r, vec_s)
 
-    r_low = 1e-10
+    xxx, yyy, zzz = np.meshgrid(np.arange(-10, 11, 1), np.arange(-10, 11, 1), np.arange(-10, 11, 1))
+    supercell_base = np.array((np.ravel(xxx), np.ravel(yyy), np.ravel(zzz)))
 
     for z_atom_index, grid_atom_index in enumerate(inv_indexes[0]):
         setup_at = calc.setups[grid_atom_index]
 
         spline_at = spline_dict[setup_at.symbol]
-        distance_cut = get_cov_radii(setup_at.Z)[0] / Bohr * 4 + 1.0
-        powergrid = PowerRTransform(r_low, distance_cut).transform_1d_grid(HortonLinear(int(distance_cut * 40)))
+        grid_vals = grid_dict[setup_at.Z]
+        tr = PowerRTransform(grid_vals['lowlim'], grid_vals['highlim'])
+        r_grid = tr.transform_1d_grid(HortonLinear(grid_vals['r_points']))
         center = atoms.get_positions()[grid_atom_index] / Bohr
-        sp_grid = AtomGrid.from_predefined(setup_at.Z, powergrid, 'fine', center=center)
-        #print(f'  Integrating atom {z_atom_index + 1}/{len(inv_indexes[0])}, n(Points): {sp_grid.points.shape[0]}, r(max): {distance_cut * Bohr:6.4f} Ang')
-        xxx, yyy, zzz = np.meshgrid(np.arange(-2, 3, 1), np.arange(-2, 3, 1), np.arange(-2, 3, 1))
-        supercell = np.array((np.ravel(xxx), np.ravel(yyy), np.ravel(zzz)))
-
-        grid = np.concatenate((np.array([sp_grid.center]), sp_grid.points)).T
+        sp_grid = AtomGrid(r_grid, size=grid_vals['shells'], center=center)
+        print(f'  Integrating atom {z_atom_index + 1}/{len(inv_indexes[0])}, n(Points): {sp_grid.points.shape[0]}, r(max): {grid_vals["highlim"]:6.4f} Ang')
+        grid = sp_grid.points.T
         dens_mats = [calc.wfs.calculate_density_matrix(kpt.f_n, kpt.C_nM) for kpt in calc.wfs.kpt_u]
         atomic_wfns_gd = np.zeros((dens_mats[0].shape[0], *grid.shape[1:]))
         density_atom = np.zeros(grid.shape[1:])#, dtype=np.complex128)
@@ -120,9 +145,10 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
 
         for atom_index, (position_sc, setup) in enumerate(zip(atoms.get_scaled_positions(), calc.density.setups)):
 
-            phis, phits, nc, nct, *_ = setup.get_partial_waves()
+            phis, phits, nc, *_ = setup.get_partial_waves()
             basis_funcs = setup.basis.tosplines()
-
+            center_distances = np.linalg.norm(np.einsum('xy, yk -> xk', cell_mat_m / Bohr, position_sc[:, None] + supercell_base[:, :]) - center[:, None], axis=0) 
+            supercell = supercell_base[:,center_distances < grid_vals['highlim'] + setup.basis.rgd.r_g[-1]]
             position_supercell = np.einsum('xy, yzk -> xzk', cell_mat_m / Bohr, position_sc[:, None, None] + supercell[:, :, None]) - grid[:, None, :]
             distances = np.linalg.norm(position_supercell, axis=0)
             with np.errstate(divide='ignore', invalid='ignore'):
@@ -175,11 +201,11 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
             direction_cosines = (grid.T - sp_grid.center) / distances[:, None]
             direction_cosines[np.isnan(direction_cosines)] = 0
         h_density = density_atom * spline_at(distances) / collect_har
-        #if explicit_core:
-        #    print(f'  Integrated Hirshfeld Charge: {setup_at.Z - setup_at.Nc - np.real(sp_grid.integrate(h_density[1:])):6.4f}')
-        #else:
-        #    print(f'  Integrated Hirshfeld Charge: {setup_at.Z - np.real(sp_grid.integrate(h_density[1:])):6.4f}')
-        f0j[:, z_atom_index, :] = np.array([[sp_grid.integrate(h_density[1:] * np.exp(2j * np.pi * np.einsum('x, zx -> z', vec, sp_grid.points - sp_grid.center))) for vec in vec_s] for vec_s in vec_s_symm])
+        if explicit_core:
+            print(f'  Integrated Hirshfeld Charge: {setup_at.Z - setup_at.Nc - np.real(sp_grid.integrate(h_density)):6.4f}')
+        else:
+            print(f'  Integrated Hirshfeld Charge: {setup_at.Z - np.real(sp_grid.integrate(h_density)):6.4f}')
+        f0j[:, z_atom_index, :] = np.array([[sp_grid.integrate(h_density * np.exp(2j * np.pi * np.einsum('x, zx -> z', vec, sp_grid.points - sp_grid.center))) for vec in vec_s] for vec_s in vec_s_symm])
     return f0j, None
 
 

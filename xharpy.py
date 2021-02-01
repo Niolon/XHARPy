@@ -391,12 +391,12 @@ def construct_values(parameters, construction_instructions, cell_mat_m):
         
         # constrained displacements
         if type(instruction.uij).__name__ == 'UEquivCalculated':
-            uij_parent = uij[instruction.uij.atom_index, [[0, 5, 4], [5, 1, 3], [4, 3, 2]]]
+            uij_parent = uij[instruction.uij.atom_index, jnp.array([[0, 5, 4], [5, 1, 3], [4, 3, 2]])]
             uij = jax.ops.index_update(uij, jax.ops.index[index, :3], 1.0 / 3.0 * jnp.trace((cell_mat_g_star * uij_parent) @ cell_mat_g))
             uij = jax.ops.index_update(uij, jax.ops.index[index, 3:], 0.0)
         elif type(instruction.uij).__name__ == 'Uiso':
             uiso = resolve_instruction(parameters, instruction.uij.uiso)
-            uij = jax.ops.index_update(uij, jax.ops.index[index,:3], [uiso, uiso, uiso])
+            uij = jax.ops.index_update(uij, jax.ops.index[index, :3], jnp.array([uiso, uiso, uiso]))
             uij = jax.ops.index_update(uij, jax.ops.index[index, 3:], 0.0)
     return xyz, uij, cijk, dijkl, occupancies
 

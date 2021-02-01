@@ -222,8 +222,8 @@ def cif2data(cif_name, cif_dataset=0):
     symm_mats_r = np.array(symm_mats_r)
     symm_vecs_t = np.array(symm_vecs_t)
     symm_mats_vecs = (symm_mats_r, symm_vecs_t)
-    return atom_table, cell, cell_std, symm_mats_vecs, cif['diffrn_radiation_wavelength']
-
+    symm_strings = list(symmetry_table['space_group_symop_operation_xyz'].values)
+    return atom_table, cell, cell_std, symm_mats_vecs, symm_strings, cif['diffrn_radiation_wavelength']
 
 
 def instructions_to_constraints(names, instructions):

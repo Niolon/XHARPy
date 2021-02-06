@@ -4,7 +4,7 @@ import numpy as np
 import jax.numpy as jnp
 import jax
 import re
-from .xharpy import ConstrainedValues
+from .xharpy import ConstrainedValues, cell_constants_to_M
 
 
 def ciflike_to_dict(filename, return_only_loops=False, resolve_std=True):
@@ -255,6 +255,8 @@ def lst2constraint_dict(filename):
         lst_content = fo.read()
 
     find = re.search(r'Special position constraints.*?\n\n\n', lst_content, flags=re.DOTALL)  
+    if find is None:
+        return {}
 
     xyz_names = ['x', 'y', 'z']
     uij_names = ['U11', 'U22', 'U33', 'U23', 'U13', 'U12']
@@ -271,7 +273,7 @@ def lst2constraint_dict(filename):
                 add = 0.0
                 mult = 0.0
                 var = ''
-                target, instruction = [e.strip() for e in op.split(' = ')]
+                target, instruction = [e.strip() for e in op.split(' =')]
                 for sum_part in instruction.split(' + '):
                     sum_part = sum_part.strip()
                     if '*' in sum_part:
@@ -293,3 +295,143 @@ def lst2constraint_dict(filename):
             'occ': instructions_to_constraints(occ_names, instructions)
         }
     return constraint_dict
+
+
+def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, structure_factors, cell):
+    cell_mat_m = cell_constants_to_M(*cell)
+    cell_mat_f = np.linalg.inv(cell_mat_m)
+    index_vec_h = hkl[['h', 'k', 'l']].values
+    intensity = hkl['intensity'].values
+    stderr = hkl['stderr'].values
+
+    wavelength = refine_dict['wavelength']
+
+    if refine_dict['core'] == 'scale':
+        extinction_parameter = 2
+    else:
+        extinction_parameter = 1
+
+    if refine_dict['extinction'] == 'none':
+        intensities_calc = parameters[0] * np.abs(structure_factors)**2
+        f_calc = np.abs(structure_factors)
+        intensity_fcf = intensity / parameters[0]
+        stderr_fcf = stderr
+    else:
+        i_calc0 = np.abs(structure_factors)**2
+        if refine_dict['extinction'] == 'secondary':
+            # Secondary exctinction, as shelxl needs a wavelength                
+            intensities_calc = parameters[0] * i_calc0 / (1 + parameters[extinction_parameter] * i_calc0)
+            f_calc = np.abs(structure_factors) * np.sqrt(parameters[0] / (1 + parameters[extinction_parameter] * i_calc0)) 
+            intensity_fcf = intensity / parameters[0] * (1 + parameters[extinction_parameter] * i_calc0)
+            stderr_fcf = stderr / parameters[0] * (1 + parameters[extinction_parameter] * i_calc0)
+            
+        else:
+            sintheta = np.linalg.norm(np.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 * wavelength
+            sintwotheta = 2 * sintheta * np.sqrt(1 - sintheta**2)
+            extinction_factors = 0.001 * wavelength**3 / sintwotheta
+            intensities_calc = parameters[0] * i_calc0 / np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0)
+            f_calc = np.abs(structure_factors) * np.sqrt(parameters[0] / np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0)) 
+            intensity_fcf = intensity / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0)
+            stderr_fcf = stderr / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0)
+            
+    symm_string = '\n'.join(symm_strings)
+
+    angles = np.rad2deg(np.angle(structure_factors))
+
+    header = f"""#
+# h,k,l, Fo-squared, sigma(Fo-squared), Fc and phi(calc)
+#
+data_har
+_shelx_refln_list_code          6
+_shelx_F_calc_maximum      {np.max(f_calc):6.2f}
+
+loop_
+    _space_group_symop_operation_xyz
+{symm_string}
+
+_cell_length_a     {cell[0]:6.4f}
+_cell_length_b     {cell[1]:6.4f}
+_cell_length_c     {cell[2]:6.4f}
+_cell_angle_alpha  {cell[3]:6.4f}
+_cell_angle_beta   {cell[4]:6.4f}
+_cell_angle_gamma  {cell[5]:6.4f}
+
+loop_
+    _refln_index_h
+    _refln_index_k
+    _refln_index_l
+    _refln_F_squared_meas
+    _refln_F_squared_sigma
+    _refln_F_calc
+    _refln_phase_calc
+"""
+
+    lines = ''.join([f'{h} {k} {l} {out_inten} {out_std} {norm_val:.2f} {angle:.1f}\n' for (h, k, l), out_inten, out_std, norm_val, angle in zip(index_vec_h, intensity_fcf, stderr_fcf, f_calc, angles)])
+
+    with open(filename, 'w') as fo:
+        fo.write(header + lines)
+
+
+def entries2atom_string(entries):
+    strings = [
+        entries['label'],
+        str(entries['sfac_index']),
+        '{:8.6f}'.format((entries['fract_x'])),
+        '{:8.6f}'.format((entries['fract_y'])),
+        '{:8.6f}'.format((entries['fract_z'])),
+        '{:8.5f}'.format((entries['occupancy'] + 10)),
+        '{:7.5f}'.format((entries['U_11'])),
+        '{:7.5f}'.format((entries['U_22'])),
+        '{:7.5f}'.format((entries['U_33'])),
+        '{:7.5f}'.format((entries['U_23'])),
+        '{:7.5f}'.format((entries['U_13'])),
+        '{:7.5f}'.format((entries['U_12']))
+    ]
+
+    atom_string = ''
+    total = 0
+    for string in strings:
+        if total + len(string) + 1 < 70:
+            atom_string += string + ' '
+            total += len(string) + 1
+        else:
+            atom_string += ' =\n   ' + string + ' '
+            total = 4 + len(string)
+    return atom_string
+
+
+def write_res(out_res_name, in_res_name, atom_table, cell, cell_std, wavelength, parameters):
+    with open(in_res_name) as fo:
+        res_lines = fo.readlines()
+
+    latt_line = [line.strip() for line in res_lines if line.upper().startswith('LATT ')][0]
+    symm_lines = [line.strip() for line in res_lines if line.upper().startswith('SYMM ')]
+    symm_string = '\n'.join(symm_lines)
+    sfac_line = [line.strip() for line in res_lines if line.upper().startswith('SFAC ')][0]
+    sfac_elements = sfac_line.split()[1:]
+    unit_entries = ' '.join(['99'] * len(sfac_elements))
+    sfac_df = pd.DataFrame({
+        'sfac_index': np.arange(len(sfac_elements)) + 1,
+        'type_symbol': sfac_elements
+    })
+    out_df = pd.merge(atom_table, sfac_df, on='type_symbol')
+    atom_lines = '\n'.join([entries2atom_string(entries) for _, entries in out_df.iterrows()])
+
+    output_res = f"""TITL har_out
+CELL  {wavelength} {cell[0]:6.4f} {cell[1]:6.4f} {cell[2]:6.4f} {cell[3]:6.4f} {cell[4]:6.4f} {cell[5]:6.4f}
+ZERR  999 {cell_std[0]:6.4f} {cell_std[1]:6.4f} {cell_std[2]:6.4f} {cell_std[3]:6.4f} {cell_std[4]:6.4f} {cell_std[5]:6.4f}
+{latt_line}
+{symm_string}
+{sfac_line}
+UNIT {unit_entries}
+LIST 6
+L.S. 0
+FMAP 2
+WGHT    0.000000
+FVAR       {parameters[0]:8.6f}
+{atom_lines}
+HKLF 4
+END
+"""
+    with open(out_res_name, 'w') as fo:
+        fo.write(output_res)

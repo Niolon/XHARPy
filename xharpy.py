@@ -229,7 +229,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
                                      else FixedParameter(value=add) for par_index, mult, add in instr_zip)
             n_pars = jnp.max(constraint.variable_indexes) + 1
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + n_pars],
-                                              [xyz[varindex] for index, varindex in zip(*np.unique(constraint.variable_indexes, return_index=True)) if index >=0])
+                                              [xyz[jnp.array(varindex)] for index, varindex in zip(*np.unique(constraint.variable_indexes, return_index=True)) if index >=0])
             current_index += n_pars
         else:
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + 3], list(xyz))
@@ -249,7 +249,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
                     n_pars = jnp.max(constraint.variable_indexes) + 1
 
                     parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + n_pars],
-                                                    [adp[varindex] for index, varindex in zip(*np.unique(constraint.variable_indexes, return_index=True)) if index >=0])
+                                                    [adp[jnp.array(varindex)] for index, varindex in zip(*np.unique(constraint.variable_indexes, return_index=True)) if index >=0])
                     current_index += n_pars
                 elif type(constraint).__name__ == 'UEquivConstraint':
                     bound_index = jnp.where(names == bound_atom)[0][0]
@@ -280,7 +280,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             n_pars = jnp.max(constraint.variable_indexes) + 1
 
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + n_pars],
-                                              [cijk[varindex] for index, varindex in zip(*np.unique(constraint.variable_indexes, return_index=True)) if index >=0])
+                                              [cijk[jnp.array(varindex)] for index, varindex in zip(*np.unique(constraint.variable_indexes, return_index=True)) if index >=0])
             current_index += n_pars
         elif atom['label'] in atoms_for_gc3:
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + 10], list(cijk))
@@ -304,7 +304,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             n_pars = jnp.max(constraint.variable_indexes) + 1
 
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + n_pars],
-                                              [dijkl[varindex] for index, varindex in zip(*np.unique(constraint.variable_indexes, return_index=True)) if index >=0])
+                                              [dijkl[jnp.array(varindex)] for index, varindex in zip(*np.unique(constraint.variable_indexes, return_index=True)) if index >=0])
             current_index += n_pars
         elif atom['label'] in atoms_for_gc4:
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + 15], list(dijkl))
@@ -610,7 +610,7 @@ UEquivConstraint = namedtuple('UEquivConstraint', [
 ])
 
 
-def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, f0j_source='gpaw', reload_step=2, options_dict={}, refinement_dict={}):
+def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, f0j_source='gpaw', reload_step=1, options_dict={}, refinement_dict={}):
     """
     Basic Hirshfeld atom refinement routine. Will calculate the electron density on a grid spanning the unit cell
     First will refine the scaling factor. Afterwards all other parameters defined by the parameters, 

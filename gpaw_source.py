@@ -273,10 +273,16 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
     partitioning = HirshfeldPartitioning(calc)
     partitioning.initialize()
     overall_hdensity = partitioning.hdensity.get_density(list(range(symm_positions.shape[0])), gridrefinement=gridrefinement, skip_core=explicit_core)[0]
-    h, k, l = np.meshgrid(*map(lambda n: np.fft.fftfreq(n, 1/n).astype(np.int64), density.shape), indexing='ij')
+    assert -density.shape[0] // 2 < index_vec_h[:,0].min(), 'Your gridspacing is too large.'
+    assert density.shape[0] // 2 > index_vec_h[:,0].max(), 'Your gridspacing is too large.'
+    assert -density.shape[1] // 2 < index_vec_h[:,1].min(), 'Your gridspacing is too large.'
+    assert density.shape[1] // 2 > index_vec_h[:,1].max(), 'Your gridspacing is too large.'
+    assert -density.shape[2] // 2 < index_vec_h[:,2].min(), 'Your gridspacing is too large.'
+    assert density.shape[2] // 2 > index_vec_h[:,2].max(), 'Your gridspacing is too large.'
     f0j = np.zeros((symm_mats_vecs[0].shape[0], positions.shape[0], index_vec_h.shape[0]), dtype=np.complex128)
 
     if average_symmequiv:
+        h, k, l = np.meshgrid(*map(lambda n: np.fft.fftfreq(n, 1/n).astype(np.int64), density.shape), indexing='ij')
         assert not wall_sampling, 'Averaging symmetries is currently not supported with wall sampling'
         for atom_index, symm_atom_indexes in enumerate(f0j_indexes.T):
             f0j_sum = np.zeros_like(h, dtype=np.complex128)
@@ -293,11 +299,11 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
                 f0j[symm_index, atom_index, :] = f0j_sum[h_rot, k_rot, l_rot]
     else:
         #TODO Is a discrete Fourier Transform just of the hkl we need possibly faster? Can we then interpolate the density to get even better factors?
-        # This could also save memory
+        # This could also save memory, fft is O(NlogN) naive dft is probably N^2
         h_vec, k_vec, l_vec = index_vec_h.T
         already_known = {}
         for atom_index, symm_atom_indexes in enumerate(f0j_indexes.T):
-            f0j_sum = np.zeros_like(h, dtype=np.complex128)
+            f0j_sum = np.zeros_like(density, dtype=np.complex128)
             for symm_index, (symm_matrix, symm_atom_index) in enumerate(zip(symm_mats_vecs[0], symm_atom_indexes)):
                 if symm_atom_index in list(already_known.keys()):
                     equiv_symm_index, equiv_atom_index = already_known[symm_atom_index]
@@ -307,7 +313,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
                     frac_position = symm_positions[symm_atom_index]
                     if not wall_sampling:
                         phase_to_zero = np.exp(-2j * np.pi * (frac_position[0] * h_vec + frac_position[1] * k_vec + frac_position[2] * l_vec))
-                        f0j[symm_index, atom_index, :] = (np.fft.ifftn(h_density) * np.prod(h.shape))[h_vec, k_vec, l_vec] * phase_to_zero
+                        f0j[symm_index, atom_index, :] = (np.fft.ifftn(h_density) * np.prod(density.shape))[h_vec, k_vec, l_vec] * phase_to_zero
                     else:
                         f0j[symm_index, atom_index, :] = (np.fft.fftn(h_density))[h_vec, k_vec, l_vec]                    
                     already_known[symm_atom_index] = (symm_index, atom_index)

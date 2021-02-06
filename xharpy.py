@@ -153,6 +153,8 @@ def resolve_instruction(parameters, instruction):
         return_value = instruction.multiplicator * parameters[instruction.par_index] + instruction.added_value
     elif type(instruction).__name__ == 'FixedParameter':
         return_value = instruction.value
+    else:
+        raise NotImplementedError('This type of instruction is not implemented')
     return return_value
 
 
@@ -252,8 +254,10 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
                                                     [adp[jnp.array(varindex)] for index, varindex in zip(*np.unique(constraint.variable_indexes, return_index=True)) if index >=0])
                     current_index += n_pars
                 elif type(constraint).__name__ == 'UEquivConstraint':
-                    bound_index = jnp.where(names == bound_atom)[0][0]
+                    bound_index = jnp.where(names == constraint.bound_atom)[0][0]
                     adp_instructions = UEquivCalculated(atom_index=bound_index, multiplicator=constraint.multiplicator)
+                else:
+                    raise NotImplementedError('Unknown Uij Constraint')
             else:
                 parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + 6], list(adp))
                 adp_instructions = tuple(RefinedParameter(par_index=array_index, multiplicator=1.0) for array_index in range(current_index, current_index + 6))
@@ -263,7 +267,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], atom['U_iso_or_equiv'])
             current_index += 1
         else:
-            raise ValueError('Unknown ADP type in cif. Please use the Uiso or Uani convention')
+            raise NotImplementedError('Unknown ADP type in cif. Please use the Uiso or Uani convention')
 
         if 'C_111' in atom.keys():
             cijk = atom[['C_111', 'C_222', 'C_333', 'C_112', 'C_122', 'C_113', 'C_133', 'C_223', 'C_233', 'C_123']].values.astype(np.float64)
@@ -406,6 +410,8 @@ def resolve_instruction_esd(esds, instruction):
         return_value = instruction.multiplicator * esds[instruction.par_index]
     elif type(instruction).__name__ == 'FixedParameter':
         return_value = jnp.nan # One could pick zero, but this should indicate that an error is not defined
+    else:
+        raise NotImplementedError('Unknown type of parameters')
     return return_value
 
 def construct_esds(var_cov_mat, construction_instructions):
@@ -628,9 +634,11 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
     if f0j_source == 'gpaw':
         from .gpaw_source import calc_f0j, calculate_f0j_core
     elif f0j_source == 'iam':
-        from .iam_source import calc_f0j
+        from .iam_source import calc_f0j, calculate_f0j_core
     elif f0j_source == 'gpaw_spherical':
         from .gpaw_spherical_source import calc_f0j, calculate_f0j_core
+    else:
+        raise NotImplementedError('Unknown type of f0j_source')
 
 
     additional_parameters = 0

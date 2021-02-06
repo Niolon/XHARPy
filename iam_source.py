@@ -646,3 +646,6 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
 
     fjs = np.einsum('k, zi, izh -> kzh', np.ones(n_symm), f0j_a,  np.exp(-1*np.einsum('h, zi -> izh', (vec_S_norm / 2)**2, f0j_b))) + f0j_c[None, :, None]
     return fjs, None
+
+def calculate_f0j_core(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs):
+    raise NotImplementedError('Separate core calculation is non-sensical in IAM Mode')

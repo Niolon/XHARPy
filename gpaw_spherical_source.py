@@ -191,7 +191,10 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
                     inner[condition] *= Ys[y_index][condition]
                     atomic_wfns_gd[wfs_index] = np.sum(inner, axis=0)
                     wfs_index += 1
-            collect_har += np.sum(spline_dict[setup.symbol](distances), axis=0)
+            if explicit_core:
+                collect_har += np.sum(spline_dict[setup.symbol](distances) - nc.map(distances), axis=0)
+            else:
+                collect_har += np.sum(spline_dict[setup.symbol](distances), axis=0)
 
         for dens_mat in dens_mats:
             density_atom += np.einsum('x..., y..., xy -> ...', atomic_wfns_gd, atomic_wfns_gd, dens_mat)
@@ -200,10 +203,14 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
         with np.errstate(divide='ignore', invalid='ignore'):
             direction_cosines = (grid.T - sp_grid.center) / distances[:, None]
             direction_cosines[np.isnan(direction_cosines)] = 0
-        h_density = density_atom * spline_at(distances) / collect_har
+
+        
         if explicit_core:
+            _, _, nc_at, *_ = setup.get_partial_waves()
+            h_density = density_atom * (spline_at(distances) - nc_at.map(distances)) / collect_har
             print(f'  Integrated Hirshfeld Charge: {setup_at.Z - setup_at.Nc - np.real(sp_grid.integrate(h_density)):6.4f}')
         else:
+            h_density = density_atom * spline_at(distances) / collect_har
             print(f'  Integrated Hirshfeld Charge: {setup_at.Z - np.real(sp_grid.integrate(h_density)):6.4f}')
         f0j[:, z_atom_index, :] = np.array([[sp_grid.integrate(h_density * np.exp(2j * np.pi * np.einsum('x, zx -> z', vec, sp_grid.points - sp_grid.center))) for vec in vec_s] for vec_s in vec_s_symm])
     return f0j, None

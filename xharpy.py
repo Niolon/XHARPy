@@ -142,7 +142,7 @@ def calc_f(xyz, uij, cijk, dijkl, occupancies, index_vec_h, cell_mat_f, symm_mat
         phases = jnp.exp(-2j * jnp.pi * jnp.einsum('khx, zx -> kzh', vec_h_symm / jnp.array(n_gd), uvw0)) * val
     else:
         phases = jnp.exp(2j * jnp.pi * jnp.einsum('kzx, hx -> kzh', positions_symm, index_vec_h))
-    structure_factors = jnp.sum(occupancies[None, :] *  jnp.einsum('kzh, kzh, kzh, kzh -> hz', phases,  vib_factors, fjs, gc_factor), axis=-1)
+    structure_factors = jnp.sum(occupancies[None, :] *  jnp.einsum('kzh, kzh, kzh, kzh -> hz', phases, vib_factors, fjs, gc_factor), axis=-1)
     #structure_factors = jnp.sum(occupancies[None, :] * vib_factors * jnp.einsum('hzk, kzh -> hz', phases, fjs), axis=-1)
     return structure_factors
 
@@ -239,7 +239,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             current_index += 3
 
         if atom['adp_type'] == 'Uani' or atom['adp_type'] == 'Umpe':
-            adp = atom[['U_11', 'U_22', 'U_33', 'U_23', 'U_13', 'U_12']].values.astype(np.float64)
+            adp = jnp.array(atom[['U_11', 'U_22', 'U_33', 'U_23', 'U_13', 'U_12']].values.astype(np.float64))
             if atom['label'] in constraint_dict.keys() and 'uij' in constraint_dict[atom['label']].keys():
                 constraint = constraint_dict[atom['label']]['uij']
                 if type(constraint).__name__ == 'ConstrainedValues':
@@ -270,7 +270,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             raise NotImplementedError('Unknown ADP type in cif. Please use the Uiso or Uani convention')
 
         if 'C_111' in atom.keys():
-            cijk = atom[['C_111', 'C_222', 'C_333', 'C_112', 'C_122', 'C_113', 'C_133', 'C_223', 'C_233', 'C_123']].values.astype(np.float64)
+            cijk = jnp.array(atom[['C_111', 'C_222', 'C_333', 'C_112', 'C_122', 'C_113', 'C_133', 'C_223', 'C_233', 'C_123']].values.astype(np.float64))
         else:
             cijk = jnp.zeros(10)
 
@@ -294,7 +294,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             cijk_instructions = tuple(FixedParameter(value=0.0) for index in range(10))
 
         if 'D_1111' in atom.keys():
-            dijkl = atom[['D_1111', 'D_2222', 'D_3333', 'D_1112', 'D_1222', 'D_1113', 'D_1333', 'D_2223', 'D_2333', 'D_1122', 'D_1133', 'D_2233', 'D_1123', 'D_1223', 'D_1233']].values.astype(np.float64)
+            dijkl = jnp.array(atom[['D_1111', 'D_2222', 'D_3333', 'D_1112', 'D_1222', 'D_1113', 'D_1333', 'D_2223', 'D_2333', 'D_1122', 'D_1133', 'D_2233', 'D_1123', 'D_1223', 'D_1233']].values.astype(np.float64))
         else:
             dijkl = jnp.zeros(15)
 
@@ -379,8 +379,8 @@ def construct_values(parameters, construction_instructions, cell_mat_m):
             angle = jnp.deg2rad(resolve_instruction(parameters, instruction.xyz.angle))
             torsion_angle = jnp.deg2rad(resolve_instruction(parameters, instruction.xyz.torsion_angle))
             vec_d2 = jnp.array([distance * jnp.cos(angle),
-                               distance * jnp.sin(angle) * jnp.cos(torsion_angle),
-                               distance * jnp.sin(angle) * jnp.sin(torsion_angle)])
+                                distance * jnp.sin(angle) * jnp.cos(torsion_angle),
+                                distance * jnp.sin(angle) * jnp.sin(torsion_angle)])
             vec_n = jnp.cross(vec_ab, vec_bc_norm)
             vec_n = vec_n / jnp.linalg.norm(vec_n)
             rotation_mat_m = jnp.array([vec_bc_norm, jnp.cross(vec_n, vec_bc_norm), vec_n]).T
@@ -720,6 +720,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
 
 
     def minimize_scaling(x, parameters):
+        parameters_new = None
         for index, value in enumerate(x):
             parameters_new = jax.ops.index_update(parameters, jax.ops.index[index], value)
         return calc_lsq(parameters_new, fjs, constructed_xyz), grad_calc_lsq(parameters_new, fjs, constructed_xyz)[:len(x)]

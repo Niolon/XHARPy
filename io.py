@@ -4,7 +4,8 @@ import numpy as np
 import jax.numpy as jnp
 import jax
 import re
-from .xharpy import ConstrainedValues, cell_constants_to_M
+import warnings
+from .xharpy import ConstrainedValues, cell_constants_to_M, distance_with_esd, construct_esds, construct_values
 
 
 def ciflike_to_dict(filename, return_only_loops=False, resolve_std=True):
@@ -334,7 +335,7 @@ def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, structure_fa
             intensity_fcf = intensity / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0)
             stderr_fcf = stderr / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0)
             
-    symm_string = '\n'.join(symm_strings)
+    symm_string = "'" + "'\n'".join(symm_strings) + "'"
 
     angles = np.rad2deg(np.angle(structure_factors))
 
@@ -435,3 +436,131 @@ END
 """
     with open(out_res_name, 'w') as fo:
         fo.write(output_res)
+
+
+def value_with_esd(values, esds):
+    assert len(values.shape) == 1, 'Multidimensional array currently not supported'
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        indexes = np.isfinite(1 / esds)
+        orders = np.floor(np.log10(esds))
+        smaller2 = np.full_like(values, False)
+        smaller2[indexes] = np.array(values[indexes]) * 10**(-orders[indexes]) < 2
+
+        orders[np.logical_and(smaller2, orders)] -= 1
+    strings = []
+    for value, esd, order, index in zip(values, esds, orders, indexes):
+        if index:
+            format_dict = {'value': np.round(value, int(-order)),
+                           'esd_val': int(np.round(esd / 10**(order)))}
+            string = '{{value:0.{format_order}f}}({{esd_val}})'.format(format_order=int(-order))
+            string = string.format(**format_dict)
+            strings.append(string)
+        else:
+            string = f'{np.round(value, 20)}'
+            strings.append(string)
+    return strings
+
+
+def write_incomp_cif(out_cif_name,
+                     source_cif_name,
+                     symm_strings, 
+                     cell, 
+                     cell_std, 
+                     atom_table, 
+                     parameters,
+                     construction_instructions,
+                     var_cov_mat,
+                     options_dict,
+                     refine_dict,
+                     r_f,
+                     r_f_strong,
+                     wr2,
+                     gof):
+    source_cif = list(ciflike_to_dict(source_cif_name).values())[0]
+    cell_mat_m = cell_constants_to_M(*cell)
+    constr_xyz_esd, constr_uij_esd, *_ = construct_esds(var_cov_mat, construction_instructions)
+    constructed_xyz, constructed_uij, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
+
+    symm_string = "'" + "'\n'".join(symm_strings) + "'"
+    cell_strings = value_with_esd(cell, cell_std)
+
+    xyz_strings = [value_with_esd(values, esds) for values, esds in zip(constructed_xyz.T, constr_xyz_esd.T)]
+    xyz_zip = zip(atom_table['label'], atom_table['type_symbol'], *xyz_strings, atom_table['adp_type'])
+    xyz_string = '\n'.join([' '.join(xyz_values) for xyz_values in xyz_zip])
+
+    uij_strings = [value_with_esd(values, esds) for values, esds in zip(constructed_uij.T, constr_uij_esd.T)]
+    uij_zip = zip(atom_table['label'], *uij_strings)
+    uij_string = '\n'.join([' '.join(uij_values) for uij_values in uij_zip])
+
+    source_bond_table = next(table for table in source_cif['loops'] if 'geom_bond_atom_site_label_1' in table.columns)
+    bonds = [(line['geom_bond_atom_site_label_1'], line['geom_bond_atom_site_label_2']) for _, line in source_bond_table.iterrows() if line['geom_bond_site_symmetry_2'] == '.']
+    distance_esd = [distance_with_esd(*bond, construction_instructions, parameters, var_cov_mat, cell, cell_std) for bond in bonds]
+    distances, dist_esds = [np.array(value) for value in zip(*distance_esd)]
+    distance_strings = value_with_esd(distances, dist_esds)
+    distance_string = '\n'.join([' '.join((atom1, atom2, uij_string)) for (atom1, atom2), uij_string in zip(bonds, distance_strings)])
+
+    out = f"""data_har
+_space_group_crystal_system       {source_cif['space_group_crystal_system']}
+_space_group_IT_number            {source_cif['space_group_IT_number']}
+_space_group_name_H-M_alt         '{source_cif['space_group_name_H-M_alt']}'
+_space_group_name_Hall            '{source_cif['space_group_name_Hall']}'
+
+loop_
+ _space_group_symop_operation_xyz
+ {symm_string}
+ 
+_cell_length_a                    {cell_strings[0]}
+_cell_length_b                    {cell_strings[1]}
+_cell_length_c                    {cell_strings[2]}
+_cell_angle_alpha                 {cell_strings[3]}
+_cell_angle_beta                  {cell_strings[4]}
+_cell_angle_gamma                 {cell_strings[5]}
+
+_refine_ls_R_factor_all           {r_f:0.4f}
+_refine_ls_R_factor_gt            {r_f_strong:0.4f}
+_refine_ls_wR_factor_ref          {wr2:0.4f}
+_refine_ls_goodness_of_fit_ref    {gof:0.3f}
+
+loop_
+ _atom_site_label
+ _atom_site_type_symbol
+ _atom_site_fract_x
+ _atom_site_fract_y
+ _atom_site_fract_z
+ _atom_site_adp_type
+{xyz_string}
+
+loop_
+ _atom_site_aniso_label
+ _atom_site_aniso_U_11
+ _atom_site_aniso_U_22
+ _atom_site_aniso_U_33
+ _atom_site_aniso_U_23
+ _atom_site_aniso_U_13
+ _atom_site_aniso_U_12
+{uij_string}
+
+loop_
+ _geom_bond_atom_site_label_1
+ _geom_bond_atom_site_label_2
+ _geom_bond_distance
+{distance_string}
+
+_refine_special_details
+;
+internal parameters:
+xc: {options_dict['xc']}
+h: {options_dict['h']}
+core: {refine_dict['core']}
+extinction: {refine_dict['extinction']}
+grid_mult: {options_dict['gridrefinement']}
+mode: {options_dict['mode']}
+basis: {options_dict['basis']}
+density_conv: {options_dict['convergence']['density']}
+kpts: {options_dict['kpts']['size'][0]}
+;
+"""
+
+    with open(out_cif_name, 'w') as fo:
+        fo.write(out)

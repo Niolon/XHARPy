@@ -39,9 +39,6 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
     if 'average_symmequiv' in gpaw_dict:
         warnings.warn("'average_symmequiv' is not allowed in spherical mode")
         del(gpaw_dict['average_symmequiv'])
-    if 'wall_sampling' in gpaw_dict:
-        warnings.warn("'wall_sampling' is not allowed in spherical mode")
-        del(gpaw_dict['wall_sampling'])
     if 'spherical_grid' in gpaw_dict:
         grid_name = gpaw_dict['spherical_grid']
         del(gpaw_dict['spherical_grid'])
@@ -213,7 +210,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
             h_density = density_atom * spline_at(distances) / collect_har
             print(f'  Integrated Hirshfeld Charge: {setup_at.Z - np.real(sp_grid.integrate(h_density)):6.4f}')
         f0j[:, z_atom_index, :] = np.array([[sp_grid.integrate(h_density * np.exp(2j * np.pi * np.einsum('x, zx -> z', vec, sp_grid.points - sp_grid.center))) for vec in vec_s] for vec_s in vec_s_symm])
-    return f0j, None
+    return f0j
 
 
 def f_core_from_spline(spline, g_k, k=13):

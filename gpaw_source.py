@@ -363,7 +363,7 @@ def calculate_f0j_core(cell_mat_m, element_symbols, positions, index_vec_h, symm
         #if name == 'H':
         #    f0j_core[name] = np.zeros_like(g_ks)
         if len(g_ks) > n_steps * n_per_step:
-            print(f'  Calculating the core structure factor by spline for {name}')
+            print(f'  calculating the core structure factor by spline for {name}')
             g_max = g_ks.max() * Bohr + 0.1
             #x_inv = np.linspace(-0.5, g_max, n_steps * n_per_step)
             k = np.log(n_steps * n_per_step)
@@ -374,7 +374,7 @@ def calculate_f0j_core(cell_mat_m, element_symbols, positions, index_vec_h, symm
                f0j[index * n_per_step:(index + 1) * n_per_step] = f_core_from_spline(nc, x_inv[index * n_per_step:(index + 1) * n_per_step], k=19) 
             f0j_core[name] = interp1d(x_inv, f0j, kind='cubic')(g_ks * Bohr)
         else:
-            print(f'  Calculating the core structure factor for {name}')
+            print(f'  calculating the core structure factor for {name}')
             f0j = np.zeros(len(g_ks))
             for index in range(n_per_step, len(g_ks) + n_per_step, n_per_step):
                 start_index = index - n_per_step

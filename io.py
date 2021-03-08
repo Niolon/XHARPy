@@ -27,37 +27,25 @@ def ciflike_to_dict(filename, return_only_loops=False, resolve_std=True):
     """
     PATTERN = re.compile(r'''((?:[^ "']|"[^"]*"|'[^']*')+)''')
     with open(filename, 'r') as fo:
-        lines = [line[:-1] for line in fo.readlines()]
+        lines = [line for line in fo.readlines()]
     datablocks = OrderedDict()
     current_loop_lines = []
     current_loop_titles = []
+    # If there is data before the first data entrie store it as preblock
     current_block = 'preblock'
     in_loop = False
     in_loop_titles = False
+    in_multiline = False
+    multiline_title = 'InvalidTitle' # This should never be used
+    multiline_entries = []
     current_line_collect = []
     for index, raw_line in enumerate(lines):
         line = raw_line.strip().lstrip()
-        if line == '' or index == len(lines) - 1:
-            if in_loop:
-                in_loop = False
-                new_df = pd.DataFrame(current_loop_lines)
-                for key in new_df:
-                    new_df[key] = pd.to_numeric(new_df[key], errors='ignore')
-                if resolve_std:
-                    for column in new_df.columns:
-                        if new_df[column].dtype != 'O':
-                            continue
-                        concatenate = ''.join(new_df[column])
-                        if  re.search(r'[\(\)]', concatenate) is not None and re.search(r'[^\d^\.^\(^\)\-\+]', concatenate) is None:
-                            values, errors = np.array([split_error(val) for val in new_df[column]]).T
-                            new_df[column] = values
-                            new_df[column+'_std'] = errors
-                datablocks[current_block]['loops'].append(new_df)
-                current_loop_lines = []
-                current_loop_titles = []
-                current_line_collect = []
+        if len(line.strip()) == 0 or line.startswith('#'):
+            # empty or comment line
             continue
-        if in_loop and not in_loop_titles and line.startswith('_') or line.startswith('loop_'):
+        if in_loop and not in_loop_titles and (line.startswith('_') or line.startswith('loop_')):
+            # The current loop has ended append entries as new DataFrame
             in_loop = False
             if len(current_loop_lines) > 0:
                 new_df = pd.DataFrame(current_loop_lines)
@@ -73,20 +61,23 @@ def ciflike_to_dict(filename, return_only_loops=False, resolve_std=True):
                             new_df[column] = values
                             new_df[column+'_std'] = errors
                 datablocks[current_block]['loops'].append(new_df)
+            # empty all stored entries
             current_loop_lines = []
             current_loop_titles = []
             current_line_collect = []
-        if line[0] == '#':
-            continue
-        elif line[:5] == 'data_':
+        if line.startswith('data_'):
+            # New data block
             current_block = line[5:]
             datablocks[current_block] = OrderedDict([('loops', [])])
-        elif line[:5] == 'loop_':
+        elif line.startswith('loop_'):
+            # a new loop / table starts
             in_loop = True
             in_loop_titles = True
-        elif in_loop and in_loop_titles and line[0] == '_':
+        elif in_loop and in_loop_titles and line.startswith('_'):
+            # This line is a title entry within a loop
             current_loop_titles.append(line[1:])
         elif in_loop:
+            # This line contains data within a loop
             in_loop_titles = False
             line_split = [item.strip() for item in PATTERN.split(line) if item != '' and not item.isspace()]
             line_split = [item[1:-1] if "'" in item else item for item in line_split]
@@ -96,7 +87,8 @@ def ciflike_to_dict(filename, return_only_loops=False, resolve_std=True):
                 for index2, item in enumerate(current_line_collect):
                     current_loop_lines[-1][current_loop_titles[index2]] = item
                 current_line_collect = []
-        elif line[0] == '_':
+        elif line.startswith('_'):
+            # we are not in a loop -> single line or multiline string entry
             line_split = [item.strip() for item in PATTERN.split(line) if item != '' and not item.isspace()]
             line_split = [item[1:-1] if "'" in item else item for item in line_split]
             if len(line_split) > 1:
@@ -114,6 +106,36 @@ def ciflike_to_dict(filename, return_only_loops=False, resolve_std=True):
                         datablocks[current_block][line_split[0][1:]] = line_split[1]
                 else:
                     datablocks[current_block][line_split[0][1:]] = line_split[1]
+            else:
+                multiline_title = line_split[0][1:]
+        elif line.startswith(';') and in_multiline:
+            datablocks[current_block][multiline_title] = '\n'.join(multiline_entries)
+            multiline_entries = []
+            in_multiline = False
+        elif line.startswith(';') and not in_multiline:
+            in_multiline = True
+        elif in_multiline:
+            multiline_entries.append(line)
+
+    
+    # We might have a final loop
+    if in_loop:
+        in_loop = False
+        if len(current_loop_lines) > 0:
+            new_df = pd.DataFrame(current_loop_lines)
+            for key in new_df:
+                new_df[key] = pd.to_numeric(new_df[key], errors='ignore')
+            if resolve_std:
+                for column in new_df.columns:
+                    if new_df[column].dtype != 'O':
+                        continue
+                    concatenate = ''.join(new_df[column])
+                    if  re.search(r'[\(\)]', concatenate) is not None and re.search(r'[^\d^\.^\(^\)\-\+]', concatenate) is None:
+                        values, errors = np.array([split_error(val) for val in new_df[column]]).T
+                        new_df[column] = values
+                        new_df[column+'_std'] = errors
+            datablocks[current_block]['loops'].append(new_df)
+
     if return_only_loops:
         loops = []
         for value in datablocks.values():
@@ -224,6 +246,8 @@ def cif2data(cif_name, cif_dataset=0):
     symm_vecs_t = np.array(symm_vecs_t)
     symm_mats_vecs = (symm_mats_r, symm_vecs_t)
     symm_strings = list(symmetry_table['space_group_symop_operation_xyz'].values)
+
+    atom_table = atom_table.rename({'thermal_displace_type': 'adp_type'}, axis=1).copy()
     return atom_table, cell, cell_std, symm_mats_vecs, symm_strings, cif['diffrn_radiation_wavelength']
 
 

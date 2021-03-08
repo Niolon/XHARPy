@@ -9,6 +9,7 @@ from itertools import product
 import warnings
 import jax
 import numpy as np
+import pickle
 from scipy.optimize import minimize
 
 
@@ -732,7 +733,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
 
     r_opt_density = 1e10
     for refine in range(20):
-        print(f'  calculating least squares sum')
+        print(f'  minimizing least squares sum')
         x = minimize(calc_lsq,
                      parameters,
                      jac=grad_calc_lsq,
@@ -747,7 +748,12 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
             r_opt_density = x.fun
             #parameters_min1 = jnp.array(x.x)
         else:
-            break 
+            break
+        with open('save_par_model.pkl', 'wb') as fo:
+            pickle.dump({
+                'construction_instructions': construction_instructions,
+                'parameters': parameters
+            }, fo) 
         
         constructed_xyz, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
         if refine >= reload_step - 1:

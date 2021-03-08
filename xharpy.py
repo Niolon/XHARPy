@@ -12,9 +12,6 @@ import numpy as np
 import pickle
 from scipy.optimize import minimize
 
-
-#from gpaw.analyse.hirshfeld import HirshfeldPartitioning
-#from .hirshfeld_val import HirshfeldPartitioning
 from .restraints import resolve_restraints
     
 def cell_constants_to_M(a, b, c, alpha, beta, gamma):
@@ -81,7 +78,7 @@ def expand_symm_unique(type_symbols, coordinates, cell_mat_m, symm_mats_vec):
 
 
 @jax.jit
-def calc_f(xyz, uij, cijk, dijkl, occupancies, index_vec_h, cell_mat_f, symm_mats_vecs, fjs, xyz0, n_gd):
+def calc_f(xyz, uij, cijk, dijkl, occupancies, index_vec_h, cell_mat_f, symm_mats_vecs, fjs):
     """Calculate the overall structure factors for given indexes of hkl"""
     
     #einsum indexes: k: n_symm, z: n_atom, h: n_hkl
@@ -128,23 +125,8 @@ def calc_f(xyz, uij, cijk, dijkl, occupancies, index_vec_h, cell_mat_f, symm_mat
     gc_factor = 1 - gram_charlier3 + gram_charlier4
 
     positions_symm = jnp.einsum('kxy, zy -> kzx', symm_mats_r, xyz) + symm_vecs_t[:, None, :]
-
-    if n_gd is not None:
-        # Sampling according to Wall 2006 is used
-        uvw = (xyz - xyz0) * jnp.array(n_gd)
-        uvw1 = uvw % 1
-        uvw0 = uvw - uvw1
-
-        min1 = (1 - uvw1).T[:,None,:, None] * jnp.ones((3, symm_mats_r.shape[0], xyz.shape[0], index_vec_h.shape[0]))
-        timesfact = jnp.einsum('khx, zx -> xkzh', jnp.exp(-2j * jnp.pi * vec_h_symm / jnp.array(n_gd)), uvw1)
-        choice = (min1, timesfact)
-        val = jnp.sum(list(choice[c0][0] * choice[c1][1] * choice[c2][2] for c0, c1, c2 in product([0,1], repeat=3)), axis=0)
-
-        phases = jnp.exp(-2j * jnp.pi * jnp.einsum('khx, zx -> kzh', vec_h_symm / jnp.array(n_gd), uvw0)) * val
-    else:
-        phases = jnp.exp(2j * jnp.pi * jnp.einsum('kzx, hx -> kzh', positions_symm, index_vec_h))
+    phases = jnp.exp(2j * jnp.pi * jnp.einsum('kzx, hx -> kzh', positions_symm, index_vec_h))
     structure_factors = jnp.sum(occupancies[None, :] *  jnp.einsum('kzh, kzh, kzh, kzh -> hz', phases, vib_factors, fjs, gc_factor), axis=-1)
-    #structure_factors = jnp.sum(occupancies[None, :] * vib_factors * jnp.einsum('hzk, kzh -> hz', phases, fjs), axis=-1)
     return structure_factors
 
 
@@ -439,7 +421,16 @@ def construct_esds(var_cov_mat, construction_instructions):
     occupancies = jnp.array([resolve_instruction_esd(esds, instruction.occupancy) for instruction in construction_instructions])
     return xyz, uij, cijk, dijkl, occupancies    
 
-def calc_lsq_factory(cell_mat_m, symm_mats_vecs, index_vec_h, intensities_obs, stds_obs, construction_instructions, fjs_core, core_parameter, extinction_parameter, wavelength, n_gd):
+def calc_lsq_factory(cell_mat_m,
+                     symm_mats_vecs,
+                     index_vec_h,
+                     intensities_obs,
+                     stds_obs,
+                     construction_instructions,
+                     fjs_core,
+                     core_parameter,
+                     extinction_parameter,
+                     wavelength):
     """Generates a calc_lsq function. Doing this with a factory function allows for both flexibility but also
     speed by automatic loop and conditional unrolling for all the stuff that is constant for a given structure."""
     construct_values_j = jax.jit(construct_values, static_argnums=(1,2))
@@ -449,7 +440,7 @@ def calc_lsq_factory(cell_mat_m, symm_mats_vecs, index_vec_h, intensities_obs, s
         sintheta = jnp.linalg.norm(jnp.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 * wavelength
         sintwotheta = 2 * sintheta * jnp.sqrt(1 - sintheta**2)
         extinction_factors = 0.001 * wavelength**3 / sintwotheta
-    def function(parameters, fjs, xyz0):
+    def function(parameters, fjs):
         xyz, uij, cijk, dijkl, occupancies = construct_values_j(parameters, construction_instructions, cell_mat_m)
         if fjs_core is not None:
             if core_parameter is not None:
@@ -466,9 +457,7 @@ def calc_lsq_factory(cell_mat_m, symm_mats_vecs, index_vec_h, intensities_obs, s
             index_vec_h=index_vec_h,
             cell_mat_f=cell_mat_f,
             symm_mats_vecs=symm_mats_vecs,
-            fjs=fjs,
-            xyz0=xyz0,
-            n_gd=n_gd
+            fjs=fjs
         )
         if extinction_parameter is None:
             intensities_calc = parameters[0] * jnp.abs(structure_factors)**2
@@ -498,9 +487,7 @@ def calc_var_cor_mat(cell_mat_m,
                      fjs_core,
                      core_parameter,
                      extinction_parameter,
-                     wavelength,
-                     n_gd,
-                     xyz0):
+                     wavelength):
     construct_values_j = jax.jit(construct_values, static_argnums=(1,2))
     cell_mat_f = jnp.linalg.inv(cell_mat_m).T
     if wavelength is not None:
@@ -508,7 +495,7 @@ def calc_var_cor_mat(cell_mat_m,
         sintheta = jnp.linalg.norm(jnp.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 * wavelength
         sintwotheta = 2 * sintheta * jnp.sqrt(1 - sintheta**2)
         extinction_factors = 0.001 * wavelength**3 / sintwotheta
-    def function(parameters, fjs, xyz0, index):
+    def function(parameters, fjs, index):
         xyz, uij, cijk, dijkl, occupancies = construct_values_j(parameters, construction_instructions, cell_mat_m)
         if fjs_core is not None:
             if core_parameter is not None:
@@ -525,9 +512,7 @@ def calc_var_cor_mat(cell_mat_m,
             index_vec_h=index_vec_h[None, index],
             cell_mat_f=cell_mat_f,
             symm_mats_vecs=symm_mats_vecs,
-            fjs=fjs[:, :, index, None],
-            xyz0=xyz0,
-            n_gd=n_gd
+            fjs=fjs[:, :, index, None]
         )
         if extinction_parameter is None:
             intensities_calc = parameters[0] * jnp.abs(structure_factors)**2
@@ -543,11 +528,11 @@ def calc_var_cor_mat(cell_mat_m,
 
     collect = jnp.zeros((len(parameters), len(parameters)))
     for index, weight in enumerate(1 / stds_obs**2):
-        val = grad_func(parameters, jnp.array(fjs), jnp.array(xyz0), index)[:, None]
+        val = grad_func(parameters, jnp.array(fjs), index)[:, None]
         collect += weight * (val @ val.T)
 
-    lsq_func = calc_lsq_factory(cell_mat_m, symm_mats_vecs, index_vec_h, intensities_obs, stds_obs, construction_instructions, fjs_core, core_parameter, extinction_parameter, wavelength, n_gd)
-    chi_sq = lsq_func(parameters, jnp.array(fjs), jnp.array(xyz0)) / (index_vec_h.shape[0] - len(parameters))
+    lsq_func = calc_lsq_factory(cell_mat_m, symm_mats_vecs, index_vec_h, intensities_obs, stds_obs, construction_instructions, fjs_core, core_parameter, extinction_parameter, wavelength)
+    chi_sq = lsq_func(parameters, jnp.array(fjs)) / (index_vec_h.shape[0] - len(parameters))
 
     return chi_sq * jnp.linalg.inv(collect)
 
@@ -691,15 +676,15 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
     else:
         restart = None
 
-    fjs, n_gd = calc_f0j(cell_mat_m,
-                         type_symbols,
-                         constructed_xyz,
-                         index_vec_h,
-                         symm_mats_vecs,
-                         gpaw_dict=options_dict,
-                         save='save.gpw',
-                         restart=restart,
-                         explicit_core=f0j_core is not None)
+    fjs = calc_f0j(cell_mat_m,
+                   type_symbols,
+                   constructed_xyz,
+                   index_vec_h,
+                   symm_mats_vecs,
+                   gpaw_dict=options_dict,
+                   save='save.gpw',
+                   restart=restart,
+                   explicit_core=f0j_core is not None)
     if f0j_core is None:
         fjs += f_dash[None,:,None]
     xyz_density = constructed_xyz
@@ -714,8 +699,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                                 f0j_core,
                                 core_parameter,
                                 extinction_parameter,
-                                wavelength,
-                                n_gd)
+                                wavelength)
     print('  setting up gradients')
     grad_calc_lsq = jax.jit(jax.grad(calc_lsq))
 
@@ -724,7 +708,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
         parameters_new = None
         for index, value in enumerate(x):
             parameters_new = jax.ops.index_update(parameters, jax.ops.index[index], value)
-        return calc_lsq(parameters_new, fjs, constructed_xyz), grad_calc_lsq(parameters_new, fjs, constructed_xyz)[:len(x)]
+        return calc_lsq(parameters_new, fjs), grad_calc_lsq(parameters_new, fjs)[:len(x)]
     print('step 0: Optimizing scaling')
     x = minimize(minimize_scaling, args=(parameters.copy()), x0=parameters[0], jac=True, options={'gtol': 1e-6 * index_vec_h.shape[0]})
     for index, val in enumerate(x.x):
@@ -738,7 +722,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                      parameters,
                      jac=grad_calc_lsq,
                      method='BFGS',
-                     args=(jnp.array(fjs), jnp.array(constructed_xyz)),
+                     args=(jnp.array(fjs)),
                      options={'gtol': 1e-8 * jnp.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)})
         print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)):8.6f}, nit: {x.nit}, {x.message}')
         parameters = jnp.array(x.x) 
@@ -762,15 +746,15 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
             restart = None  
         if np.max(np.linalg.norm(np.einsum('xy, zy -> zx', cell_mat_m, constructed_xyz - xyz_density), axis=-1)) > max_distance_diff:
             print(f'step {refine + 1}: calculating new structure factors')
-            fjs, n_gd = calc_f0j(cell_mat_m,
-                                type_symbols,
-                                constructed_xyz,
-                                index_vec_h,
-                                symm_mats_vecs,
-                                restart=restart,
-                                gpaw_dict=options_dict,
-                                save='save.gpw',
-                                explicit_core=f0j_core is not None)
+            fjs = calc_f0j(cell_mat_m,
+                           type_symbols,
+                           constructed_xyz,
+                           index_vec_h,
+                           symm_mats_vecs,
+                           restart=restart,
+                           gpaw_dict=options_dict,
+                           save='save.gpw',
+                           explicit_core=f0j_core is not None)
             if f0j_core is None:
                 fjs += f_dash[None,:,None]
             xyz_density = constructed_xyz
@@ -788,9 +772,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                                    f0j_core,
                                    core_parameter,
                                    extinction_parameter,
-                                   wavelength,
-                                   n_gd=n_gd,
-                                   xyz0=constructed_xyz)
+                                   wavelength)
     if f0j_core is not None:
         if core_parameter is not None:
             fjs_return = parameters[core_parameter] * fjs + f0j_core[None, :, :]
@@ -798,7 +780,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
             fjs_return = fjs + f0j_core[None, :, :]
     else:
         fjs_return = fjs
-    return parameters, fjs_return, fjs, var_cor_mat, n_gd
+    return parameters, fjs_return, fjs, var_cor_mat
 
 
 def distance_with_esd(atom1_name, atom2_name, construction_instructions, parameters, var_cov_mat, cell_par, cell_std):

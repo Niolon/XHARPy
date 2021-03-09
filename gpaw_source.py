@@ -315,7 +315,7 @@ def f_core_from_spline(spline, g_k, k=13):
     r_max = spline.get_cutoff()
     r = np.zeros(2**k + 1)
     r[1:] = np.exp(-1 * np.linspace(1.25 * k, 0.0 , 2**k)) * r_max
-    r[0] = 0
+    #r[0] = 0
     gr = r[None,:] * g_k[:,None]
     j0 = np.zeros_like(gr)
     j0[gr != 0] = np.sin(2 * np.pi * gr[gr != 0]) / (2 * np.pi * gr[gr != 0])

@@ -153,6 +153,10 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
     parameters = jnp.full(10000, jnp.nan)
     current_index = 1
     parameters = jax.ops.index_update(parameters, jax.ops.index[0], scaling0)
+    if 'flack' in refinement_dict:
+        if refinement_dict['flack']:
+            parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], 0.0)
+            current_index += 1
     if 'core' in refinement_dict:
         if refinement_dict['core'] == 'scale':
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], 1.0)
@@ -431,6 +435,7 @@ def calc_lsq_factory(cell_mat_m,
                      stds_obs,
                      construction_instructions,
                      fjs_core,
+                     flack_parameter,
                      core_parameter,
                      extinction_parameter,
                      wavelength):
@@ -476,8 +481,36 @@ def calc_lsq_factory(cell_mat_m,
                 #restraint_addition = 1.0 / 0.1 * parameters[extinction_parameter]**2
         weights = 1 / stds_obs**2
 
-        lsq = jnp.sum(weights * (intensities_obs - intensities_calc)**2) 
-        return lsq #+ restraint_addition
+        if flack_parameter is not None:
+            structure_factors2 = calc_f(
+                xyz=xyz,
+                uij=uij,
+                cijk=cijk,
+                dijkl=dijkl,
+                occupancies=occupancies,
+                index_vec_h=-index_vec_h,
+                cell_mat_f=cell_mat_f,
+                symm_mats_vecs=symm_mats_vecs,
+                fjs=fjs
+            )
+            if extinction_parameter is None:
+                intensities_calc2 = parameters[0] * jnp.abs(structure_factors2)**2
+                #restraint_addition = 0
+            else:
+                i_calc02 = jnp.abs(structure_factors2)**2
+                if wavelength is None:
+                    # Secondary exctinction, as shelxl needs a wavelength                
+                    intensities_calc2 = parameters[0] * i_calc02 / (1 + parameters[extinction_parameter] * i_calc02)
+                    #restraint_addition = 0
+                else:
+                    intensities_calc2 = parameters[0] * i_calc02 / jnp.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc02)
+                    #restraint_addition = 1.0 / 0.1 * parameters[extinction_parameter]**2
+            return jnp.sum(weights * (intensities_obs - parameters[flack_parameter] * intensities_calc2 - (1 - parameters[flack_parameter]) * intensities_calc)**2) 
+        else:
+            lsq = jnp.sum(weights * (intensities_obs - intensities_calc)**2) 
+            return lsq #+ restraint_addition
+
+
     return jax.jit(function)
 
 
@@ -488,6 +521,7 @@ def calc_var_cor_mat(cell_mat_m,
                      intensities_obs, stds_obs,
                      parameters, fjs,
                      fjs_core,
+                     flack_parameter,
                      core_parameter,
                      extinction_parameter,
                      wavelength):
@@ -526,7 +560,30 @@ def calc_var_cor_mat(cell_mat_m,
                 intensities_calc = parameters[0] * i_calc0 / (1 + parameters[extinction_parameter] * i_calc0)
             else:
                 intensities_calc = parameters[0] * i_calc0 / jnp.sqrt(1 + parameters[extinction_parameter] * extinction_factors[index] * i_calc0)
-        return intensities_calc[0]
+        if flack_parameter is not None:
+            structure_factors2 = calc_f(
+                xyz=xyz,
+                uij=uij,
+                cijk=cijk,
+                dijkl=dijkl,
+                occupancies=occupancies,
+                index_vec_h=-index_vec_h[None, index],
+                cell_mat_f=cell_mat_f,
+                symm_mats_vecs=symm_mats_vecs,
+                fjs=fjs[:, :, index, None]
+            )
+            if extinction_parameter is None:
+                intensities_calc2 = parameters[0] * jnp.abs(structure_factors2)**2
+            else:
+                i_calc02 = jnp.abs(structure_factors2)**2
+                if wavelength is None:
+                    # Secondary exctinction, as shelxl needs a wavelength                
+                    intensities_calc2 = parameters[0] * i_calc02 / (1 + parameters[extinction_parameter] * i_calc02)
+                else:
+                    intensities_calc2 = parameters[0] * i_calc02 / jnp.sqrt(1 + parameters[extinction_parameter] * extinction_factors[index] * i_calc02)
+            return parameters[flack_parameter] * intensities_calc2[0] - (1 - parameters[flack_parameter]) * intensities_calc[0]
+        else:
+            return intensities_calc[0]
     grad_func = jax.jit(jax.grad(function))
 
     collect = jnp.zeros((len(parameters), len(parameters)))
@@ -534,7 +591,7 @@ def calc_var_cor_mat(cell_mat_m,
         val = grad_func(parameters, jnp.array(fjs), index)[:, None]
         collect += weight * (val @ val.T)
 
-    lsq_func = calc_lsq_factory(cell_mat_m, symm_mats_vecs, index_vec_h, intensities_obs, stds_obs, construction_instructions, fjs_core, core_parameter, extinction_parameter, wavelength)
+    lsq_func = calc_lsq_factory(cell_mat_m, symm_mats_vecs, index_vec_h, intensities_obs, stds_obs, construction_instructions, fjs_core, flack_parameter, core_parameter, extinction_parameter, wavelength)
     chi_sq = lsq_func(parameters, jnp.array(fjs)) / (index_vec_h.shape[0] - len(parameters))
 
     return chi_sq * jnp.linalg.inv(collect)
@@ -631,11 +688,16 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
 
 
     additional_parameters = 0
+    if 'flack' in refinement_dict and refinement_dict['flack']:
+        flack_parameter = additional_parameters + 1
+        additional_parameters += 1
+    else:
+        flack_parameter = None
     if 'core' in refinement_dict:
         assert (f0j_source not in ('iam')), 'core description is not possible with this f0j source'
         if refinement_dict['core'] in ('scale', 'constant'):
             if refinement_dict['core'] == 'scale':
-                core_parameter = 1
+                core_parameter = additional_parameters + 1
                 additional_parameters += 1
             else:
                 core_parameter = None
@@ -700,6 +762,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                                 jnp.array(hkl['stderr']),
                                 construction_instructions,
                                 f0j_core,
+                                flack_parameter,
                                 core_parameter,
                                 extinction_parameter,
                                 wavelength)
@@ -773,6 +836,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                                    parameters,
                                    fjs,
                                    f0j_core,
+                                   flack_parameter,
                                    core_parameter,
                                    extinction_parameter,
                                    wavelength)

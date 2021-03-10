@@ -87,10 +87,16 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
         atomic_dict = pickle.load(fo)
         
     spline_dict = {}
-    for symbol in set([setup.symbol for setup in calc.density.setups]):
-        atom_grid_1d, rho = atomic_dict[symbol]
+    #for symbol in set([setup.symbol for setup in calc.density.setups]):
+    for setup in calc.density.setups:
+        if setup.symbol in spline_dict:
+            continue
+        atom_grid_1d, rho = atomic_dict[setup.symbol]
+        if explicit_core:
+            _, _, nc, *_ = setup.get_partial_waves()
+            rho -= nc.map(atom_grid_1d)
         atom_grid_1d[0] = 0
-        spline_dict[symbol] = interp1d(atom_grid_1d, rho, 'cubic', fill_value=(np.nan, 0.0), bounds_error=False)
+        spline_dict[setup.symbol] = interp1d(atom_grid_1d, rho, 'cubic', fill_value=(np.nan, 0.0), bounds_error=False)
     symm_mats_r, _ = symm_mats_vecs
 
     grid_to_file = {
@@ -188,10 +194,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
                     inner[condition] *= Ys[y_index][condition]
                     atomic_wfns_gd[wfs_index] = np.sum(inner, axis=0)
                     wfs_index += 1
-            if explicit_core:
-                collect_har += np.sum(spline_dict[setup.symbol](distances) - nc.map(distances), axis=0)
-            else:
-                collect_har += np.sum(spline_dict[setup.symbol](distances), axis=0)
+            collect_har += np.sum(spline_dict[setup.symbol](distances), axis=0)
 
         for dens_mat in dens_mats:
             density_atom += np.einsum('x..., y..., xy -> ...', atomic_wfns_gd, atomic_wfns_gd, dens_mat)
@@ -201,13 +204,10 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
             direction_cosines = (grid.T - sp_grid.center) / distances[:, None]
             direction_cosines[np.isnan(direction_cosines)] = 0
 
-        
+        h_density = density_atom * spline_at(distances) / collect_har
         if explicit_core:
-            _, _, nc_at, *_ = setup.get_partial_waves()
-            h_density = density_atom * (spline_at(distances) - nc_at.map(distances)) / collect_har
             print(f'  Integrated Hirshfeld Charge: {setup_at.Z - setup_at.Nc - np.real(sp_grid.integrate(h_density)):6.4f}')
-        else:
-            h_density = density_atom * spline_at(distances) / collect_har
+        else:   
             print(f'  Integrated Hirshfeld Charge: {setup_at.Z - np.real(sp_grid.integrate(h_density)):6.4f}')
         f0j[:, z_atom_index, :] = np.array([[sp_grid.integrate(h_density * np.exp(2j * np.pi * np.einsum('x, zx -> z', vec, sp_grid.points - sp_grid.center))) for vec in vec_s] for vec_s in vec_s_symm])
     return f0j

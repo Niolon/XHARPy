@@ -39,83 +39,90 @@ def ciflike_to_dict(filename, return_only_loops=False, resolve_std=True):
     multiline_title = 'InvalidTitle' # This should never be used
     multiline_entries = []
     current_line_collect = []
-    for index, raw_line in enumerate(lines):
-        line = raw_line.strip().lstrip()
-        if len(line.strip()) == 0 or line.startswith('#'):
-            # empty or comment line
-            continue
-        if in_loop and not in_loop_titles and (line.startswith('_') or line.startswith('loop_')):
-            # The current loop has ended append entries as new DataFrame
-            in_loop = False
-            if len(current_loop_lines) > 0:
-                new_df = pd.DataFrame(current_loop_lines)
-                for key in new_df:
-                    new_df[key] = pd.to_numeric(new_df[key], errors='ignore')
-                if resolve_std:
-                    for column in new_df.columns:
-                        if new_df[column].dtype != 'O':
-                            continue
-                        concatenate = ''.join(new_df[column])
-                        if  re.search(r'[\(\)]', concatenate) is not None and re.search(r'[^\d^\.^\(^\)\-\+]', concatenate) is None:
-                            values, errors = np.array([split_error(val) for val in new_df[column]]).T
-                            new_df[column] = values
-                            new_df[column+'_std'] = errors
-                datablocks[current_block]['loops'].append(new_df)
-            # empty all stored entries
-            current_loop_lines = []
-            current_loop_titles = []
-            current_line_collect = []
-        if line.startswith('data_'):
-            # New data block
-            current_block = line[5:]
-            datablocks[current_block] = OrderedDict([('loops', [])])
-        elif line.startswith('loop_'):
-            # a new loop / table starts
-            in_loop = True
-            in_loop_titles = True
-        elif in_loop and in_loop_titles and line.startswith('_'):
-            # This line is a title entry within a loop
-            current_loop_titles.append(line[1:])
-        elif in_loop:
-            # This line contains data within a loop
-            in_loop_titles = False
-            line_split = [item.strip() for item in PATTERN.split(line) if item != '' and not item.isspace()]
-            line_split = [item[1:-1] if "'" in item else item for item in line_split]
-            current_line_collect += line_split
-            if len(current_line_collect) == len(current_loop_titles):
-                current_loop_lines.append(OrderedDict())
-                for index2, item in enumerate(current_line_collect):
-                    current_loop_lines[-1][current_loop_titles[index2]] = item
+    try:
+        for index, raw_line in enumerate(lines):
+            line = raw_line.strip().lstrip()
+            if len(line.strip()) == 0 or line.startswith('#'):
+                # empty or comment line
+                continue
+            if in_loop and not in_loop_titles and (line.startswith('_') or line.startswith('loop_')):
+                # The current loop has ended append entries as new DataFrame
+                in_loop = False
+                if len(current_loop_lines) > 0:
+                    new_df = pd.DataFrame(current_loop_lines)
+                    for key in new_df:
+                        new_df[key] = pd.to_numeric(new_df[key], errors='ignore')
+                    if resolve_std:
+                        for column in new_df.columns:
+                            if new_df[column].dtype != 'O':
+                                continue
+                            concatenate = ''.join(new_df[column])
+                            if  re.search(r'[\(\)]', concatenate) is not None and re.search(r'[^\d^\.^\(^\)\-\+]', concatenate) is None:
+                                values, errors = np.array([split_error(val) for val in new_df[column]]).T
+                                new_df[column] = values
+                                new_df[column+'_std'] = errors
+                    datablocks[current_block]['loops'].append(new_df)
+                # empty all stored entries
+                current_loop_lines = []
+                current_loop_titles = []
                 current_line_collect = []
-        elif line.startswith('_'):
-            # we are not in a loop -> single line or multiline string entry
-            line_split = [item.strip() for item in PATTERN.split(line) if item != '' and not item.isspace()]
-            line_split = [item[1:-1] if "'" in item else item for item in line_split]
-            if len(line_split) > 1:
-                if resolve_std:
-                    test = line_split[1]
-                    if re.search(r'[^\d]', test) is None:
-                        datablocks[current_block][line_split[0][1:]] = int(test)
-                    elif re.search(r'[^\d^\.]', test) is None and re.search(r'\d', test) is not None:
-                        datablocks[current_block][line_split[0][1:]] = float(test)
-                    elif re.search(r'[\(\)]', test) is not None and re.search(r'[^\d^\.^\(^\)\-\+]', test) is None:
-                        val, error = split_error(test)
-                        datablocks[current_block][line_split[0][1:]] = val
-                        datablocks[current_block][line_split[0][1:] + '_std'] = error
+            if line.startswith('data_'):
+                # New data block
+                current_block = line[5:]
+                datablocks[current_block] = OrderedDict([('loops', [])])
+            elif line.startswith('loop_'):
+                # a new loop / table starts
+                in_loop = True
+                in_loop_titles = True
+            elif in_loop and in_loop_titles and line.startswith('_'):
+                # This line is a title entry within a loop
+                current_loop_titles.append(line[1:])
+            elif in_loop:
+                # This line contains data within a loop
+                in_loop_titles = False
+                line_split = [item.strip() for item in PATTERN.split(line) if item != '' and not item.isspace()]
+                line_split = [item[1:-1] if "'" in item else item for item in line_split]
+                current_line_collect += line_split
+                if len(current_line_collect) == len(current_loop_titles):
+                    current_loop_lines.append(OrderedDict())
+                    for index2, item in enumerate(current_line_collect):
+                        current_loop_lines[-1][current_loop_titles[index2]] = item
+                    current_line_collect = []
+            elif line.startswith('_'):
+                # we are not in a loop -> single line or multiline string entry
+                line_split = [item.strip() for item in PATTERN.split(line) if item != '' and not item.isspace()]
+                line_split = [item[1:-1] if "'" in item else item for item in line_split]
+                if len(line_split) > 1:
+                    if resolve_std:
+                        test = line_split[1]
+                        if len(test) == 0:
+                            datablocks[current_block][line_split[0][1:]] = None
+                        elif re.search(r'[^\d]', test) is None:
+                            datablocks[current_block][line_split[0][1:]] = int(test)
+                        elif re.search(r'[^\d^\.]', test) is None and re.search(r'\d', test) is not None:
+                            datablocks[current_block][line_split[0][1:]] = float(test)
+                        elif re.search(r'[\(\)]', test) is not None and re.search(r'[^\d^\.^\(^\)\-\+]', test) is None:
+                            val, error = split_error(test)
+                            datablocks[current_block][line_split[0][1:]] = val
+                            datablocks[current_block][line_split[0][1:] + '_std'] = error
+                        else:
+                            datablocks[current_block][line_split[0][1:]] = line_split[1]
                     else:
                         datablocks[current_block][line_split[0][1:]] = line_split[1]
                 else:
-                    datablocks[current_block][line_split[0][1:]] = line_split[1]
-            else:
-                multiline_title = line_split[0][1:]
-        elif line.startswith(';') and in_multiline:
-            datablocks[current_block][multiline_title] = '\n'.join(multiline_entries)
-            multiline_entries = []
-            in_multiline = False
-        elif line.startswith(';') and not in_multiline:
-            in_multiline = True
-        elif in_multiline:
-            multiline_entries.append(line)
+                    multiline_title = line_split[0][1:]
+            elif line.startswith(';') and in_multiline:
+                datablocks[current_block][multiline_title] = '\n'.join(multiline_entries)
+                multiline_entries = []
+                in_multiline = False
+            elif line.startswith(';') and not in_multiline:
+                in_multiline = True
+            elif in_multiline:
+                multiline_entries.append(line)
+    except Exception as e:
+        print('Error in Line {index}')
+        print(line)
+        raise e
 
     
     # We might have a final loop
@@ -227,6 +234,8 @@ def cif2data(cif_name, cif_dataset=0):
 
     atom_table = [table for table in cif['loops'] if 'atom_site_label' in table.columns][0].copy()
     atom_table.columns = [label.replace('atom_site_', '') for label in atom_table.columns]
+    if 'type_symbol' not in atom_table:
+        atom_table['type_symbol'] = [str(re.match(r'([A-Za-z]{1,2})\d', line['label']).groups(1)[0]) for _, line in atom_table.iterrows()]
 
     adp_table = [table for table in cif['loops'] if 'atom_site_aniso_label' in table.columns][0].copy()
     adp_table.columns = [label.replace('atom_site_aniso_', '') for label in adp_table.columns]

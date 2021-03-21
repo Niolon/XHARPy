@@ -11,6 +11,7 @@ import jax
 import numpy as np
 import pickle
 from scipy.optimize import minimize
+from jax.scipy.optimize import minimize as jminimize
 
 from .restraints import resolve_restraints
     
@@ -438,7 +439,8 @@ def calc_lsq_factory(cell_mat_m,
                      flack_parameter,
                      core_parameter,
                      extinction_parameter,
-                     wavelength):
+                     wavelength,
+                     restraint_instr_ind=[]):
     """Generates a calc_lsq function. Doing this with a factory function allows for both flexibility but also
     speed by automatic loop and conditional unrolling for all the stuff that is constant for a given structure."""
     construct_values_j = jax.jit(construct_values, static_argnums=(1,2))
@@ -505,10 +507,10 @@ def calc_lsq_factory(cell_mat_m,
                 else:
                     intensities_calc2 = parameters[0] * i_calc02 / jnp.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc02)
                     #restraint_addition = 1.0 / 0.1 * parameters[extinction_parameter]**2
-            return jnp.sum(weights * (intensities_obs - parameters[flack_parameter] * intensities_calc2 - (1 - parameters[flack_parameter]) * intensities_calc)**2) 
+            lsq = jnp.sum(weights * (intensities_obs - parameters[flack_parameter] * intensities_calc2 - (1 - parameters[flack_parameter]) * intensities_calc)**2) 
         else:
             lsq = jnp.sum(weights * (intensities_obs - intensities_calc)**2) 
-            return lsq #+ restraint_addition
+        return lsq * (1 + resolve_restraints(xyz, uij, restraint_instr_ind, cell_mat_m) / (len(intensities_obs) - len(parameters)))
 
 
     return jax.jit(function)
@@ -662,7 +664,7 @@ UEquivConstraint = namedtuple('UEquivConstraint', [
 ])
 
 
-def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, f0j_source='gpaw', reload_step=1, options_dict={}, refinement_dict={}):
+def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, f0j_source='gpaw', reload_step=1, options_dict={}, refinement_dict={}, restraints=[]):
     """
     Basic Hirshfeld atom refinement routine. Will calculate the electron density on a grid spanning the unit cell
     First will refine the scaling factor. Afterwards all other parameters defined by the parameters, 
@@ -765,7 +767,8 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                                 flack_parameter,
                                 core_parameter,
                                 extinction_parameter,
-                                wavelength)
+                                wavelength,
+                                restraints)
     print('  setting up gradients')
     grad_calc_lsq = jax.jit(jax.grad(calc_lsq))
 
@@ -790,6 +793,13 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                      method='BFGS',
                      args=(jnp.array(fjs)),
                      options={'gtol': 1e-8 * jnp.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)})
+        
+        #x = jminimize(
+        #    calc_lsq,
+        #    x0=parameters,
+        #    method='BFGS',
+        #    args=(jnp.array(fjs))
+        #)
         print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)):8.6f}, nit: {x.nit}, {x.message}')
         parameters = jnp.array(x.x) 
         #if x.nit == 0:

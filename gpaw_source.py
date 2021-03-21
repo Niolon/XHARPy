@@ -301,13 +301,16 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
             for symm_index, (symm_matrix, symm_atom_index) in enumerate(zip(symm_mats_vecs[0], symm_atom_indexes)):
                 if symm_atom_index in list(already_known.keys()):
                     equiv_symm_index, equiv_atom_index = already_known[symm_atom_index]
-                    f0j[symm_index, atom_index, :] = f0j[equiv_symm_index, equiv_atom_index, :]
+                    f0j[symm_index, atom_index, :] = f0j[equiv_symm_index, equiv_atom_index, :].copy()
                 else:
                     h_density = density * partitioning.hdensity.get_density([symm_atom_index], gridrefinement=gridrefinement, skip_core=explicit_core)[0] / overall_hdensity
                     frac_position = symm_positions[symm_atom_index]
                     phase_to_zero = np.exp(-2j * np.pi * (frac_position[0] * h_vec + frac_position[1] * k_vec + frac_position[2] * l_vec))
-                    f0j[symm_index, atom_index, :] = (np.fft.ifftn(h_density) * np.prod(density.shape))[h_vec, k_vec, l_vec] * phase_to_zero    
+                    f0j[symm_index, atom_index, :] = ((np.fft.ifftn(h_density) * np.prod(density.shape))[h_vec, k_vec, l_vec] * phase_to_zero).copy()
                     already_known[symm_atom_index] = (symm_index, atom_index)
+    del(calc)
+    del(atoms)
+    del(partitioning)
     return f0j
 
 

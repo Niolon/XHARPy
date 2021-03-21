@@ -1,6 +1,15 @@
 from collections import namedtuple
 import jax.numpy as np
 import pandas as pd
+#from .xharpy import ucif2ucart
+
+def ucif2ucart(cell_mat_m, u_mats):
+    # see R. W. Grosse-Kunstleve and P. D. Adams J. Appl. Cryst 2002, p.478 eq. 3a + 4a
+    cell_mat_f = np.linalg.inv(cell_mat_m).T
+    cell_mat_n = np.eye(3) * np.linalg.norm(cell_mat_f, axis=1)
+
+    u_star = np.einsum('ab, zbc, cd -> zad', cell_mat_n, u_mats, cell_mat_n.T)
+    return np.einsum('ab, zbc, cd -> zad', cell_mat_m, u_star, cell_mat_m.T)
 
 
 #### User Creatable Objects
@@ -20,14 +29,16 @@ SameDistanceRestraint = namedtuple('SameDistanceRestraint', [
 SameADPRestraint = namedtuple('SameADPRestraint', [
     'atom1', # Name of atom1 in the ADP Restraint
     'atom2', # Name of atom2 in the ADP Restraint
-    'stderr' # sigma**2 of the restraint
-])
+    'stderr', # sigma**2 of the restraint
+    'mult' # multiplicator for ADP of atom2 (For H)
+], defaults=[None, None, None, 1.0])
 
 RigidADPRestraint = namedtuple('RigidADPRestraint', [
     'atom1', # Name of atom1 in the ADP Restraint
     'atom2', # Name of atom2 in the ADP Restraint
-    'stderr' # sigma**2 of the restraint
-])
+    'stderr', # sigma**2 of the restraint
+    'mult' # multiplicator for ADP of atom2 (For H)
+], defaults=[None, None, None, 1.0])
 
 
 ### Internal Objects
@@ -46,13 +57,15 @@ SameDistanceRestrInd = namedtuple('SameDistanceRestrInd', [
 SameADPRestrInd = namedtuple('SameADPRestrInd', [
     'atom1_index', # Index of atom1 in the ADP restraint
     'atom2_index', # Index of atom2 in the ADP restraint
-    'stderr' # sigma**2 of the restraint
+    'stderr', # sigma**2 of the restraint
+    'mult' # multiplicator for ADP of atom2 (For H)
 ])
 
 RigidADPRestrInd = namedtuple('RigidADPRestrInd', [
     'atom1_index', # Index of atom1 in the ADP restraint
     'atom2_index', # Index of atom2 in the ADP restraint
-    'stderr' # sigma**2 of the restraint
+    'stderr', # sigma**2 of the restraint
+    'mult' # multiplicator for ADP of atom2 (For H)
 ])
 
 ### Functions
@@ -79,13 +92,15 @@ def create_restraint_instructions(atom_table, restraints):
             return_list.append(SameADPRestrInd(
                 atom1_index=np.where(names == restraint.atom1)[0][0],
                 atom2_index=np.where(names == restraint.atom2)[0][0],
-                stderr=restraint.stderr
+                stderr=restraint.stderr,
+                mult=restraint.mult
             ))
         elif type(restraint).__name__ == 'RigidADPRestraint':
             return_list.append(RigidADPRestrInd(
                 atom1_index=np.where(names == restraint.atom1)[0][0],
                 atom2_index=np.where(names == restraint.atom2)[0][0],
-                stderr=restraint.stderr
+                stderr=restraint.stderr,
+                mult=restraint.mult
             ))
     return return_list
 
@@ -96,13 +111,13 @@ def resolve_restraints(xyz, uij, restraints, cell_mat_m):
             position1 = xyz[restraint.atom1_index]
             position2 = xyz[restraint.atom2_index]
             diff = cell_mat_m @ (position1 - position2)
-            return_sum += (np.linalg.norm(diff) - restraint.distance)**2 / restraint.stderr
+            return_sum += (np.linalg.norm(diff) - restraint.distance)**2 / restraint.stderr**2
         elif type(restraint).__name__ == 'SameDistanceRestrInd':
             distances = np.array([np.linalg.norm(cell_mat_m @ (xyz[index1] - xyz[index2]))
                                   for index1, index2 in restraint.atom_pair_indexes])
-            return_sum += np.sum((distances - distances.mean)**2) / restraint.stderr
+            return_sum += np.sum((distances - distances.mean)**2) / restraint.stderr**2
         elif type(restraint).__name__ == 'SameADPRestrInd':
-            return_sum += np.sum((uij[restraint.atom1_index] - uij[restraint.atom2_index])**2) / restraint.stderr
+            return_sum += np.sum((uij[restraint.atom1_index] - restraint.mult * uij[restraint.atom2_index])**2) / restraint.stderr**2
         elif type(restraint).__name__ == 'RigidADPRestrInd':
             #1 Calculate Rotation
             diff = cell_mat_m @ (xyz[restraint.atom1_index] - xyz[restraint.atom2_index])
@@ -110,23 +125,24 @@ def resolve_restraints(xyz, uij, restraints, cell_mat_m):
             z = np.array([0.0, 0.0, 1.0])
             v = np.cross(norm_vector, z)
             s = np.sqrt(np.sum(v**2))
-            c = np.dot(unit, z)
+            c = np.dot(diff, z)
             v_x = np.array([[0,     -v[2], v[1]],
                             [v[2],  0,     -v[0]],
                             [-v[1], v[0],  0]])
             rot = np.identity(3) + v_x + v_x @ v_x * (1 - c) / s**2
 
             #2 Calculate U_carts
-            u_cart1 = cell_mat_g_star * uij[restraint.atom1_index, [[0, 5, 4], [5, 1, 3], [4, 3, 2]]]
-            u_cart2 = cell_mat_g_star * uij[restraint.atom2_index, [[0, 5, 4], [5, 1, 3], [4, 3, 2]]]
+            uij_selected = uij[[restraint.atom1_index, restraint.atom2_index], :]
+            u_cart1, u_cart2 = ucif2ucart(cell_mat_m, uij_selected[:, [[0, 5, 4], [5, 1, 3], [4, 3, 2]]])
+            # = ucif2ucart(cell_mat_m, uij[, [[0, 5, 4], [5, 1, 3], [4, 3, 2]]])
 
             #3 Rotate both U_carts (R @ U_cart @ R.T)
             u_cart1_r = rot @ u_cart1 @ rot.T
-            u_cart2_r = rot @ u_cart2 @ rot.T
+            u_cart2_r = restraint.mult * rot @ u_cart2 @ rot.T
 
             #4 Calculate differences
             diff_u = u_cart1_r - u_cart2_r
-            return_sum += (diff_u[2, 2]**2 + diff_u[1, 2]**2 + diff_u[0, 2]**2) / restraint.stderr
+            return_sum += (diff_u[2, 2]**2 + diff_u[1, 2]**2 + diff_u[0, 2]**2) / restraint.stderr**2
 
     return return_sum
 

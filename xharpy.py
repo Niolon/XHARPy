@@ -809,11 +809,11 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
             #parameters_min1 = jnp.array(x.x)
         else:
             break
-        with open('save_par_model.pkl', 'wb') as fo:
-            pickle.dump({
-                'construction_instructions': construction_instructions,
-                'parameters': parameters
-            }, fo) 
+        #with open('save_par_model.pkl', 'wb') as fo:
+        #    pickle.dump({
+        #        'construction_instructions': construction_instructions,
+        #        'parameters': parameters
+        #    }, fo) 
         
         constructed_xyz, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
         if refine >= reload_step - 1:

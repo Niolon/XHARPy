@@ -2,6 +2,7 @@ from scipy.optimize import minimize
 import numpy as np
 import jax
 import jax.numpy as jnp
+from conversion import calc_sin_theta_ov_lambda
 
 def calc_weights(parameters, c_mode, intensity_pos, i_calc, stderr, sintheta_ov_lambda=None):
     a, b, c, d, e, f = parameters
@@ -40,6 +41,3 @@ def refine_weighting(refined_parameters, non_refined_parameters, intensity, i_ca
     print(f'calculated value for sqrt((gof - 1)**2) as: {np.sqrt(x.fun):7.6f}')
     return x.x
 
-
-def calc_sin_theta_ov_lambda(cell_mat_f, index_vec_h):
-    return np.linalg.norm(np.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 

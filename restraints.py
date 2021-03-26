@@ -1,15 +1,7 @@
 from collections import namedtuple
 import jax.numpy as np
 import pandas as pd
-#from .xharpy import ucif2ucart
-
-def ucif2ucart(cell_mat_m, u_mats):
-    # see R. W. Grosse-Kunstleve and P. D. Adams J. Appl. Cryst 2002, p.478 eq. 3a + 4a
-    cell_mat_f = np.linalg.inv(cell_mat_m).T
-    cell_mat_n = np.eye(3) * np.linalg.norm(cell_mat_f, axis=1)
-
-    u_star = np.einsum('ab, zbc, cd -> zad', cell_mat_n, u_mats, cell_mat_n.T)
-    return np.einsum('ab, zbc, cd -> zad', cell_mat_m, u_star, cell_mat_m.T)
+from .conversion import ucif2ucart
 
 
 #### User Creatable Objects

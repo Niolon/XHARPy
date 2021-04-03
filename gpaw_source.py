@@ -220,12 +220,19 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
         del(gpaw_dict['average_symmequiv'])
     else:
         average_symmequiv = False
+    if 'skip_symm' in gpaw_dict:
+        assert len(gpaw_dict['skip_symm']) == 0 or average_symmequiv, 'skip_symm does need average_symmequiv' 
+        skip_symm = gpaw_dict['skip_symm']
+        del(gpaw_dict['skip_symm'])
+    else:
+        skip_symm = {}
 
     #assert not (not average_symmequiv and not do_not_move)
     symm_positions, symm_symbols, f0j_indexes = expand_symm_unique(element_symbols,
                                                                    np.array(positions),
                                                                    np.array(cell_mat_m),
-                                                                   symm_mats_vecs)
+                                                                   (np.array(symm_mats_vecs[0]), np.array(symm_mats_vecs[1])),
+                                                                   skip_symm=skip_symm)
     if restart is None:
         atoms = crystal(symbols=symm_symbols,
                         basis=symm_positions % 1,
@@ -278,25 +285,25 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
 
     if average_symmequiv:
         h, k, l = np.meshgrid(*map(lambda n: np.fft.fftfreq(n, 1/n).astype(np.int64), density.shape), indexing='ij')
-        for atom_index, symm_atom_indexes in enumerate(f0j_indexes.T):
+        for atom_index, symm_atom_indexes in enumerate(f0j_indexes):
             f0j_sum = np.zeros_like(h, dtype=np.complex128)
             for symm_matrix, symm_atom_index in zip(symm_mats_vecs[0], symm_atom_indexes):
                 h_density = density * partitioning.hdensity.get_density([symm_atom_index], gridrefinement=gridrefinement, skip_core=explicit_core)[0] / overall_hdensity
                 frac_position = symm_positions[symm_atom_index]
-                h_rot, k_rot, l_rot = np.einsum('yx, y... -> x...', symm_matrix, np.array((h, k, l))).astype(np.int64)
+                h_rot, k_rot, l_rot = np.einsum('xy, y... -> x...', symm_matrix, np.array((h, k, l))).astype(np.int64)
                 phase_to_zero = np.exp(-2j * np.pi * (frac_position[0] * h + frac_position[1] * k + frac_position[2] * l))
                 f0j_sum += (np.fft.ifftn(h_density) * phase_to_zero * np.prod(h.shape))[h_rot, k_rot, l_rot]
             f0j_sum /= len(symm_atom_indexes)
 
             for symm_index, symm_matrix in enumerate(symm_mats_vecs[0]):
-                h_rot, k_rot, l_rot = np.einsum('xy, zy -> zx', symm_matrix, index_vec_h).astype(np.int64).T
+                h_rot, k_rot, l_rot = np.einsum('xy, zy -> zx', symm_matrix.T, index_vec_h).astype(np.int64).T
                 f0j[symm_index, atom_index, :] = f0j_sum[h_rot, k_rot, l_rot]
     else:
         #TODO Is a discrete Fourier Transform just of the hkl we need possibly faster? Can we then interpolate the density to get even better factors?
         # This could also save memory, fft is O(NlogN) naive dft is probably N^2
         h_vec, k_vec, l_vec = index_vec_h.T
         already_known = {}
-        for atom_index, symm_atom_indexes in enumerate(f0j_indexes.T):
+        for atom_index, symm_atom_indexes in enumerate(f0j_indexes):
             f0j_sum = np.zeros_like(density, dtype=np.complex128)
             for symm_index, (symm_matrix, symm_atom_index) in enumerate(zip(symm_mats_vecs[0], symm_atom_indexes)):
                 if symm_atom_index in list(already_known.keys()):

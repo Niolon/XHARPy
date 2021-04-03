@@ -3,7 +3,7 @@ from .conversion import calc_sin_theta_ov_lambda, cell_constants_to_M, calc_sin_
 import numpy as np
 
 def calculate_quality_indicators(construction_instructions, parameters, fjs, cell_mat_m, symm_mats_vecs, index_vec_h, intensities, stderr):
-    cell_mat_f = np.linalg.inv(cell_mat_m)
+    cell_mat_f = np.linalg.inv(cell_mat_m).T
     xyz, uij, cijk, dijkl, occupancies = construct_values(parameters, construction_instructions, cell_mat_m)
 
     structure_factors = calc_f(

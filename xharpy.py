@@ -17,7 +17,7 @@ from .restraints import resolve_restraints
 from .conversion import ucif2ucart, cell_constants_to_M
 
 
-def expand_symm_unique(type_symbols, coordinates, cell_mat_m, symm_mats_vec):
+def expand_symm_unique(type_symbols, coordinates, cell_mat_m, symm_mats_vec, skip_symm={}):
     """Expand the type_symbols and coordinates for one complete unit cell
     Will return an atom coordinate on a special position only once 
     also returns the matrix inv_indexes with shape n_symm * n_at for
@@ -27,17 +27,21 @@ def expand_symm_unique(type_symbols, coordinates, cell_mat_m, symm_mats_vec):
     un_positions = np.zeros((0, 3))
     n_atoms = 0
     type_symbols_symm = []
-    inv_indexes = np.zeros((symm_mats_r.shape[0], coordinates.shape[0]), dtype=np.int64)
+    inv_indexes = []
     # Only check atom with itself
-    for index, (pos0, type_symbol) in enumerate(zip(pos_frac0, type_symbols)):
-        symm_positions = (np.einsum('kxy, y -> kx', symm_mats_r, pos0) + symm_vecs_t) % 1
+    for atom_index, (pos0, type_symbol) in enumerate(zip(pos_frac0, type_symbols)):
+        if atom_index in skip_symm:
+            use_indexes = [i for i in range(symm_mats_r.shape[0]) if i not in skip_symm[atom_index]]
+        else:
+            use_indexes = list(range(symm_mats_r.shape[0]))
+        symm_positions = (np.einsum('kxy, y -> kx', symm_mats_r[use_indexes, :, :], pos0) + symm_vecs_t[use_indexes, :]) % 1
         _, unique_indexes, inv_indexes_at = np.unique(np.round(np.einsum('xy, zy -> zx', cell_mat_m, symm_positions), 5),
                                                       axis=0,
                                                       return_index=True,
                                                       return_inverse=True)
         un_positions = np.concatenate((un_positions, symm_positions[unique_indexes]))
         type_symbols_symm += [type_symbol] * unique_indexes.shape[0]
-        inv_indexes[:,index] = inv_indexes_at + n_atoms 
+        inv_indexes.append(inv_indexes_at + n_atoms)
         n_atoms += unique_indexes.shape[0]
     return un_positions.copy(), type_symbols_symm, inv_indexes
 
@@ -273,7 +277,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             constraint = constraint_dict[atom['label']]['occ']
             occupancy = FixedParameter(value=constraint.added_value[0])
         else:
-            occupancy = FixedParameter(value=1.0)
+            occupancy = FixedParameter(value=atom['occupancy'])
 
         construction_instructions.append(AtomInstructions(
             name=atom['label'],
@@ -763,8 +767,8 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
         #)
         print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)):8.6f}, nit: {x.nit}, {x.message}')
         parameters = jnp.array(x.x) 
-        #if x.nit == 0:
-        #    break
+        if x.nit == 0:
+            break
         if x.fun < r_opt_density or refine < 10:
             r_opt_density = x.fun
             #parameters_min1 = jnp.array(x.x)

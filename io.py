@@ -333,7 +333,7 @@ def lst2constraint_dict(filename):
 
 def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, structure_factors, cell):
     cell_mat_m = cell_constants_to_M(*cell)
-    cell_mat_f = np.linalg.inv(cell_mat_m)
+    cell_mat_f = np.linalg.inv(cell_mat_m).T
     index_vec_h = hkl[['h', 'k', 'l']].values
     intensity = hkl['intensity'].values
     stderr = hkl['stderr'].values
@@ -346,7 +346,6 @@ def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, structure_fa
         extinction_parameter = 1
 
     if refine_dict['extinction'] == 'none':
-        intensities_calc = parameters[0] * np.abs(structure_factors)**2
         f_calc = np.abs(structure_factors)
         intensity_fcf = intensity / parameters[0]
         stderr_fcf = stderr
@@ -354,7 +353,6 @@ def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, structure_fa
         i_calc0 = np.abs(structure_factors)**2
         if refine_dict['extinction'] == 'secondary':
             # Secondary exctinction, as shelxl needs a wavelength                
-            intensities_calc = parameters[0] * i_calc0 / (1 + parameters[extinction_parameter] * i_calc0)
             f_calc = np.abs(structure_factors) * np.sqrt(parameters[0] / (1 + parameters[extinction_parameter] * i_calc0)) 
             intensity_fcf = intensity / parameters[0] * (1 + parameters[extinction_parameter] * i_calc0)
             stderr_fcf = stderr / parameters[0] * (1 + parameters[extinction_parameter] * i_calc0)
@@ -363,7 +361,6 @@ def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, structure_fa
             sintheta = np.linalg.norm(np.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 * wavelength
             sintwotheta = 2 * sintheta * np.sqrt(1 - sintheta**2)
             extinction_factors = 0.001 * wavelength**3 / sintwotheta
-            intensities_calc = parameters[0] * i_calc0 / np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0)
             f_calc = np.abs(structure_factors) * np.sqrt(parameters[0] / np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0)) 
             intensity_fcf = intensity / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0)
             stderr_fcf = stderr / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0)
@@ -437,12 +434,13 @@ def entries2atom_string(entries):
 def write_res(out_res_name, in_res_name, atom_table, cell, cell_std, wavelength, parameters):
     with open(in_res_name) as fo:
         res_lines = fo.readlines()
+    atom_table = atom_table.copy()
 
     latt_line = [line.strip() for line in res_lines if line.upper().startswith('LATT ')][0]
     symm_lines = [line.strip() for line in res_lines if line.upper().startswith('SYMM ')]
     symm_string = '\n'.join(symm_lines)
     sfac_line = [line.strip() for line in res_lines if line.upper().startswith('SFAC ')][0]
-    sfac_elements = sfac_line.split()[1:]
+    sfac_elements = [element.capitalize() for element in sfac_line.split()[1:]]
     unit_entries = ' '.join(['99'] * len(sfac_elements))
     sfac_df = pd.DataFrame({
         'sfac_index': np.arange(len(sfac_elements)) + 1,

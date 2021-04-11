@@ -2,7 +2,7 @@ from scipy.optimize import minimize
 import numpy as np
 import jax
 import jax.numpy as jnp
-from conversion import calc_sin_theta_ov_lambda
+from .conversion import calc_sin_theta_ov_lambda
 
 def calc_weights(parameters, c_mode, intensity_pos, i_calc, stderr, sintheta_ov_lambda=None):
     a, b, c, d, e, f = parameters
@@ -28,7 +28,7 @@ def weight_difference(refined_parameters, non_refined_parameters, intensity, i_c
 
     weights = calc_weights(parameters, c_mode, intensity, i_calc, stderr, sintheta_ov_lambda)
     
-    gof = jnp.sum((weights * (intensity - i_calc)**2)**2) / (n_i - n_p)
+    gof = jnp.sqrt(jnp.sum((weights * (intensity - i_calc)**2)**2) / (n_i - n_p))
 
     return (gof - 1)**2
     

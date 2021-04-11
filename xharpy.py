@@ -398,7 +398,7 @@ def calc_lsq_factory(cell_mat_m,
                      symm_mats_vecs,
                      index_vec_h,
                      intensities_obs,
-                     stds_obs,
+                     weights,
                      construction_instructions,
                      fjs_core,
                      flack_parameter,
@@ -446,7 +446,6 @@ def calc_lsq_factory(cell_mat_m,
             else:
                 intensities_calc = parameters[0] * i_calc0 / jnp.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0)
                 #restraint_addition = 1.0 / 0.1 * parameters[extinction_parameter]**2
-        weights = 1 / stds_obs**2
 
         if flack_parameter is not None:
             structure_factors2 = calc_f(
@@ -485,7 +484,8 @@ def calc_var_cor_mat(cell_mat_m,
                      symm_mats_vecs,
                      index_vec_h,
                      construction_instructions,
-                     intensities_obs, stds_obs,
+                     intensities_obs,
+                     weights,
                      parameters, fjs,
                      fjs_core,
                      flack_parameter,
@@ -554,11 +554,11 @@ def calc_var_cor_mat(cell_mat_m,
     grad_func = jax.jit(jax.grad(function))
 
     collect = jnp.zeros((len(parameters), len(parameters)))
-    for index, weight in enumerate(1 / stds_obs**2):
+    for index, weight in enumerate(weights):
         val = grad_func(parameters, jnp.array(fjs), index)[:, None]
         collect += weight * (val @ val.T)
 
-    lsq_func = calc_lsq_factory(cell_mat_m, symm_mats_vecs, index_vec_h, intensities_obs, stds_obs, construction_instructions, fjs_core, flack_parameter, core_parameter, extinction_parameter, wavelength)
+    lsq_func = calc_lsq_factory(cell_mat_m, symm_mats_vecs, index_vec_h, intensities_obs, weights, construction_instructions, fjs_core, flack_parameter, core_parameter, extinction_parameter, wavelength)
     chi_sq = lsq_func(parameters, jnp.array(fjs)) / (index_vec_h.shape[0] - len(parameters))
 
     return chi_sq * jnp.linalg.inv(collect)
@@ -628,6 +628,21 @@ UEquivConstraint = namedtuple('UEquivConstraint', [
     'multiplicator' # Multiplicator for UEquiv Constraint (Usually nonterminal: 1.2, terminal 1.5)
 ])
 
+TrigonalPositionConstraint = namedtuple('TrigonalPositionConstraint', [
+    'bound_atom_name', # name of bound atom
+    'plane_atom1_name', # first bonding partner of bound atom
+    'plane_atom2_name', # second bonding partner of bound atom
+    'distance' # interatomic distance
+])
+
+TorsionPositionConstraint = namedtuple('TorsionCalculated', [
+    'bound_atom_name',   # index of  atom the derived atom is bound_to
+    'angle_atom_name',   # index of atom spanning the given angle with bound atom
+    'torsion_atom_name', # index of atom giving the torsion angle
+    'distance',           # interatom distance
+    'angle',              # interatom angle
+    'torsion_angle'       # interatom torsion angle
+])
 
 def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, f0j_source='gpaw', reload_step=1, options_dict={}, refinement_dict={}, restraints=[]):
     """
@@ -702,6 +717,9 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
     else:
         max_distance_diff = 1e-6
 
+    if 'weights' not in hkl.columns:
+        hkl['weights'] = 1 / hkl['stderr']**2
+
     print('  calculating first atomic form factors')
     if reload_step == 0:
         restart = 'save.gpw'
@@ -726,7 +744,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                                 symm_mats_vecs,
                                 jnp.array(hkl[['h', 'k', 'l']]),
                                 jnp.array(hkl['intensity']),
-                                jnp.array(hkl['stderr']),
+                                jnp.array(hkl['weights']),
                                 construction_instructions,
                                 f0j_core,
                                 flack_parameter,
@@ -808,7 +826,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                                    index_vec_h,
                                    construction_instructions,
                                    jnp.array(hkl['intensity']),
-                                   jnp.array(hkl['stderr']),
+                                   jnp.array(hkl['weights']),
                                    parameters,
                                    fjs,
                                    f0j_core,

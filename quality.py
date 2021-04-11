@@ -27,7 +27,7 @@ def calculate_quality_indicators(construction_instructions, parameters, fjs, cel
     r_f_strong = np.sum(np.abs(f_obs[i_over_2sigma] - np.sqrt(parameters[0]) * np.abs(structure_factors[i_over_2sigma]))) / np.sum(np.abs(f_obs[i_over_2sigma]))
     r_f2 = np.sum(np.abs(intensities - parameters[0] * np.abs(structure_factors)**2)) / np.sum(intensities)
     wr2 = np.sqrt(np.sum(1/stderr**2 * (intensities - parameters[0] *  np.abs(structure_factors)**2)**2) / np.sum(1/stderr**2 * intensities**2))
-    gof = np.sum(1/stderr**2 * (intensities - parameters[0] * np.abs(structure_factors)**2)**2) / (len(intensities) - len(parameters))
+    gof = np.sqrt(np.sum(1/stderr**2 * (intensities - parameters[0] * np.abs(structure_factors)**2)**2) / (len(intensities) - len(parameters)))
 
     return {
             'R(F)': r_f,

@@ -484,7 +484,7 @@ def value_with_esd(values, esds):
         indexes = np.isfinite(1 / esds)
         orders = np.floor(np.log10(esds))
         smaller2 = np.full_like(values, False)
-        smaller2[indexes] = np.array(values[indexes]) * 10**(-orders[indexes]) < 2
+        smaller2[indexes] = np.array(esds[indexes]) * 10**(-orders[indexes]) < 2
 
         orders[np.logical_and(smaller2, orders)] -= 1
     strings = []

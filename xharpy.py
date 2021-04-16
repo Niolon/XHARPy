@@ -298,10 +298,8 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
 def construct_values(parameters, construction_instructions, cell_mat_m):
     """Reconstruct xyz, adp-parameters and occupancies from the given construction instructions. Allows for the
     Flexible usage of combinations of fixed parameters and parameters that are refined, as well as constraints"""
-    cell_mat_g = jnp.einsum('ja, jb -> ab', cell_mat_m, cell_mat_m)
-    cell_mat_f = jnp.linalg.inv(cell_mat_m)
-    cell_mat_g_star = jnp.einsum('ja, jb -> ab', cell_mat_f, cell_mat_f)
-    #n_atoms = len(construction_instructions)
+    cell_mat_f = jnp.linalg.inv(cell_mat_m).T
+    lengths_star = jnp.linalg.norm(cell_mat_f, axis=0)
     xyz = jnp.array(
         [jnp.array([resolve_instruction(parameters, inner_instruction) for inner_instruction in instruction.xyz])
           if type(instruction.xyz) in (tuple, list) else jnp.full(3, -9999.9) for instruction in construction_instructions]
@@ -352,12 +350,18 @@ def construct_values(parameters, construction_instructions, cell_mat_m):
         # constrained displacements
         if type(instruction.uij).__name__ == 'UEquivCalculated':
             uij_parent = uij[instruction.uij.atom_index, jnp.array([[0, 5, 4], [5, 1, 3], [4, 3, 2]])]
-            uij = jax.ops.index_update(uij, jax.ops.index[index, :3], 1.0 / 3.0 * jnp.trace((cell_mat_g_star * uij_parent) @ cell_mat_g))
-            uij = jax.ops.index_update(uij, jax.ops.index[index, 3:], 0.0)
+            u_cart = ucif2ucart(cell_mat_m, uij_parent[None,:, :])
+            uiso = jnp.trace(u_cart) / 3
+            uij = jax.ops.index_update(uij, jax.ops.index[index, :3], jnp.array([uiso, uiso, uiso]))
+            uij = jax.ops.index_update(uij, jax.ops.index[index, 3], uiso * jnp.sum(cell_mat_f[:, 1] * cell_mat_f[:, 2]) / lengths_star[1] / lengths_star[2])
+            uij = jax.ops.index_update(uij, jax.ops.index[index, 4], uiso * jnp.sum(cell_mat_f[:, 0] * cell_mat_f[:, 2]) / lengths_star[0] / lengths_star[2])
+            uij = jax.ops.index_update(uij, jax.ops.index[index, 5], uiso * jnp.sum(cell_mat_f[:, 0] * cell_mat_f[:, 1]) / lengths_star[0] / lengths_star[1])
         elif type(instruction.uij).__name__ == 'Uiso':
             uiso = resolve_instruction(parameters, instruction.uij.uiso)
             uij = jax.ops.index_update(uij, jax.ops.index[index, :3], jnp.array([uiso, uiso, uiso]))
-            uij = jax.ops.index_update(uij, jax.ops.index[index, 3:], 0.0)
+            uij = jax.ops.index_update(uij, jax.ops.index[index, 3], uiso * jnp.sum(cell_mat_f[:, 1] * cell_mat_f[:, 2]) / lengths_star[1] / lengths_star[2])
+            uij = jax.ops.index_update(uij, jax.ops.index[index, 4], uiso * jnp.sum(cell_mat_f[:, 0] * cell_mat_f[:, 2]) / lengths_star[0] / lengths_star[2])
+            uij = jax.ops.index_update(uij, jax.ops.index[index, 5], uiso * jnp.sum(cell_mat_f[:, 0] * cell_mat_f[:, 1]) / lengths_star[0] / lengths_star[1])
     return xyz, uij, cijk, dijkl, occupancies
 
 def resolve_instruction_esd(esds, instruction):
@@ -676,7 +680,8 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
     else:
         flack_parameter = None
     if 'core' in refinement_dict:
-        assert (f0j_source not in ('iam')), 'core description is not possible with this f0j source'
+        if f0j_source in ('iam'):
+            warnings.warn('core description is not possible with this f0j source')
         if refinement_dict['core'] in ('scale', 'constant'):
             if refinement_dict['core'] == 'scale':
                 core_parameter = additional_parameters + 1

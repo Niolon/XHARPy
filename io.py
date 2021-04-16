@@ -333,10 +333,18 @@ def lst2constraint_dict(filename):
 
 def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, structure_factors, cell):
     cell_mat_m = cell_constants_to_M(*cell)
+    hkl_out = hkl.copy()
+    for index in ('h', 'k', 'l'):
+        values = hkl_out[index].values.copy()
+        values[values < 0] += 10000
+        hkl_out[index + 'sort'] = values
+    hkl_out['indexes'] = list(range(len(hkl_out)))
+    hkl_out = hkl_out.sort_values(['l', 'k', 'h'])
     cell_mat_f = np.linalg.inv(cell_mat_m).T
-    index_vec_h = hkl[['h', 'k', 'l']].values
-    intensity = hkl['intensity'].values
-    stderr = hkl['stderr'].values
+    index_vec_h = hkl_out[['h', 'k', 'l']].values.copy()
+    intensity = hkl_out['intensity'].values.copy()
+    stderr = hkl_out['stderr'].values.copy()
+    structure_factors = structure_factors[hkl_out['indexes']].copy()
 
     wavelength = refine_dict['wavelength']
 
@@ -348,7 +356,7 @@ def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, structure_fa
     if refine_dict['extinction'] == 'none':
         f_calc = np.abs(structure_factors)
         intensity_fcf = intensity / parameters[0]
-        stderr_fcf = stderr
+        stderr_fcf = stderr / parameters[0]
     else:
         i_calc0 = np.abs(structure_factors)**2
         if refine_dict['extinction'] == 'secondary':
@@ -367,7 +375,7 @@ def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, structure_fa
             
     symm_string = "'" + "'\n'".join(symm_strings) + "'"
 
-    angles = np.rad2deg(np.angle(structure_factors))
+    angles = np.rad2deg(np.angle(structure_factors)) % 360
 
     header = f"""#
 # h,k,l, Fo-squared, sigma(Fo-squared), Fc and phi(calc)
@@ -397,7 +405,7 @@ loop_
     _refln_phase_calc
 """
 
-    lines = ''.join([f'{h} {k} {l} {out_inten} {out_std} {norm_val:.2f} {angle:.1f}\n' for (h, k, l), out_inten, out_std, norm_val, angle in zip(index_vec_h, intensity_fcf, stderr_fcf, f_calc, angles)])
+    lines = ''.join([f'{h} {k} {l} {out_inten:.2f} {out_std:.2f} {norm_val:.2f} {angle:.1f}\n' for (h, k, l), out_inten, out_std, norm_val, angle in zip(index_vec_h, intensity_fcf, stderr_fcf, f_calc, angles)])
 
     with open(filename, 'w') as fo:
         fo.write(header + lines)

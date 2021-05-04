@@ -291,7 +291,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             occupancy=occupancy
         ))
     parameters = parameters[:current_index]
-    return construction_instructions, parameters
+    return tuple(construction_instructions), parameters
 
 
 
@@ -412,7 +412,7 @@ def calc_lsq_factory(cell_mat_m,
                      restraint_instr_ind=[]):
     """Generates a calc_lsq function. Doing this with a factory function allows for both flexibility but also
     speed by automatic loop and conditional unrolling for all the stuff that is constant for a given structure."""
-    construct_values_j = jax.jit(construct_values, static_argnums=(1,2))
+    construct_values_j = jax.jit(construct_values, static_argnums=(1))
     cell_mat_f = jnp.linalg.inv(cell_mat_m).T
     if wavelength is not None:
         # This means a shelxl style extinction correction as that is currently the only reason to pass a wavelength
@@ -496,7 +496,7 @@ def calc_var_cor_mat(cell_mat_m,
                      core_parameter,
                      extinction_parameter,
                      wavelength):
-    construct_values_j = jax.jit(construct_values, static_argnums=(1,2))
+    construct_values_j = jax.jit(construct_values, static_argnums=(1))
     cell_mat_f = jnp.linalg.inv(cell_mat_m).T
     if wavelength is not None:
         # This means a shelxl style extinction correction as that is currently the only reason to pass a wavelength

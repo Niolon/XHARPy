@@ -121,14 +121,15 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
             'r_points': int(npoints_str),
             'shells': shells
         }
-    f0j = np.zeros((symm_mats_r.shape[0], inv_indexes.shape[1], index_vec_h.shape[0]), dtype=np.complex128)
+    #print(symm_mats_r, inv_indexes, index_vec_h)
+    f0j = np.zeros((symm_mats_r.shape[0], len(inv_indexes), index_vec_h.shape[0]), dtype=np.complex128)
     vec_s = np.einsum('xy, zy -> zx', np.linalg.inv(cell_mat_m / Bohr).T, index_vec_h)
     vec_s_symm = np.einsum('kxy, zx -> kzy', symm_mats_r, vec_s)
 
     xxx, yyy, zzz = np.meshgrid(np.arange(-10, 11, 1), np.arange(-10, 11, 1), np.arange(-10, 11, 1))
     supercell_base = np.array((np.ravel(xxx), np.ravel(yyy), np.ravel(zzz)))
 
-    for z_atom_index, grid_atom_index in enumerate(inv_indexes[0]):
+    for z_atom_index, grid_atom_index in enumerate([index[0] for index in inv_indexes]):
         setup_at = calc.setups[grid_atom_index]
 
         spline_at = spline_dict[setup_at.symbol]
@@ -137,7 +138,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
         r_grid = tr.transform_1d_grid(HortonLinear(grid_vals['r_points']))
         center = atoms.get_positions()[grid_atom_index] / Bohr
         sp_grid = AtomGrid(r_grid, size=grid_vals['shells'], center=center)
-        print(f'  Integrating atom {z_atom_index + 1}/{len(inv_indexes[0])}, n(Points): {sp_grid.points.shape[0]}, r(max): {grid_vals["highlim"]:6.4f} Ang')
+        print(f'  Integrating atom {z_atom_index + 1}/{len(inv_indexes)}, n(Points): {sp_grid.points.shape[0]}, r(max): {grid_vals["highlim"]:6.4f} Ang')
         grid = sp_grid.points.T
         dens_mats = [calc.wfs.calculate_density_matrix(kpt.f_n, kpt.C_nM) for kpt in calc.wfs.kpt_u]
         atomic_wfns_gd = np.zeros((dens_mats[0].shape[0], *grid.shape[1:]))

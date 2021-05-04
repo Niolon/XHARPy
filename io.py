@@ -69,7 +69,8 @@ def ciflike_to_dict(filename, return_only_loops=False, resolve_std=True):
             if line.startswith('data_'):
                 # New data block
                 current_block = line[5:]
-                datablocks[current_block] = OrderedDict([('loops', [])])
+                if current_block not in datablocks:
+                    datablocks[current_block] = OrderedDict([('loops', [])])
             elif line.startswith('loop_'):
                 # a new loop / table starts
                 in_loop = True

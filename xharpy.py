@@ -790,8 +790,8 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
         #)
         print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)):8.6f}, nit: {x.nit}, {x.message}')
         parameters = jnp.array(x.x) 
-        if x.nit == 0:
-            break
+        #if x.nit == 0:
+        #    break
         if x.fun < r_opt_density or refine < 10:
             r_opt_density = x.fun
             #parameters_min1 = jnp.array(x.x)
@@ -868,3 +868,18 @@ def distance_with_esd(atom1_name, atom2_name, construction_instructions, paramet
 
     esd = jnp.sqrt(jac1[None, :] @ var_cov_mat @ jac1[None, :].T + jac2[None,:] @ jnp.diag(cell_std) @ jac2[None,:].T)
     return distance, esd[0, 0]
+
+
+def u_iso_with_esd(atom_name, construction_instructions, parameters, var_cov_mat, cell_par, cell_std):
+    names = [instr.name for instr in construction_instructions]
+    atom_index = names.index(atom_name)
+    def u_iso_func(parameters, cell_par):
+        cell_mat_m = cell_constants_to_M(*cell_par)
+        _, constructed_uij, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
+        cut = constructed_uij[atom_index]
+        ucart = ucif2ucart(cell_mat_m, cut[None,[[0, 5, 4], [5, 1, 3], [4, 3, 2]]])
+        return jnp.trace(ucart[0]) / 3
+    u_iso = u_iso_func(parameters, cell_par)
+    jac1, jac2 = jax.grad(u_iso_func, [0, 1])(parameters, cell_par)
+    esd = jnp.sqrt(jac1[None, :] @ var_cov_mat @ jac1[None, :].T) #+ jac2[None,:] @ jnp.diag(cell_std) @ jac2[None,:].T)
+    return u_iso, esd[0, 0]

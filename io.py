@@ -238,13 +238,20 @@ def cif2data(cif_name, cif_dataset=0):
     if 'type_symbol' not in atom_table:
         atom_table['type_symbol'] = [str(re.match(r'([A-Za-z]{1,2})\d', line['label']).groups(1)[0]) for _, line in atom_table.iterrows()]
 
-    adp_table = [table for table in cif['loops'] if 'atom_site_aniso_label' in table.columns][0].copy()
-    adp_table.columns = [label.replace('atom_site_aniso_', '') for label in adp_table.columns]
+    if all(atom_table['adp_type'] == 'Uiso'):
+        atom_table[[
+            'U_11', 'U_22', 'U_33', 'U_23', 'U_13', 'U_12', 'U_11_std', 'U_22_std',
+            'U_33_std', 'U_23_std', 'U_13_std', 'U_12_std'
+        ]] = np.nan
+    else:
+        adp_table = [table for table in cif['loops'] if 'atom_site_aniso_label' in table.columns][0].copy()
+        adp_table.columns = [label.replace('atom_site_aniso_', '') for label in adp_table.columns]
+        atom_table = pd.merge(atom_table, adp_table, on='label', how='left').copy() # put adp parameters into table
+
 
     disp_corr_table = [table for table in cif['loops'] if 'atom_type_scat_dispersion_real' in table.columns][0].copy()
     disp_corr_table.columns = [label.replace('atom_', '') for label in disp_corr_table.columns]
 
-    atom_table = pd.merge(atom_table, adp_table, on='label', how='left').copy() # put adp parameters into table
     atom_table = pd.merge(atom_table, disp_corr_table, on='type_symbol', how='left') # add f' and f'' parameters
 
     #cell_mat_g_star = np.einsum('ja, jb -> ab', cell_mat_f, cell_mat_f)
@@ -279,9 +286,9 @@ def instructions_to_constraints(names, instructions):
             variable_indexes[index] = variable_indexes[names.index(var)]
             multiplicators[index] = mult
             added_value[index] = add
-    return ConstrainedValues(variable_indexes=variable_indexes,
-                             multiplicators=multiplicators,
-                             added_value=added_value) 
+    return ConstrainedValues(variable_indexes=jnp.array(variable_indexes),
+                             multiplicators=jnp.array(multiplicators),
+                             added_value=jnp.array(added_value)) 
 
 
 
@@ -586,7 +593,9 @@ loop_
  _geom_bond_atom_site_label_2
  _geom_bond_distance
 {distance_string}
-
+"""
+    if all([value in options_dict for value in ('xc', 'h', 'core', 'extinction', 'gridrefinement', 'mode', 'basis', 'convergence', 'kpts')]):
+        out += f"""
 _refine_special_details
 ;
 internal parameters:

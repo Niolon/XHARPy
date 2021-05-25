@@ -767,7 +767,11 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
             parameters_new = jax.ops.index_update(parameters, jax.ops.index[index], value)
         return calc_lsq(parameters_new, fjs), grad_calc_lsq(parameters_new, fjs)[:len(x)]
     print('step 0: Optimizing scaling')
-    x = minimize(minimize_scaling, args=(parameters.copy()), x0=parameters[0], jac=True, options={'gtol': 1e-6 * index_vec_h.shape[0]})
+    x = minimize(minimize_scaling,
+                 args=(parameters.copy()),
+                 x0=parameters[0],
+                 jac=True,
+                 options={'gtol': 1e-8 * jnp.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)})
     for index, val in enumerate(x.x):
         parameters = jax.ops.index_update(parameters, jax.ops.index[index], val)
     print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)):8.6f}, nit: {x.nit}, {x.message}')

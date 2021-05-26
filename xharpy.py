@@ -887,3 +887,25 @@ def u_iso_with_esd(atom_name, construction_instructions, parameters, var_cov_mat
     jac1, jac2 = jax.grad(u_iso_func, [0, 1])(parameters, cell_par)
     esd = jnp.sqrt(jac1[None, :] @ var_cov_mat @ jac1[None, :].T) #+ jac2[None,:] @ jnp.diag(cell_std) @ jac2[None,:].T)
     return u_iso, esd[0, 0]
+
+
+def angle_with_esd(atom1_name, atom2_name, atom3_name, construction_instructions, parameters, var_cov_mat, cell_par, cell_std):
+    names = [instr.name for instr in construction_instructions]
+    index1 = names.index(atom1_name)
+    index2 = names.index(atom2_name)
+    index3 = names.index(atom3_name)
+
+    def angle_func(parameters, cell_par):
+        cell_mat_m = cell_constants_to_M(*cell_par)
+        constructed_xyz, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
+        vec1 = cell_mat_m @ (constructed_xyz[index1] - constructed_xyz[index2])
+        vec2 = cell_mat_m @ (constructed_xyz[index3] - constructed_xyz[index2])
+
+        return jnp.rad2deg(jnp.arccos((vec1 / jnp.linalg.norm(vec1)) @ (vec2 / jnp.linalg.norm(vec2))))
+    
+    angle = angle_func(parameters, cell_par)
+
+    jac1, jac2 = jax.grad(angle_func, [0, 1])(parameters, cell_par)
+
+    esd = jnp.sqrt(jac1[None, :] @ var_cov_mat @ jac1[None, :].T + jac2[None,:] @ jnp.diag(cell_std) @ jac2[None,:].T)
+    return angle, esd[0, 0]

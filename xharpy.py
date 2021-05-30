@@ -184,7 +184,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             xyz_instructions = tuple(RefinedParameter(par_index=current_index + par_index,
                                                       multiplicator=mult,
                                                       added_value=add) if par_index >= 0 
-                                     else FixedParameter(value=add) for par_index, mult, add in instr_zip)
+                                     else FixedParameter(value=add, special_position=constraint.special_position) for par_index, mult, add in instr_zip)
             n_pars = jnp.max(constraint.variable_indexes) + 1
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + n_pars],
                                               [xyz[jnp.array(varindex)] for index, varindex in zip(*np.unique(constraint.variable_indexes, return_index=True)) if index >=0])
@@ -203,7 +203,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
                     adp_instructions = tuple(RefinedParameter(par_index=current_index + par_index,
                                                             multiplicator= mult,
                                                             added_value=add) if par_index >= 0 
-                                            else FixedParameter(value=add) for par_index, mult, add in instr_zip)
+                                            else FixedParameter(value=add, special_position=constraint.special_position) for par_index, mult, add in instr_zip)
                     n_pars = jnp.max(constraint.variable_indexes) + 1
 
                     parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + n_pars],
@@ -236,7 +236,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             cijk_instructions = tuple(RefinedParameter(par_index=current_index + par_index,
                                                        multiplicator=mult,
                                                        added_value=add) if par_index >= 0 
-                                      else FixedParameter(value=add) for par_index, mult, add in instr_zip)
+                                      else FixedParameter(value=add, special_position=constraint.special_position) for par_index, mult, add in instr_zip)
             n_pars = jnp.max(constraint.variable_indexes) + 1
 
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + n_pars],
@@ -260,7 +260,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             dijkl_instructions = tuple(RefinedParameter(par_index=current_index + par_index,
                                                         multiplicator=mult,
                                                         added_value=add) if par_index >= 0 
-                                      else FixedParameter(value=add) for par_index, mult, add in instr_zip)
+                                      else FixedParameter(value=add, special_position=constraint.special_position) for par_index, mult, add in instr_zip)
             n_pars = jnp.max(constraint.variable_indexes) + 1
 
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + n_pars],
@@ -275,7 +275,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
 
         if atom['label'] in constraint_dict.keys() and 'occ' in constraint_dict[atom['label']].keys():
             constraint = constraint_dict[atom['label']]['occ']
-            occupancy = FixedParameter(value=constraint.added_value[0])
+            occupancy = FixedParameter(value=constraint.added_value[0], special_position=constraint.special_position)
         else:
             occupancy = FixedParameter(value=atom['occupancy'])
 
@@ -590,8 +590,9 @@ RefinedParameter = namedtuple('RefinedParameter', [
 
 
 FixedParameter = namedtuple('FixedParameter', [
-    'value'         # fixed value of the parameter 
-])
+    'value',         # fixed value of the parameter 
+    'special_position' # stems from an atom on a special position, makes a difference for output of occupancy
+], defaults=[1.0, False])
 
 
 UEquivCalculated = namedtuple('UEquivCalculated', [
@@ -625,7 +626,8 @@ ConstrainedValues = namedtuple('ConstrainedValues', [
     'variable_indexes', # 0-x (positive): variable index; -1 means 0 -> not refined
     'multiplicators', # For higher symmetries mathematical conditions can include multiplicators
     'added_value', # Values that are added
-])
+    'special_position' # stems from an atom on a special position, makes a difference for output of occupancy
+], defaults=[[], [], [], False])
 
 UEquivConstraint = namedtuple('UEquivConstraint', [
     'bound_atom', # Name of the bound atom
@@ -793,6 +795,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
         #    args=(jnp.array(fjs))
         #)
         print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)):8.6f}, nit: {x.nit}, {x.message}')
+        shift = parameters - x.x
         parameters = jnp.array(x.x) 
         #if x.nit == 0:
         #    break
@@ -830,7 +833,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
         else:
             print(f'step {refine + 1}: atom_positions are converged. No new structure factor calculation.')
     print('Calculation finished. calculating variance-covariance matrix.')
-    var_cor_mat = calc_var_cor_mat(cell_mat_m,
+    var_cov_mat = calc_var_cor_mat(cell_mat_m,
                                    symm_mats_vecs,
                                    index_vec_h,
                                    construction_instructions,
@@ -850,7 +853,8 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
             fjs_return = fjs + f0j_core[None, :, :]
     else:
         fjs_return = fjs
-    return parameters, fjs_return, fjs, var_cor_mat
+    shift_ov_su = shift / np.sqrt(np.diag(var_cov_mat))
+    return parameters, fjs_return, fjs, var_cov_mat, shift_ov_su
 
 
 def distance_with_esd(atom1_name, atom2_name, construction_instructions, parameters, var_cov_mat, cell_par, cell_std):
@@ -885,7 +889,7 @@ def u_iso_with_esd(atom_name, construction_instructions, parameters, var_cov_mat
         return jnp.trace(ucart[0]) / 3
     u_iso = u_iso_func(parameters, cell_par)
     jac1, jac2 = jax.grad(u_iso_func, [0, 1])(parameters, cell_par)
-    esd = jnp.sqrt(jac1[None, :] @ var_cov_mat @ jac1[None, :].T) #+ jac2[None,:] @ jnp.diag(cell_std) @ jac2[None,:].T)
+    esd = jnp.sqrt(jac1[None, :] @ var_cov_mat @ jac1[None, :].T + jac2[None,:] @ jnp.diag(cell_std) @ jac2[None,:].T)
     return u_iso, esd[0, 0]
 
 
@@ -909,3 +913,4 @@ def angle_with_esd(atom1_name, atom2_name, atom3_name, construction_instructions
 
     esd = jnp.sqrt(jac1[None, :] @ var_cov_mat @ jac1[None, :].T + jac2[None,:] @ jnp.diag(cell_std) @ jac2[None,:].T)
     return angle, esd[0, 0]
+

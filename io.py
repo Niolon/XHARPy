@@ -5,10 +5,12 @@ import jax.numpy as jnp
 import jax
 import re
 import warnings
-from .xharpy import ConstrainedValues, cell_constants_to_M, distance_with_esd, construct_esds, construct_values
+from .xharpy import (ConstrainedValues, cell_constants_to_M, distance_with_esd, construct_esds, construct_values, u_iso_with_esd, angle_with_esd,
+                     calc_f)
+from .quality import calculate_quality_indicators
 
 
-def ciflike_to_dict(filename, return_only_loops=False, resolve_std=True):
+def ciflike_to_dict(filename, return_descr=None, resolve_std=True):
     """
     Takes the filename of a ciflike file such as the cif format itself or fco files
     and returns the content as an ordered dictionary.
@@ -98,7 +100,7 @@ def ciflike_to_dict(filename, return_only_loops=False, resolve_std=True):
                         test = line_split[1]
                         if len(test) == 0:
                             datablocks[current_block][line_split[0][1:]] = None
-                        elif re.search(r'[^\d]', test) is None:
+                        elif (re.search(r'[^\d]', test) is None):
                             datablocks[current_block][line_split[0][1:]] = int(test)
                         elif re.search(r'[^\d^\.]', test) is None and re.search(r'\d', test) is not None:
                             datablocks[current_block][line_split[0][1:]] = float(test)
@@ -106,6 +108,14 @@ def ciflike_to_dict(filename, return_only_loops=False, resolve_std=True):
                             val, error = split_error(test)
                             datablocks[current_block][line_split[0][1:]] = val
                             datablocks[current_block][line_split[0][1:] + '_std'] = error
+                        elif test.startswith('-'):
+                            # This accounts for negative values without also catching dates
+                            if (re.search(r'[^\d]', test[1:]) is None):
+                                datablocks[current_block][line_split[0][1:]] = int(test)
+                            elif re.search(r'[^\-^\d^\.]', test[1:]) is None and re.search(r'\d', test[1:]) is not None:
+                                datablocks[current_block][line_split[0][1:]] = float(test)
+                            else:
+                                datablocks[current_block][line_split[0][1:]] = line_split[1]
                         else:
                             datablocks[current_block][line_split[0][1:]] = line_split[1]
                     else:
@@ -144,14 +154,14 @@ def ciflike_to_dict(filename, return_only_loops=False, resolve_std=True):
                         new_df[column+'_std'] = errors
             datablocks[current_block]['loops'].append(new_df)
 
-    if return_only_loops:
-        loops = []
-        for value in datablocks.values():
-            for loop in value['loops']:
-                loops.append(loop)
-        return loops
-    else:
+    if return_descr is None:
         return datablocks
+    elif type(return_descr) is int:
+        return datablocks[list(datablocks.keys())[return_descr]]
+    elif type(return_descr) is str:
+        return datablocks[return_descr]
+    else:
+        raise ValueError('Invalid return_descr value. Must be either None, index as int or name as str')
 
 def split_error(string):
     """
@@ -213,13 +223,7 @@ def symm_to_matrix_vector(instruction):
 
 
 def cif2data(cif_name, cif_dataset=0):
-    cif_raw = ciflike_to_dict(cif_name)
-    if type(cif_dataset) is int:
-        cif = cif_raw[list(cif_raw.keys())[cif_dataset]]
-    elif type(cif_dataset) is str:
-        cif = cif_raw[cif_dataset]
-    else:
-        raise ValueError('Invalid cif_dataset value. Must be either index as int or name as str')
+    cif = ciflike_to_dict(cif_name, return_descr=cif_dataset)
     cell = np.array([cif['cell_length_a'],
                      cif['cell_length_b'],
                      cif['cell_length_c'],
@@ -288,7 +292,8 @@ def instructions_to_constraints(names, instructions):
             added_value[index] = add
     return ConstrainedValues(variable_indexes=jnp.array(variable_indexes),
                              multiplicators=jnp.array(multiplicators),
-                             added_value=jnp.array(added_value)) 
+                             added_value=jnp.array(added_value),
+                             special_position=True) 
 
 
 
@@ -486,27 +491,44 @@ END
 
 
 def value_with_esd(values, esds):
-    assert len(values.shape) == 1, 'Multidimensional array currently not supported'
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        indexes = np.isfinite(1 / esds)
-        orders = np.floor(np.log10(esds))
-        smaller2 = np.full_like(values, False)
-        smaller2[indexes] = np.array(esds[indexes]) * 10**(-orders[indexes]) < 2
+    try:
+        assert len(values.shape) == 1, 'Multidimensional array currently not supported'
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            indexes = np.isfinite(1 / esds)
+            orders = np.floor(np.log10(esds))
+            smaller2 = np.full_like(values, False)
+            smaller2[indexes] = np.array(esds[indexes]) * 10**(-orders[indexes]) < 2
 
-        orders[np.logical_and(smaller2, orders)] -= 1
-    strings = []
-    for value, esd, order, index in zip(values, esds, orders, indexes):
-        if index:
-            format_dict = {'value': np.round(value, int(-order)),
-                           'esd_val': int(np.round(esd / 10**(order)))}
-            string = '{{value:0.{format_order}f}}({{esd_val}})'.format(format_order=int(-order))
-            string = string.format(**format_dict)
-            strings.append(string)
-        else:
-            string = f'{np.round(value, 20)}'
-            strings.append(string)
-    return strings
+            orders[np.logical_and(smaller2, orders)] -= 1
+        strings = []
+        for value, esd, order, index in zip(values, esds, orders, indexes):
+            if index:
+                format_dict = {'value': np.round(value, int(-order)),
+                            'esd_val': int(np.round(esd / 10**(order)))}
+                string = '{{value:0.{format_order}f}}({{esd_val}})'.format(format_order=int(-order))
+                string = string.format(**format_dict)
+                strings.append(string)
+            else:
+                string = f'{np.round(value, 6)}'
+                strings.append(string)
+        return strings
+    except AttributeError:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            if not np.isfinite(1 / esds):
+                return f'{np.round(values, 6)}'
+            else:
+                order = np.floor(np.log10(esds))
+                if esds * 10**(-order) < 2:
+                    order -= 1
+                format_dict = {'value': np.round(values, int(-order)),
+                            'esd_val': int(np.round(esds / 10**(order)))}
+                string = '{{value:0.{format_order}f}}({{esd_val}})'.format(format_order=int(-order))
+                string = string.format(**format_dict)
+                return string
+                
+    
 
 
 def write_incomp_cif(out_cif_name,
@@ -613,3 +635,349 @@ kpts: {options_dict['kpts']['size'][0]}
 
     with open(out_cif_name, 'w') as fo:
         fo.write(out)
+
+
+def cif_entry_string(name, value, string_sign=True):
+    if value is None:
+        entry_str = '?'
+    elif type(value) is str and (len(value) > 45 or '\n' in value):
+        entry_str = f'\n;\n{value}\n;'
+    elif type(value) is str:
+        if string_sign:
+            entry_str = f"'{value}'"
+        else:
+            entry_str = value
+    elif type(value) is float:
+        entry_str = f'{value}'
+    elif type(value) is int:
+        entry_str = f'{value}'
+    else:
+        print(value, type(value))
+    return f'_{name:<32s}  {entry_str}'
+
+
+def add_from_cif(name, cif, std=False):
+    if std:
+        std_name = name + '_std'
+        if std_name in cif:
+            return cif_entry_string(name,
+                             value_with_esd(cif[name],
+                                            cif[std_name]),
+                             False)
+    try: 
+        return cif_entry_string(name, cif[name])
+    except KeyError:
+        return cif_entry_string(name, None)
+
+
+def cif2atom_type_table_string(cif, versionmajor, versionminor, ishar=True):
+    table = next(loop for loop in cif['loops'] if 'atom_type_symbol' in loop.columns)
+    if ishar:
+        table['atom_type_scat_source'] = f'HAR in xHARPy {versionmajor}.{versionminor}'
+    else:
+        table['atom_type_scat_source'] = 'International Tables Vol C Tables 4.2.6.8 and 6.1.1.4'
+    columns = [column for column in table.columns if not column.endswith('_std')]
+    string = '\nloop_\n _' + '\n _'.join(columns) + '\n'
+    template = (" '{atom_type_symbol}' '{atom_type_description}' "
+     + '{atom_type_scat_dispersion_real:6.4f} {atom_type_scat_dispersion_imag:6.4f} '
+     + "'{atom_type_scat_source}'\n")
+    for index, row in table.iterrows():
+        string += template.format(**row)
+    return string
+
+
+def cif2space_group_table_string(cif):
+    table = next(loop for loop in cif['loops'] if 'space_group_symop_operation_xyz' in loop.columns)
+    columns = [column for column in table.columns if not column.endswith('_std')]
+    string = '\nloop_\n _' + '\n _'.join(columns) + '\n'
+    template = " '{space_group_symop_operation_xyz}'\n"
+    for _, row in table.iterrows():
+        string += template.format(**row)
+    return string
+
+
+def create_atom_site_table_string(parameters, construction_instructions, cell, cell_std, var_cov_mat):
+    columns = ['label', 'type_symbol', 'fract_x', 'fract_y', 'fract_z',
+               'U_iso_or_equiv', 'adp_type', 'occupancy', 'site_symmetry_order']
+    columns = ['atom_site_' + name for name in columns]
+    string = '\nloop_\n _' + '\n _'.join(columns) + '\n'
+    cell_mat_m = cell_constants_to_M(*cell)
+    constructed_xyz, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
+    constr_xyz_esd, *_ = construct_esds(var_cov_mat, construction_instructions)
+
+    for index, (xyz, xyz_esd, instr) in enumerate(zip(constructed_xyz, constr_xyz_esd, construction_instructions)):
+        if type(instr.uij) is tuple:
+            adp_type = 'Uani'
+        elif type(instr.uij).__name__ == 'Uiso':
+            adp_type = 'Uiso'
+        elif type(instr.uij).__name__ == 'UEquivCalculated':
+            adp_type = 'calc'
+        else:
+            raise NotImplementedError('There was a currently not implemented ADP calculation type')
+
+        if instr.occupancy.special_position:
+            occupancy = 1.0
+            symmetry_order = int(1 / instr.occupancy.value)
+        else:
+            occupancy = instr.occupancy.value
+            symmetry_order = 1
+
+        position_string = ' '.join(value_with_esd(xyz, xyz_esd))
+        uiso, uiso_esd = u_iso_with_esd(instr.name, construction_instructions, parameters, var_cov_mat, cell, cell_std)
+        uiso_string = value_with_esd(float(uiso), float(uiso_esd))
+        string += f'{instr.name} {instr.element} {position_string} {uiso_string} {adp_type} {occupancy} {symmetry_order}\n'
+    return string
+
+
+def create_aniso_table_string(parameters, construction_instructions, cell, var_cov_mat):
+    columns = ['label', 'U_11', 'U_22', 'U_33', 'U_23', 'U_13', 'U_12']
+    columns = ['atom_site_aniso_' + name for name in columns]
+    string = '\nloop_\n _' + '\n _'.join(columns) + '\n'
+
+    cell_mat_m = cell_constants_to_M(*cell)
+    _, uijs, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
+    _, uij_esds, *_ = construct_esds(var_cov_mat, construction_instructions)
+
+    for instr, uij, uij_esd in zip(construction_instructions, uijs, uij_esds):
+        if type(instr.uij) is tuple:
+            # we have an anisotropic adp
+            uij_string = ' '.join(value_with_esd(uij, uij_esd))
+            string += f'{instr.name} {uij_string}\n'
+    return string
+
+
+def create_distance_table(bonds, construction_instructions, parameters, var_cov_mat, cell, cell_std):
+    columns =  ['geom_bond_atom_site_label_1',
+                'geom_bond_atom_site_label_2',
+                'geom_bond_distance']
+    string = '\nloop_\n _' + '\n _'.join(columns) + '\n'
+    distances_esds = [distance_with_esd(bond[0], bond[1], construction_instructions, parameters, var_cov_mat, cell, cell_std) for bond in bonds]
+    distances, distance_esds = zip(*distances_esds)
+    distance_strings = value_with_esd(np.array(distances), np.array(distance_esds))
+    string += ''.join([f'{atom1} {atom2} {distance_string}\n' for (atom1, atom2), distance_string in zip(bonds, distance_strings)])
+    return string
+
+
+def create_angle_table(angle_names, construction_instructions, parameters, var_cov_mat, cell, cell_std):
+    columns =  ['geom_angle_atom_site_label_1',
+                'geom_angle_atom_site_label_2',
+                'geom_angle_atom_site_label_3',
+                'geom_angle']
+    string = '\nloop_\n _' + '\n _'.join(columns) + '\n'
+    angles_esds = [angle_with_esd(angle_name[0], angle_name[1], angle_name[2], construction_instructions, parameters, var_cov_mat, cell, cell_std) for angle_name in angle_names]
+    angles, angle_esds = zip(*angles_esds)
+    angle_strings = value_with_esd(np.array(angles), np.array(angle_esds))
+    string += ''.join([f'{atom1} {atom2} {atom3} {angle_string}\n' for (atom1, atom2, atom3), angle_string in zip(angle_names, angle_strings)])
+    return string
+
+
+def create_fcf4_table(index_vec_h, structure_factors, intensity, stderr, scaling):
+    columns =  ['refln_index_h',
+                'refln_index_k',
+                'refln_index_l',
+                'refln_F_squared_calc',
+                'refln_F_squared_meas',
+                'refln_F_squared_sigma']
+    string = '\nloop_\n _' + '\n _'.join(columns) + '\n'
+
+    for (h, k, l), i_calc, i_meas, esd_meas in zip(index_vec_h, np.abs(structure_factors)**2, intensity / scaling, stderr / scaling):
+        string += f'{h:>4d}{k:>4d}{l:>4d}{i_calc:14.2f} {i_meas:14.2f}{esd_meas:14.2f}\n'
+    return string
+
+def write_cif(output_cif_name,
+              dataset_name,
+              shelx_cif_name,
+              shelx_descr,
+              source_cif_name,
+              source_descr,
+              fjs,
+              parameters,
+              var_cov_mat,
+              construction_instructions,
+              symm_mats_vecs,
+              hkl,
+              shift_ov_su,
+              options_dict,
+              refine_dict,
+              cell,
+              cell_std):
+    versionmajor = 0
+    versionminor = 1
+
+    shelx_cif = ciflike_to_dict(shelx_cif_name, shelx_descr)
+    source_cif = ciflike_to_dict(source_cif_name, source_descr)
+
+    hkl['strong_condition'] = hkl['intensity'] / hkl['stderr'] > 2
+    index_vec_h = hkl[['h', 'k', 'l']].values
+    intensity = hkl['intensity'].values
+    stderr = hkl['stderr'].values
+    cell_mat_m = cell_constants_to_M(*cell)
+    cell_mat_f = np.linalg.inv(cell_mat_m).T
+    ishar = all([value in options_dict for value in ('xc', 'h', 'core', 'extinction', 'gridrefinement', 'mode', 'basis', 'convergence', 'kpts')])
+    constructed_xyz, constructed_uij, constructed_cijk, constructed_dijkl, constructed_occupancies = construct_values(parameters, construction_instructions, cell_mat_m)
+
+    structure_factors = np.array(calc_f(
+        xyz=constructed_xyz,
+        uij=constructed_uij,
+        cijk=constructed_cijk,
+        dijkl=constructed_dijkl,
+        occupancies=constructed_occupancies,
+        index_vec_h=index_vec_h,
+        cell_mat_f=cell_mat_f,
+        symm_mats_vecs=symm_mats_vecs,
+        fjs=fjs
+    ))
+
+    refinement_string = """ . Structure optimisation was done using derivatives
+   calculated with the python package JAX and
+   BFGS minimisation in scipy.optimize.minimize"""
+
+    if ishar:
+        refinement_string += f"""
+  . Refinement was done using structure factors
+    derived from Hirshfeld densities
+  . Density calculation was done with ASE/GPAW using the
+    following settings
+      xc: {options_dict['xc']}
+      h: {options_dict['h']}
+      core: {refine_dict['core']}
+      grid_mult: {options_dict['gridrefinement']}
+      density_conv: {options_dict['convergence']['density']}
+      kpts: {options_dict['kpts']['size'][0]}"""
+    else:
+         refinement_string += f"""
+ . Refinement was done using structure factors
+   as usual for an IAM refinement"""
+
+    quality_dict = calculate_quality_indicators(construction_instructions, parameters, fjs, cell_mat_m, symm_mats_vecs, index_vec_h, intensity, stderr)
+
+    bond_table = next(loop for loop in shelx_cif['loops'] if 'geom_bond_distance' in loop.columns)
+    bonds = [(line['geom_bond_atom_site_label_1'],
+              line['geom_bond_atom_site_label_2']) for _, line in bond_table.iterrows()]
+
+    angle_table = next(loop for loop in shelx_cif['loops'] if 'geom_angle' in loop.columns)
+    angle_names = [(line['geom_angle_atom_site_label_1'],
+                    line['geom_angle_atom_site_label_2'],
+                    line['geom_angle_atom_site_label_3']) for _, line in angle_table.iterrows()]
+    lines = [
+        f'\ndata_{dataset_name}\n',
+        cif_entry_string('audit_creation_method', f'xHARPY {versionmajor}.{versionminor}'),
+        add_from_cif('chemical_name_systematic', source_cif),
+        add_from_cif('chemical_name_common', source_cif),
+        add_from_cif('chemical_melting_point', source_cif),
+        add_from_cif('chemical_formula_moiety', source_cif),
+        add_from_cif('chemical_formula_sum', source_cif),
+        add_from_cif('chemical_formula_weight', source_cif),
+        cif2atom_type_table_string(shelx_cif, 0, 1, ishar),
+        add_from_cif('space_group_crystal_system', shelx_cif),
+        add_from_cif('space_group_IT_number', shelx_cif),
+        add_from_cif('space_group_name_H-M_alt', shelx_cif),
+        add_from_cif('space_group_name_Hall', shelx_cif),
+        cif2space_group_table_string(shelx_cif),
+        add_from_cif('cell_length_a', shelx_cif, std=True),
+        add_from_cif('cell_length_b', shelx_cif, std=True),
+        add_from_cif('cell_length_c', shelx_cif, std=True),
+        add_from_cif('cell_angle_alpha', shelx_cif, std=True),
+        add_from_cif('cell_angle_beta', shelx_cif, std=True),
+        add_from_cif('cell_angle_gamma', shelx_cif, std=True),
+        add_from_cif('cell_volume', shelx_cif, std=True),
+        add_from_cif('cell_formula_units_Z', shelx_cif),
+        add_from_cif('cell_measurement_temperature', source_cif, std=True),
+        add_from_cif('cell_measurement_reflns_used', source_cif),
+        add_from_cif('cell_measurement_theta_min', source_cif),
+        add_from_cif('cell_measurement_theta_max', source_cif),
+        '',
+        add_from_cif('exptl_crystal_description', source_cif),
+        add_from_cif('exptl_crystal_colour', source_cif),
+        add_from_cif('exptl_crystal_density_meas', source_cif),
+        add_from_cif('exptl_crystal_density_method', source_cif),
+        add_from_cif('exptl_crystal_density_diffrn', shelx_cif),
+        add_from_cif('exptl_crystal_F_000', shelx_cif),
+        add_from_cif('exptl_transmission_factor_min', source_cif),
+        add_from_cif('exptl_transmission_factor_max', source_cif),
+        add_from_cif('exptl_crystal_size_max', source_cif),
+        add_from_cif('exptl_crystal_size_mid', source_cif),
+        add_from_cif('exptl_crystal_size_min', source_cif),
+        add_from_cif('exptl_absorpt_coefficient_mu', shelx_cif),
+        add_from_cif('exptl_absorpt_correction_type', source_cif),
+        add_from_cif('exptl_absorpt_correction_T_min', source_cif),
+        add_from_cif('exptl_absorpt_correction_T_max', source_cif),
+        add_from_cif('exptl_absorpt_process_details', source_cif),
+        add_from_cif('exptl_absorpt_special_details', source_cif),
+        '',
+        add_from_cif('diffrn_ambient_temperature', source_cif, std=True),
+        add_from_cif('diffrn_radiation_wavelength', source_cif),
+        add_from_cif('diffrn_radiation_type', source_cif),
+        add_from_cif('diffrn_source', source_cif),
+        add_from_cif('diffrn_measurement_device_type', source_cif),
+        add_from_cif('diffrn_measurement_method', source_cif),
+        add_from_cif('diffrn_detector_area_resol_mean', source_cif),
+        add_from_cif('diffrn_reflns_number', source_cif),
+        add_from_cif('diffrn_reflns_av_unetI/netI', source_cif),
+        add_from_cif('diffrn_reflns_av_R_equivalents', source_cif),
+        add_from_cif('diffrn_reflns_limit_h_min', source_cif),
+        add_from_cif('diffrn_reflns_limit_h_max', source_cif),
+        add_from_cif('diffrn_reflns_limit_k_min', source_cif),
+        add_from_cif('diffrn_reflns_limit_k_max', source_cif),
+        add_from_cif('diffrn_reflns_limit_l_min', source_cif),
+        add_from_cif('diffrn_reflns_limit_l_max', source_cif),
+        add_from_cif('diffrn_reflns_theta_min', source_cif),
+        add_from_cif('diffrn_reflns_theta_max', source_cif),
+        add_from_cif('diffrn_reflns_theta_full', source_cif),
+        add_from_cif('diffrn_measured_fraction_theta_max', shelx_cif),
+        add_from_cif('diffrn_measured_fraction_theta_full', shelx_cif),
+        add_from_cif('diffrn_reflns_Laue_measured_fraction_max', shelx_cif),
+        add_from_cif('diffrn_reflns_Laue_measured_fraction_full', shelx_cif),
+        add_from_cif('diffrn_reflns_point_group_measured_fraction_max', shelx_cif),
+        add_from_cif('diffrn_reflns_point_group_measured_fraction_full', shelx_cif),
+        '',
+        cif_entry_string('reflns_number_total', len(hkl)),
+        cif_entry_string('reflns_number_gt', int(np.sum(hkl['strong_condition']))),
+        cif_entry_string('reflns_threshold_expression', 'I > 2\s(I)'),
+        add_from_cif('reflns_Friedel_coverage', shelx_cif),
+        add_from_cif('reflns_Friedel_fraction_max', shelx_cif),
+        add_from_cif('reflns_Friedel_fraction_full', shelx_cif),
+        cif_entry_string(
+            'reflns_special_details', 
+            """ _reflns_Friedel_fraction is defined as the number of unique
+Friedel pairs measured divided by the number that would be
+possible theoretically, ignoring centric projections and
+systematic absences."""
+        ),
+        '',
+        add_from_cif('computing_data_collection', source_cif),
+        add_from_cif('computing_cell_refinement', source_cif),
+        add_from_cif('computing_data_reduction', source_cif),
+        add_from_cif('computing_structure_solution', source_cif),
+        cif_entry_string('computing_structure_refinement', f'xHARPY {versionmajor}.{versionminor}'),
+        cif_entry_string('computing_molecular_graphics', None),
+        cif_entry_string('computing_publication_material', f'xHARPY {versionmajor}.{versionminor}'),
+        '',
+        cif_entry_string('atom_sites_solution_hydrogens', 'difmap', False),
+        '',
+        cif_entry_string('refine_special_details', refinement_string),
+        cif_entry_string('refine_ls_structure_factor_coef', 'Fsqd', False),
+        cif_entry_string('refine_ls_matrix_type', 'full'), # TODO is full?
+        cif_entry_string('refine_ls_weighting_scheme', 'sigma', False),
+        cif_entry_string('refine_ls_weighting_details', 'w=1/[\s^2^(Fo^2^)]'),
+        cif_entry_string('refine_ls_hydrogen_treatment', 'refall', False),
+        cif_entry_string('refine_ls_extinction_method', 'none', False),
+        cif_entry_string('refine_ls_extinction_coef', '.', False),
+        cif_entry_string('refine_ls_number_reflns', len(hkl)),
+        cif_entry_string('refine_ls_number_parameters', len(parameters)),
+        cif_entry_string('refine_ls_number_restraints', 0),
+        cif_entry_string('refine_ls_R_factor_all', float(np.round(quality_dict['R(F)'], 4))),
+        cif_entry_string('refine_ls_R_factor_gt', float(np.round(quality_dict['R(F)(I>2s)'], 4))),
+        cif_entry_string('refine_ls_wR_factor_ref', float(np.round(quality_dict['wR(F^2)'], 4))),
+        cif_entry_string('refine_ls_wR_factor_gt', float(np.round(quality_dict['wR(F^2)(I>2s)'], 4))),
+        cif_entry_string('refine_ls_goodness_of_fit_ref', float(np.round(quality_dict['GOF'], 3))),
+        cif_entry_string('refine_ls_shift/su_max', float(np.round(np.max(shift_ov_su[0]), 3))),
+        cif_entry_string('refine_ls_shift/su_mean', float(np.round(np.mean(shift_ov_su[0]), 3))),
+        create_atom_site_table_string(parameters, construction_instructions, cell, cell_std, var_cov_mat),
+        create_aniso_table_string(parameters, construction_instructions, cell, var_cov_mat),
+        create_distance_table(bonds, construction_instructions, parameters, var_cov_mat, cell, cell_std),
+        create_angle_table(angle_names, construction_instructions, parameters, var_cov_mat, cell, cell_std),
+        create_fcf4_table(index_vec_h, structure_factors, intensity, stderr, parameters[0])
+    ]
+    with open(output_cif_name, 'w') as fo:
+        fo.write('\n'.join(lines).replace('\n\n\n', '\n\n'))

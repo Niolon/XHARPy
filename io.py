@@ -254,11 +254,13 @@ def cif2data(cif_name, cif_dataset=0):
         adp_table.columns = [label.replace('atom_site_aniso_', '') for label in adp_table.columns]
         atom_table = pd.merge(atom_table, adp_table, on='label', how='left').copy() # put adp parameters into table
 
+    try:
+        disp_corr_table = [table for table in cif['loops'] if 'atom_type_scat_dispersion_real' in table.columns][0].copy()
+        disp_corr_table.columns = [label.replace('atom_', '') for label in disp_corr_table.columns]
 
-    disp_corr_table = [table for table in cif['loops'] if 'atom_type_scat_dispersion_real' in table.columns][0].copy()
-    disp_corr_table.columns = [label.replace('atom_', '') for label in disp_corr_table.columns]
-
-    atom_table = pd.merge(atom_table, disp_corr_table, on='type_symbol', how='left') # add f' and f'' parameters
+        atom_table = pd.merge(atom_table, disp_corr_table, on='type_symbol', how='left') # add f' and f'' parameters
+    except:
+        warnings.warn('Could not find anomalous dispersion factors in cif file. You need to add them manually')
 
     #cell_mat_g_star = np.einsum('ja, jb -> ab', cell_mat_f, cell_mat_f)
     symmetry_table = [table for table in cif['loops'] if 'space_group_symop_operation_xyz' in table.columns or 'symmetry_equiv_pos_as_xyz' in table.columns][0].copy()
@@ -271,7 +273,12 @@ def cif2data(cif_name, cif_dataset=0):
     symm_strings = list(symmetry_table['space_group_symop_operation_xyz'].values)
 
     atom_table = atom_table.rename({'thermal_displace_type': 'adp_type'}, axis=1).copy()
-    return atom_table, cell, cell_std, symm_mats_vecs, symm_strings, cif['diffrn_radiation_wavelength']
+    try:
+        wavelength = cif['diffrn_radiation_wavelength']
+    except:
+        warnings.warn('No wavelength found in cif file. You need to add it manually!')
+        wavelength = None
+    return atom_table, cell, cell_std, symm_mats_vecs, symm_strings, wavelength
 
 
 def instructions_to_constraints(names, instructions):
@@ -346,7 +353,24 @@ def lst2constraint_dict(filename):
     return constraint_dict
 
 
-def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, structure_factors, cell):
+def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, construction_instructions, fjs, cell):
+    cell_mat_m = cell_constants_to_M(*cell)
+    constructed_xyz, constructed_uij, constructed_cijk, constructed_dijkl, constructed_occupancies = construct_values(parameters, construction_instructions, cell_mat_m)
+    symm_mats_vecs = symm_to_matrix_vector(symm_strings)
+    cell_mat_f = np.linalg.inv(cell_mat_m).T
+    index_vec_h = hkl[['h', 'k', 'l']].values
+
+    structure_factors = np.array(calc_f(
+        xyz=constructed_xyz,
+        uij=constructed_uij,
+        cijk=constructed_cijk,
+        dijkl=constructed_dijkl,
+        occupancies=constructed_occupancies,
+        index_vec_h=index_vec_h,
+        cell_mat_f=cell_mat_f,
+        symm_mats_vecs=symm_mats_vecs,
+        fjs=fjs
+    ))
     cell_mat_m = cell_constants_to_M(*cell)
     hkl_out = hkl.copy()
     for index in ('h', 'k', 'l'):

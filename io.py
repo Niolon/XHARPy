@@ -116,6 +116,8 @@ def ciflike_to_dict(filename, return_descr=None, resolve_std=True):
                                 datablocks[current_block][line_split[0][1:]] = float(test)
                             else:
                                 datablocks[current_block][line_split[0][1:]] = line_split[1]
+                        elif test == '?':
+                            datablocks[current_block][line_split[0][1:]] = None
                         else:
                             datablocks[current_block][line_split[0][1:]] = line_split[1]
                     else:
@@ -527,8 +529,6 @@ def value_with_esd(values, esds):
                 string = '{{value:0.{format_order}f}}({{esd_val}})'.format(format_order=int(-order))
                 string = string.format(**format_dict)
                 return string
-                
-    
 
 
 def write_incomp_cif(out_cif_name,
@@ -546,7 +546,7 @@ def write_incomp_cif(out_cif_name,
                      r_f_strong,
                      wr2,
                      gof):
-    source_cif = list(ciflike_to_dict(source_cif_name).values())[0]
+    source_cif = ciflike_to_dict(source_cif_name, 0)
     cell_mat_m = cell_constants_to_M(*cell)
     constr_xyz_esd, constr_uij_esd, *_ = construct_esds(var_cov_mat, construction_instructions)
     constructed_xyz, constructed_uij, *_ = construct_values(parameters, construction_instructions, cell_mat_m)

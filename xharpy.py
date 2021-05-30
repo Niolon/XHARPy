@@ -857,13 +857,13 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
     return parameters, fjs_return, fjs, var_cov_mat, shift_ov_su
 
 
-def distance_with_esd(atom1_name, atom2_name, construction_instructions, parameters, var_cov_mat, cell_par, cell_std):
+def distance_with_esd(atom1_name, atom2_name, construction_instructions, parameters, var_cov_mat, cell_par, cell_std, crystal_system):
     names = [instr.name for instr in construction_instructions]
     index1 = names.index(atom1_name)
     index2 = names.index(atom2_name)
 
     def distance_func(parameters, cell_par):
-        cell_mat_m = cell_constants_to_M(*cell_par)
+        cell_mat_m = cell_constants_to_M(*cell_par, crystal_system)
         constructed_xyz, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
         coord1 = constructed_xyz[index1]
         coord2 = constructed_xyz[index2]
@@ -878,11 +878,11 @@ def distance_with_esd(atom1_name, atom2_name, construction_instructions, paramet
     return distance, esd[0, 0]
 
 
-def u_iso_with_esd(atom_name, construction_instructions, parameters, var_cov_mat, cell_par, cell_std):
+def u_iso_with_esd(atom_name, construction_instructions, parameters, var_cov_mat, cell_par, cell_std, crystal_system):
     names = [instr.name for instr in construction_instructions]
     atom_index = names.index(atom_name)
     def u_iso_func(parameters, cell_par):
-        cell_mat_m = cell_constants_to_M(*cell_par)
+        cell_mat_m = cell_constants_to_M(*cell_par, crystal_system)
         _, constructed_uij, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
         cut = constructed_uij[atom_index]
         ucart = ucif2ucart(cell_mat_m, cut[None,[[0, 5, 4], [5, 1, 3], [4, 3, 2]]])
@@ -893,14 +893,14 @@ def u_iso_with_esd(atom_name, construction_instructions, parameters, var_cov_mat
     return u_iso, esd[0, 0]
 
 
-def angle_with_esd(atom1_name, atom2_name, atom3_name, construction_instructions, parameters, var_cov_mat, cell_par, cell_std):
+def angle_with_esd(atom1_name, atom2_name, atom3_name, construction_instructions, parameters, var_cov_mat, cell_par, cell_std, crystal_system):
     names = [instr.name for instr in construction_instructions]
     index1 = names.index(atom1_name)
     index2 = names.index(atom2_name)
     index3 = names.index(atom3_name)
 
     def angle_func(parameters, cell_par):
-        cell_mat_m = cell_constants_to_M(*cell_par)
+        cell_mat_m = cell_constants_to_M(*cell_par, crystal_system)
         constructed_xyz, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
         vec1 = cell_mat_m @ (constructed_xyz[index1] - constructed_xyz[index2])
         vec2 = cell_mat_m @ (constructed_xyz[index3] - constructed_xyz[index2])

@@ -696,7 +696,7 @@ def cif2space_group_table_string(cif):
     return string
 
 
-def create_atom_site_table_string(parameters, construction_instructions, cell, cell_std, var_cov_mat):
+def create_atom_site_table_string(parameters, construction_instructions, cell, cell_std, var_cov_mat, crystal_system):
     columns = ['label', 'type_symbol', 'fract_x', 'fract_y', 'fract_z',
                'U_iso_or_equiv', 'adp_type', 'occupancy', 'site_symmetry_order']
     columns = ['atom_site_' + name for name in columns]
@@ -723,7 +723,7 @@ def create_atom_site_table_string(parameters, construction_instructions, cell, c
             symmetry_order = 1
 
         position_string = ' '.join(value_with_esd(xyz, xyz_esd))
-        uiso, uiso_esd = u_iso_with_esd(instr.name, construction_instructions, parameters, var_cov_mat, cell, cell_std)
+        uiso, uiso_esd = u_iso_with_esd(instr.name, construction_instructions, parameters, var_cov_mat, cell, cell_std, crystal_system)
         uiso_string = value_with_esd(float(uiso), float(uiso_esd))
         string += f'{instr.name} {instr.element} {position_string} {uiso_string} {adp_type} {occupancy} {symmetry_order}\n'
     return string
@@ -746,25 +746,25 @@ def create_aniso_table_string(parameters, construction_instructions, cell, var_c
     return string
 
 
-def create_distance_table(bonds, construction_instructions, parameters, var_cov_mat, cell, cell_std):
+def create_distance_table(bonds, construction_instructions, parameters, var_cov_mat, cell, cell_std, crystal_system):
     columns =  ['geom_bond_atom_site_label_1',
                 'geom_bond_atom_site_label_2',
                 'geom_bond_distance']
     string = '\nloop_\n _' + '\n _'.join(columns) + '\n'
-    distances_esds = [distance_with_esd(bond[0], bond[1], construction_instructions, parameters, var_cov_mat, cell, cell_std) for bond in bonds]
+    distances_esds = [distance_with_esd(bond[0], bond[1], construction_instructions, parameters, var_cov_mat, cell, cell_std, crystal_system) for bond in bonds]
     distances, distance_esds = zip(*distances_esds)
     distance_strings = value_with_esd(np.array(distances), np.array(distance_esds))
     string += ''.join([f'{atom1} {atom2} {distance_string}\n' for (atom1, atom2), distance_string in zip(bonds, distance_strings)])
     return string
 
 
-def create_angle_table(angle_names, construction_instructions, parameters, var_cov_mat, cell, cell_std):
+def create_angle_table(angle_names, construction_instructions, parameters, var_cov_mat, cell, cell_std, crystal_system):
     columns =  ['geom_angle_atom_site_label_1',
                 'geom_angle_atom_site_label_2',
                 'geom_angle_atom_site_label_3',
                 'geom_angle']
     string = '\nloop_\n _' + '\n _'.join(columns) + '\n'
-    angles_esds = [angle_with_esd(angle_name[0], angle_name[1], angle_name[2], construction_instructions, parameters, var_cov_mat, cell, cell_std) for angle_name in angle_names]
+    angles_esds = [angle_with_esd(angle_name[0], angle_name[1], angle_name[2], construction_instructions, parameters, var_cov_mat, cell, cell_std, crystal_system) for angle_name in angle_names]
     angles, angle_esds = zip(*angles_esds)
     angle_strings = value_with_esd(np.array(angles), np.array(angle_esds))
     string += ''.join([f'{atom1} {atom2} {atom3} {angle_string}\n' for (atom1, atom2, atom3), angle_string in zip(angle_names, angle_strings)])
@@ -806,6 +806,8 @@ def write_cif(output_cif_name,
 
     shelx_cif = ciflike_to_dict(shelx_cif_name, shelx_descr)
     source_cif = ciflike_to_dict(source_cif_name, source_descr)
+
+    crystal_system = shelx_cif['space_group_crystal_system']
 
     hkl['strong_condition'] = hkl['intensity'] / hkl['stderr'] > 2
     index_vec_h = hkl[['h', 'k', 'l']].values
@@ -853,12 +855,14 @@ def write_cif(output_cif_name,
 
     bond_table = next(loop for loop in shelx_cif['loops'] if 'geom_bond_distance' in loop.columns)
     bonds = [(line['geom_bond_atom_site_label_1'],
-              line['geom_bond_atom_site_label_2']) for _, line in bond_table.iterrows()]
+              line['geom_bond_atom_site_label_2']) for _, line in bond_table.iterrows()
+              if line['geom_bond_site_symmetry_2'] == '.']
 
     angle_table = next(loop for loop in shelx_cif['loops'] if 'geom_angle' in loop.columns)
     angle_names = [(line['geom_angle_atom_site_label_1'],
                     line['geom_angle_atom_site_label_2'],
-                    line['geom_angle_atom_site_label_3']) for _, line in angle_table.iterrows()]
+                    line['geom_angle_atom_site_label_3']) for _, line in angle_table.iterrows() 
+                    if line['geom_angle_site_symmetry_1'] == '.' and line['geom_angle_site_symmetry_3'] == '.']
     lines = [
         f'\ndata_{dataset_name}\n',
         cif_entry_string('audit_creation_method', f'xHARPY {versionmajor}.{versionminor}'),
@@ -973,10 +977,15 @@ systematic absences."""
         cif_entry_string('refine_ls_goodness_of_fit_ref', float(np.round(quality_dict['GOF'], 3))),
         cif_entry_string('refine_ls_shift/su_max', float(np.round(np.max(shift_ov_su[0]), 3))),
         cif_entry_string('refine_ls_shift/su_mean', float(np.round(np.mean(shift_ov_su[0]), 3))),
-        create_atom_site_table_string(parameters, construction_instructions, cell, cell_std, var_cov_mat),
+        create_atom_site_table_string(parameters, construction_instructions, cell, cell_std, var_cov_mat, crystal_system),
         create_aniso_table_string(parameters, construction_instructions, cell, var_cov_mat),
-        create_distance_table(bonds, construction_instructions, parameters, var_cov_mat, cell, cell_std),
-        create_angle_table(angle_names, construction_instructions, parameters, var_cov_mat, cell, cell_std),
+        cif_entry_string('geom_special_details', """All esds are estimated using the full variance-covariance matrix.
+Correlations between cell parameters are taken into account for the 
+calculation of derivatives used for the error propagation to the esds
+of U(iso), distances and angles. Otherwise the esds of the cell
+parameters are assumed to be independent."""),
+        create_distance_table(bonds, construction_instructions, parameters, var_cov_mat, cell, cell_std, crystal_system),
+        create_angle_table(angle_names, construction_instructions, parameters, var_cov_mat, cell, cell_std, crystal_system),
         create_fcf4_table(index_vec_h, structure_factors, intensity, stderr, parameters[0])
     ]
     with open(output_cif_name, 'w') as fo:

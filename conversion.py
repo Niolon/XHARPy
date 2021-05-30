@@ -11,11 +11,35 @@ def ucif2ucart(cell_mat_m, u_mats):
     return jnp.einsum('ab, zbc, cd -> zad', cell_mat_m, u_star, cell_mat_m.T)
 
 
-def cell_constants_to_M(a, b, c, alpha, beta, gamma):
+def cell_constants_to_M(a, b, c, alpha, beta, gamma, crystal_system='triclinic'):
     """
     Generates a matrix with the three lattice vectors as lines
     unit of length will be as given by the cell constants
     """
+
+    if crystal_system == 'monoclinic':
+        alpha = 90.0
+        gamma = 90.0
+    elif crystal_system == 'orthorhombic':
+        alpha = 90.0
+        beta = 90.0
+        gamma = 90.0
+    elif crystal_system == 'tetragonal':
+        b = a
+        alpha = 90.0
+        beta = 90.0
+        gamma = 90.0
+    elif crystal_system in ('hexagonal', 'trigonal'):
+        b = a
+        alpha = 90.0
+        beta = 90.0
+        gamma = 120.0
+    elif crystal_system == 'cubic':
+        b = a
+        c = a
+        alpha = 90.0
+        beta = 90.0
+        gamma = 90.0
     alpha = alpha / 180.0 * jnp.pi
     beta = beta / 180.0 * jnp.pi
     gamma = gamma / 180.0 * jnp.pi

@@ -356,7 +356,9 @@ def lst2constraint_dict(filename):
 def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, construction_instructions, fjs, cell):
     cell_mat_m = cell_constants_to_M(*cell)
     constructed_xyz, constructed_uij, constructed_cijk, constructed_dijkl, constructed_occupancies = construct_values(parameters, construction_instructions, cell_mat_m)
-    symm_mats_vecs = symm_to_matrix_vector(symm_strings)
+    symm_list = [symm_to_matrix_vector(instruction) for instruction in symm_strings]
+    symm_mats_r, symm_vecs_t = zip(*symm_list)
+    symm_mats_vecs = (np.array(symm_mats_r), np.array(symm_vecs_t))
     cell_mat_f = np.linalg.inv(cell_mat_m).T
     index_vec_h = hkl[['h', 'k', 'l']].values
 
@@ -450,20 +452,20 @@ loop_
         fo.write(header + lines)
 
 
-def entries2atom_string(entries):
+def entries2atom_string(label, sfac_index, xyz, uij, occupancy):
     strings = [
-        entries['label'],
-        str(entries['sfac_index']),
-        '{:8.6f}'.format((entries['fract_x'])),
-        '{:8.6f}'.format((entries['fract_y'])),
-        '{:8.6f}'.format((entries['fract_z'])),
-        '{:8.5f}'.format((entries['occupancy'] + 10)),
-        '{:7.5f}'.format((entries['U_11'])),
-        '{:7.5f}'.format((entries['U_22'])),
-        '{:7.5f}'.format((entries['U_33'])),
-        '{:7.5f}'.format((entries['U_23'])),
-        '{:7.5f}'.format((entries['U_13'])),
-        '{:7.5f}'.format((entries['U_12']))
+        label,
+        str(sfac_index),
+        '{:8.6f}'.format((xyz[0])),
+        '{:8.6f}'.format((xyz[1])),
+        '{:8.6f}'.format((xyz[2])),
+        '{:8.5f}'.format((occupancy + 10)),
+        '{:7.5f}'.format((uij[0])),
+        '{:7.5f}'.format((uij[1])),
+        '{:7.5f}'.format((uij[2])),
+        '{:7.5f}'.format((uij[3])),
+        '{:7.5f}'.format((uij[4])),
+        '{:7.5f}'.format((uij[5]))
     ]
 
     atom_string = ''
@@ -478,10 +480,11 @@ def entries2atom_string(entries):
     return atom_string
 
 
-def write_res(out_res_name, in_res_name, atom_table, cell, cell_std, wavelength, parameters):
+def write_res(out_res_name, in_res_name, cell, cell_std, wavelength, parameters, construction_instructions):
     with open(in_res_name) as fo:
         res_lines = fo.readlines()
-    atom_table = atom_table.copy()
+    cell_mat_m = cell_constants_to_M(*cell)
+    xyzs, uijs, _, _, occs = construct_values(parameters, construction_instructions, cell_mat_m)
 
     latt_line = [line.strip() for line in res_lines if line.upper().startswith('LATT ')][0]
     symm_lines = [line.strip() for line in res_lines if line.upper().startswith('SYMM ')]
@@ -489,12 +492,9 @@ def write_res(out_res_name, in_res_name, atom_table, cell, cell_std, wavelength,
     sfac_line = [line.strip() for line in res_lines if line.upper().startswith('SFAC ')][0]
     sfac_elements = [element.capitalize() for element in sfac_line.split()[1:]]
     unit_entries = ' '.join(['99'] * len(sfac_elements))
-    sfac_df = pd.DataFrame({
-        'sfac_index': np.arange(len(sfac_elements)) + 1,
-        'type_symbol': sfac_elements
-    })
-    out_df = pd.merge(atom_table, sfac_df, on='type_symbol')
-    atom_lines = '\n'.join([entries2atom_string(entries) for _, entries in out_df.iterrows()])
+    sfacs = [sfac_elements.index(instr.element.upper()) + 1 for instr in construction_instructions]
+    entry_zip = zip(construction_instructions, sfacs, xyzs, uijs, occs)
+    atom_lines = '\n'.join([entries2atom_string(inst.name, sfac, xyz, uij, occ) for inst, sfac, xyz, uij, occ in entry_zip])
 
     output_res = f"""TITL har_out
 CELL  {wavelength} {cell[0]:6.4f} {cell[1]:6.4f} {cell[2]:6.4f} {cell[3]:6.4f} {cell[4]:6.4f} {cell[5]:6.4f}

@@ -874,7 +874,7 @@ def distance_with_esd(atom1_name, atom2_name, construction_instructions, paramet
 
     jac1, jac2 = jax.grad(distance_func, [0, 1])(parameters, cell_par)
 
-    esd = jnp.sqrt(jac1[None, :] @ var_cov_mat @ jac1[None, :].T + jac2[None,:] @ jnp.diag(cell_std) @ jac2[None,:].T)
+    esd = jnp.sqrt(jac1[None, :] @ var_cov_mat @ jac1[None, :].T + jac2[None,:] @ jnp.diag(cell_std**2) @ jac2[None,:].T)
     return distance, esd[0, 0]
 
 
@@ -889,7 +889,7 @@ def u_iso_with_esd(atom_name, construction_instructions, parameters, var_cov_mat
         return jnp.trace(ucart[0]) / 3
     u_iso = u_iso_func(parameters, cell_par)
     jac1, jac2 = jax.grad(u_iso_func, [0, 1])(parameters, cell_par)
-    esd = jnp.sqrt(jac1[None, :] @ var_cov_mat @ jac1[None, :].T + jac2[None,:] @ jnp.diag(cell_std) @ jac2[None,:].T)
+    esd = jnp.sqrt(jac1[None, :] @ var_cov_mat @ jac1[None, :].T + jac2[None,:] @ jnp.diag(cell_std**2) @ jac2[None,:].T)
     return u_iso, esd[0, 0]
 
 
@@ -911,6 +911,6 @@ def angle_with_esd(atom1_name, atom2_name, atom3_name, construction_instructions
 
     jac1, jac2 = jax.grad(angle_func, [0, 1])(parameters, cell_par)
 
-    esd = jnp.sqrt(jac1[None, :] @ var_cov_mat @ jac1[None, :].T + jac2[None,:] @ jnp.diag(cell_std) @ jac2[None,:].T)
+    esd = jnp.sqrt(jac1[None, :] @ var_cov_mat @ jac1[None, :].T + jac2[None,:] @ jnp.diag(cell_std**2) @ jac2[None,:].T)
     return angle, esd[0, 0]
 

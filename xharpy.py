@@ -848,13 +848,17 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                                    wavelength)
     if f0j_core is not None:
         if core_parameter is not None:
-            fjs_return = parameters[core_parameter] * fjs + f0j_core[None, :, :]
+            fjs_all = parameters[core_parameter] * fjs + f0j_core[None, :, :]
         else:
-            fjs_return = fjs + f0j_core[None, :, :]
+            fjs_all = fjs + f0j_core[None, :, :]
     else:
-        fjs_return = fjs
+        fjs_all = fjs
     shift_ov_su = shift / np.sqrt(np.diag(var_cov_mat))
-    return parameters, fjs_return, fjs, var_cov_mat, shift_ov_su
+    additional_information = {
+        'fjs_anom': fjs_all,
+        'shift_ov_su': shift_ov_su
+    }
+    return parameters, var_cov_mat, additional_information
 
 
 def distance_with_esd(atom1_name, atom2_name, construction_instructions, parameters, var_cov_mat, cell_par, cell_std, crystal_system):

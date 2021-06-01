@@ -353,7 +353,9 @@ def lst2constraint_dict(filename):
     return constraint_dict
 
 
-def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, construction_instructions, fjs, cell):
+def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, construction_instructions, fjs, cell, mode=6):
+    if not mode in (4, 6):
+        raise NotImplementedError('Only FCF Mode 4 and 6 are implemented')
     cell_mat_m = cell_constants_to_M(*cell)
     constructed_xyz, constructed_uij, constructed_cijk, constructed_dijkl, constructed_occupancies = construct_values(parameters, construction_instructions, cell_mat_m)
     symm_list = [symm_to_matrix_vector(instruction) for instruction in symm_strings]
@@ -677,6 +679,7 @@ def cif_entry_string(name, value, string_sign=True):
         entry_str = f'{value}'
     else:
         print(value, type(value))
+        raise NotImplementedError(f'{type(value)} is not implemented')
     return f'_{name:<32s}  {entry_str}'
 
 
@@ -854,15 +857,15 @@ def write_cif(output_cif_name,
         fjs=fjs
     ))
 
-    refinement_string = """ . Structure optimisation was done using derivatives
+    refinement_string = """ - Structure optimisation was done using derivatives
    calculated with the python package JAX and
    BFGS minimisation in scipy.optimize.minimize"""
 
     if ishar:
         refinement_string += f"""
-  . Refinement was done using structure factors
+  - Refinement was done using structure factors
     derived from Hirshfeld densities
-  . Density calculation was done with ASE/GPAW using the
+  - Density calculation was done with ASE/GPAW using the
     following settings
       xc: {options_dict['xc']}
       h: {options_dict['h']}
@@ -872,8 +875,16 @@ def write_cif(output_cif_name,
       kpts: {options_dict['kpts']['size'][0]}"""
     else:
          refinement_string += f"""
- . Refinement was done using structure factors
+ - Refinement was done using structure factors
    as usual for an IAM refinement"""
+    if 'sphere' in source_cif['exptl_crystal_description']:
+        crystal_dimension = add_from_cif('exptl_crystal_size_rad', source_cif)
+    else:
+        crystal_dimension = '\n'.join([
+            add_from_cif('exptl_crystal_size_max', source_cif),
+            add_from_cif('exptl_crystal_size_mid', source_cif),
+            add_from_cif('exptl_crystal_size_min', source_cif)
+        ])
 
     quality_dict = calculate_quality_indicators(construction_instructions, parameters, fjs, cell_mat_m, symm_mats_vecs, index_vec_h, intensity, stderr)
 
@@ -923,9 +934,7 @@ def write_cif(output_cif_name,
         add_from_cif('exptl_crystal_F_000', shelx_cif),
         add_from_cif('exptl_transmission_factor_min', source_cif),
         add_from_cif('exptl_transmission_factor_max', source_cif),
-        add_from_cif('exptl_crystal_size_max', source_cif),
-        add_from_cif('exptl_crystal_size_mid', source_cif),
-        add_from_cif('exptl_crystal_size_min', source_cif),
+        crystal_dimension,
         add_from_cif('exptl_absorpt_coefficient_mu', shelx_cif),
         add_from_cif('exptl_absorpt_correction_type', source_cif),
         add_from_cif('exptl_absorpt_correction_T_min', source_cif),

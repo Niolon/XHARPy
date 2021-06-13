@@ -353,9 +353,9 @@ def lst2constraint_dict(filename):
     return constraint_dict
 
 
-def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, construction_instructions, fjs, cell, mode=6):
-    if not mode in (4, 6):
-        raise NotImplementedError('Only FCF Mode 4 and 6 are implemented')
+
+def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, construction_instructions, fjs, cell, dataset_name, fcf_mode):
+    hkl = hkl.copy()
     cell_mat_m = cell_constants_to_M(*cell)
     constructed_xyz, constructed_uij, constructed_cijk, constructed_dijkl, constructed_occupancies = construct_values(parameters, construction_instructions, cell_mat_m)
     symm_list = [symm_to_matrix_vector(instruction) for instruction in symm_strings]
@@ -363,6 +363,11 @@ def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, construction
     symm_mats_vecs = (np.array(symm_mats_r), np.array(symm_vecs_t))
     cell_mat_f = np.linalg.inv(cell_mat_m).T
     index_vec_h = hkl[['h', 'k', 'l']].values
+
+    wavelength = refine_dict['wavelength']
+
+    intensity = hkl['intensity'].values.copy()
+    stderr = hkl['stderr'].values.copy()
 
     structure_factors = np.array(calc_f(
         xyz=constructed_xyz,
@@ -375,21 +380,6 @@ def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, construction
         symm_mats_vecs=symm_mats_vecs,
         fjs=fjs
     ))
-    cell_mat_m = cell_constants_to_M(*cell)
-    hkl_out = hkl.copy()
-    for index in ('h', 'k', 'l'):
-        values = hkl_out[index].values.copy()
-        values[values < 0] += 10000
-        hkl_out[index + 'sort'] = values
-    hkl_out['indexes'] = list(range(len(hkl_out)))
-    hkl_out = hkl_out.sort_values(['l', 'k', 'h'])
-    cell_mat_f = np.linalg.inv(cell_mat_m).T
-    index_vec_h = hkl_out[['h', 'k', 'l']].values.copy()
-    intensity = hkl_out['intensity'].values.copy()
-    stderr = hkl_out['stderr'].values.copy()
-    structure_factors = structure_factors[hkl_out['indexes']].copy()
-
-    wavelength = refine_dict['wavelength']
 
     if refine_dict['core'] == 'scale':
         extinction_parameter = 2
@@ -397,61 +387,139 @@ def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, construction
         extinction_parameter = 1
 
     if refine_dict['extinction'] == 'none':
-        f_calc = np.abs(structure_factors)
-        intensity_fcf = intensity / parameters[0]
-        stderr_fcf = stderr / parameters[0]
+        hkl['intensity'] = np.array(intensity / parameters[0])
+        hkl['stderr'] = np.array(stderr / parameters[0])
     else:
         i_calc0 = np.abs(structure_factors)**2
         if refine_dict['extinction'] == 'secondary':
             # Secondary exctinction, as shelxl needs a wavelength                
-            f_calc = np.abs(structure_factors) * np.sqrt(parameters[0] / (1 + parameters[extinction_parameter] * i_calc0)) 
-            intensity_fcf = intensity / parameters[0] * (1 + parameters[extinction_parameter] * i_calc0)
-            stderr_fcf = stderr / parameters[0] * (1 + parameters[extinction_parameter] * i_calc0)
-            
+            hkl['intensity'] = np.array(intensity / parameters[0] * (1 + parameters[extinction_parameter] * i_calc0))
+            hkl['stderr'] = np.array(stderr / parameters[0] * (1 + parameters[extinction_parameter] * i_calc0))
+
         else:
             sintheta = np.linalg.norm(np.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 * wavelength
             sintwotheta = 2 * sintheta * np.sqrt(1 - sintheta**2)
             extinction_factors = 0.001 * wavelength**3 / sintwotheta
-            f_calc = np.abs(structure_factors) * np.sqrt(parameters[0] / np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0)) 
-            intensity_fcf = intensity / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0)
-            stderr_fcf = stderr / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0)
-            
+            hkl['intensity'] = np.array(intensity / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0))
+            hkl['stderr'] = np.array(stderr / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0))
+
+
+    if fcf_mode == 6:
+        dispersion_real = jnp.array([atom.dispersion_real for atom in construction_instructions])
+        dispersion_imag = jnp.array([atom.dispersion_imag for atom in construction_instructions])
+        f_dash = dispersion_real + 1j * dispersion_imag
+
+        fjs_corr = np.zeros_like(fjs)
+        fjs_corr += f_dash[None,:,None]
+
+
+        structure_factors_corr = np.array(calc_f(
+            xyz=constructed_xyz,
+            uij=constructed_uij,
+            cijk=constructed_cijk,
+            dijkl=constructed_dijkl,
+            occupancies=constructed_occupancies,
+            index_vec_h=index_vec_h,
+            cell_mat_f=cell_mat_f,
+            symm_mats_vecs=symm_mats_vecs,
+            fjs=fjs_corr
+        ))
+
+        f_obs_sq = hkl['intensity'].values.copy()
+        f_obs_sq[f_obs_sq < 0] = 0
+        f_obs = np.sqrt(f_obs_sq)
+        f_obs = f_obs * np.exp(1j * np.angle(structure_factors))
+        hkl['intensity'] = np.abs(f_obs + structure_factors_corr)**2
+
+        structure_factors = np.array(calc_f(
+            xyz=constructed_xyz,
+            uij=constructed_uij,
+            cijk=constructed_cijk,
+            dijkl=constructed_dijkl,
+            occupancies=constructed_occupancies,
+            index_vec_h=index_vec_h,
+            cell_mat_f=cell_mat_f,
+            symm_mats_vecs=symm_mats_vecs,
+            fjs=fjs - f_dash[None, :, None]
+        ))
+
+        hkl['abs(f_calc)'] = np.abs(structure_factors)
+        hkl['phase_angle'] = np.rad2deg(np.angle(structure_factors)) % 360
+        template = '{h:>4d}{k:>4d}{l:>4d} {intensity:13.2f} {stderr:13.2f} {abs(f_calc):13.2f} {phase_angle:7.1f}\n'
+        #template = '{h} {k} {l} {intensity:.2f} {stderr:.2f} {abs(f_calc):.2f} {phase_angle:.1f}\n'
+        columns = [
+            'refln_index_h',
+            'refln_index_k',
+            'refln_index_l',
+            'refln_F_squared_meas',
+            'refln_F_squared_sigma',
+            'refln_F_calc',
+            'refln_phase_calc'
+        ]
+
+        start = '#\n# h,k,l, Fo-squared, sigma(Fo-squared), Fc and phi(calc)\n#'
+    elif fcf_mode == 4:
+        hkl['i_calc'] = np.abs(structure_factors)**2
+        hkl['observed'] = 'o'
+        template = '{h:>4d}{k:>4d}{l:>4d} {i_calc:13.2f} {intensity:13.2f} {stderr:13.2f} {observed}\n'
+        columns = [
+            'refln_index_h',
+            'refln_index_k',
+            'refln_index_l',
+            'refln_F_squared_calc',
+            'refln_F_squared_meas',
+            'refln_F_squared_sigma',
+            'refln_observed_status'
+        ]
+        start = '#\n# h,k,l, Fc-squared, Fo-squared, sigma(Fo-squared), status flag\n#'
+    else:
+        raise NotImplementedError(f'fcf mode {fcf_mode} is currently not implemented')
+
+
+    hkl_out = hkl.copy()
+    for index in ('h', 'k', 'l'):
+        values = hkl_out[index].values.copy()
+        values[values < 0] += 10000
+        hkl_out[index + '_sort'] = values
+    hkl_out['indexes'] = list(range(len(hkl_out)))
+    hkl_out = hkl_out.sort_values(['l_sort', 'k_sort', 'h_sort'])
+    hkl_out = hkl_out.astype({'h': np.int64, 'k': np.int64, 'l': np.int64 }).copy()
+
+    lines = [''] * len(hkl_out)
+    for index, line in hkl_out.iterrows():
+        format_dict = {**line}
+        format_dict['h'] = int(format_dict['h'])
+        format_dict['k'] = int(format_dict['k'])
+        format_dict['l'] = int(format_dict['l'])
+        lines[index] = template.format(**format_dict)
+        #print(format_dict)
+        #print(line)
+    lines_str = ''.join(lines)
+
     symm_string = "'" + "'\n'".join(symm_strings) + "'"
 
-    angles = np.rad2deg(np.angle(structure_factors)) % 360
+    loop2_string = '\nloop_\n _' + '\n _'.join(columns)
 
-    header = f"""#
-# h,k,l, Fo-squared, sigma(Fo-squared), Fc and phi(calc)
-#
-data_har
-_shelx_refln_list_code          6
-_shelx_F_calc_maximum      {np.max(f_calc):6.2f}
-
-loop_
-    _space_group_symop_operation_xyz
-{symm_string}
-
-_cell_length_a     {cell[0]:6.4f}
-_cell_length_b     {cell[1]:6.4f}
-_cell_length_c     {cell[2]:6.4f}
-_cell_angle_alpha  {cell[3]:6.4f}
-_cell_angle_beta   {cell[4]:6.4f}
-_cell_angle_gamma  {cell[5]:6.4f}
-
-loop_
-    _refln_index_h
-    _refln_index_k
-    _refln_index_l
-    _refln_F_squared_meas
-    _refln_F_squared_sigma
-    _refln_F_calc
-    _refln_phase_calc
-"""
-
-    lines = ''.join([f'{h} {k} {l} {out_inten:.2f} {out_std:.2f} {norm_val:.2f} {angle:.1f}\n' for (h, k, l), out_inten, out_std, norm_val, angle in zip(index_vec_h, intensity_fcf, stderr_fcf, f_calc, angles)])
-
+    output = [
+        start,
+        f'data_{dataset_name}\n',
+        cif_entry_string('shelx_refln_list_code', fcf_mode),
+        cif_entry_string('shelx_F_calc_maximum', float(np.round(np.max(np.abs(structure_factors)), 4))),
+        f'\nloop_\n _space_group_symop_operation_xyz\n{symm_string}\n',
+        cif_entry_string('cell_length_a', float(cell[0])),
+        cif_entry_string('cell_length_b', float(cell[1])),
+        cif_entry_string('cell_length_c', float(cell[2])),
+        cif_entry_string('cell_angle_alpha', float(cell[3])),
+        cif_entry_string('cell_angle_beta', float(cell[4])),
+        cif_entry_string('cell_angle_gamma', float(cell[5])),
+        loop2_string,
+        lines_str,
+        ''
+    ]
     with open(filename, 'w') as fo:
-        fo.write(header + lines)
+        fo.write('\n'.join(output))
+
+    return hkl
 
 
 def entries2atom_string(label, sfac_index, xyz, uij, occupancy):

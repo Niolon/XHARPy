@@ -35,7 +35,7 @@ def expand_symm_unique(type_symbols, coordinates, cell_mat_m, symm_mats_vec, ski
         else:
             use_indexes = list(range(symm_mats_r.shape[0]))
         symm_positions = (np.einsum('kxy, y -> kx', symm_mats_r[use_indexes, :, :], pos0) + symm_vecs_t[use_indexes, :]) % 1
-        _, unique_indexes, inv_indexes_at = np.unique(np.round(np.einsum('xy, zy -> zx', cell_mat_m, symm_positions), 5),
+        _, unique_indexes, inv_indexes_at = np.unique(np.round(np.einsum('xy, zy -> zx', cell_mat_m, symm_positions), 3),
                                                       axis=0,
                                                       return_index=True,
                                                       return_inverse=True)

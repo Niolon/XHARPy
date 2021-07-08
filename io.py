@@ -775,6 +775,8 @@ def create_fcf4_table(index_vec_h, structure_factors, intensity, stderr, scaling
 
 def create_diff_density_entries(symm_mats_vecs, index_vec_h, scaled_intensity, structure_factors, cell_mat_m, dims=np.array([53, 53, 53])):
     symm_mats, symm_vecs = symm_mats_vecs
+    scaled_intensity = np.array(scaled_intensity)
+    scaled_intensity[scaled_intensity < 0] = 0
     deltafs2 = np.sqrt(scaled_intensity) - np.abs(structure_factors)
     xxx, yyy, zzz = np.meshgrid(*[np.linspace(0, 1, dim, endpoint=False) for dim in dims], indexing='ij')
     xyz = np.array([xxx, yyy, zzz])
@@ -826,7 +828,7 @@ def write_cif(output_cif_name,
     stderr = hkl['stderr'].values
     cell_mat_m = cell_constants_to_M(*cell)
     cell_mat_f = np.linalg.inv(cell_mat_m).T
-    ishar = all([value in options_dict for value in ('xc', 'h', 'core', 'extinction', 'gridrefinement', 'mode', 'basis', 'convergence', 'kpts')])
+    ishar = all([value in options_dict for value in ('xc', 'h', 'gridrefinement', 'mode', 'basis', 'convergence', 'kpts')])
     constructed_xyz, constructed_uij, constructed_cijk, constructed_dijkl, constructed_occupancies = construct_values(parameters, construction_instructions, cell_mat_m)
 
     structure_factors = np.array(calc_f(
@@ -861,7 +863,7 @@ def write_cif(output_cif_name,
          refinement_string += f"""
  - Refinement was done using structure factors
    as usual for an IAM refinement"""
-    if 'sphere' in source_cif['exptl_crystal_description']:
+    if source_cif['exptl_crystal_description'] is not None and 'sphere' in source_cif['exptl_crystal_description']:
         crystal_dimension = add_from_cif('exptl_crystal_size_rad', source_cif)
     else:
         crystal_dimension = '\n'.join([
@@ -999,12 +1001,38 @@ systematic absences."""
         cif_entry_string('geom_special_details', """All esds are estimated using the full variance-covariance matrix.
 Correlations between cell parameters are taken into account in the 
 calculation of derivatives used for the error propagation to the esds
-of U(iso), distances and angles. Otherwise the esds of the cell
+of U(iso), distances and angles. Otherwise, the esds of the cell
 parameters are assumed to be independent."""),
         create_distance_table(bonds, construction_instructions, parameters, var_cov_mat, cell, cell_std, crystal_system),
         create_angle_table(angle_names, construction_instructions, parameters, var_cov_mat, cell, cell_std, crystal_system),
         create_diff_density_entries(symm_mats_vecs, index_vec_h, intensity/parameters[0], structure_factors, cell_mat_m),
         create_fcf4_table(index_vec_h, structure_factors, intensity, stderr, parameters[0])
     ]
+    answer_string = f"""\n\n_vrf_PLAT926_{dataset_name}
+;
+PROBLEM: Reported and Calculated   R1 Differ
+RESPONSE: The atomic structure factors are calculated by Hirshfeld atom 
+          refinement, and therefore differ from IAM calculations
+;
+_vrf_PLAT927_{dataset_name}
+;
+PROBLEM: Reported and Calculated  wR2 Differ
+RESPONSE: The atomic structure factors are calculated by Hirshfeld atom 
+          refinement, and therefore differ from IAM calculations
+;
+_vrf_PLAT928_{dataset_name}
+;
+PROBLEM: Reported and Calculated    S value   Differ
+RESPONSE: The atomic structure factors are calculated by Hirshfeld atom 
+          refinement, and therefore differ from IAM calculations
+;
+_vrf_PLAT353_{dataset_name}
+;
+PROBLEM: Long   X-H bond lengths.  
+RESPONSE: The aspherical form factors in Hirshfeld atom refinement lead 
+          to longer X-H bond lengths that are closer to the neutron
+          values
+;"""
     with open(output_cif_name, 'w') as fo:
         fo.write('\n'.join(lines).replace('\n\n\n', '\n\n'))
+        fo.write(answer_string)

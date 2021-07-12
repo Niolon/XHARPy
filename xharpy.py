@@ -148,7 +148,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
                                               multiplicator=1.2)
             construction_instructions.append(AtomInstructions(xyz=xyz_constraint,
                                                               uij=adp_constraint,
-                                                              occupancy=FixedParameter(value=occupancy)))
+                                                              occupancy=FixedParameter(value=float(occupancy))))
             continue
         if atom['label'] in torsion_add.keys():
             bound_atom, angle_atom, torsion_atom, distance, angle, torsion_angle_add, group_index, occupancy = torsion_add[atom['label']]
@@ -167,31 +167,31 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             xyz_constraint = TorsionCalculated(bound_atom_index=bound_index,
                                                angle_atom_index=angle_index,
                                                torsion_atom_index=torsion_index,
-                                               distance=FixedParameter(value=distance),
-                                               angle=FixedParameter(value=angle),
+                                               distance=FixedParameter(value=float(distance)),
+                                               angle=FixedParameter(value=float(angle)),
                                                torsion_angle=torsion_parameter)
             adp_constraint = UEquivCalculated(atom_index=bound_index,
                                               multiplicator=1.5)
             construction_instructions.append(AtomInstructions(xyz=xyz_constraint,
                                                               uij=adp_constraint,
-                                                              occupancy=FixedParameter(value=occupancy)))
+                                                              occupancy=FixedParameter(value=float(occupancy))))
             continue
 
         xyz = atom[['fract_x', 'fract_y', 'fract_z']].values.astype(np.float64)
         if atom['label'] in constraint_dict.keys() and 'xyz' in constraint_dict[atom['label']].keys():
             constraint = constraint_dict[atom['label']]['xyz']
             instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value)
-            xyz_instructions = tuple(RefinedParameter(par_index=current_index + par_index,
+            xyz_instructions = tuple(RefinedParameter(par_index=int(current_index + par_index),
                                                       multiplicator=mult,
                                                       added_value=add) if par_index >= 0 
-                                     else FixedParameter(value=add, special_position=constraint.special_position) for par_index, mult, add in instr_zip)
+                                     else FixedParameter(value=float(add), special_position=constraint.special_position) for par_index, mult, add in instr_zip)
             n_pars = jnp.max(constraint.variable_indexes) + 1
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + n_pars],
                                               [xyz[jnp.array(varindex)] for index, varindex in zip(*np.unique(constraint.variable_indexes, return_index=True)) if index >=0])
             current_index += n_pars
         else:
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + 3], list(xyz))
-            xyz_instructions = tuple(RefinedParameter(par_index=array_index, multiplicator=1.0) for array_index in range(current_index, current_index + 3))
+            xyz_instructions = tuple(RefinedParameter(par_index=int(array_index), multiplicator=1.0) for array_index in range(current_index, current_index + 3))
             current_index += 3
 
         if atom['adp_type'] == 'Uani' or atom['adp_type'] == 'Umpe':
@@ -200,10 +200,10 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
                 constraint = constraint_dict[atom['label']]['uij']
                 if type(constraint).__name__ == 'ConstrainedValues':
                     instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value) 
-                    adp_instructions = tuple(RefinedParameter(par_index=current_index + par_index,
+                    adp_instructions = tuple(RefinedParameter(par_index=int(current_index + par_index),
                                                             multiplicator= mult,
                                                             added_value=add) if par_index >= 0 
-                                            else FixedParameter(value=add, special_position=constraint.special_position) for par_index, mult, add in instr_zip)
+                                            else FixedParameter(value=float(add), special_position=constraint.special_position) for par_index, mult, add in instr_zip)
                     n_pars = jnp.max(constraint.variable_indexes) + 1
 
                     parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + n_pars],
@@ -216,10 +216,10 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
                     raise NotImplementedError('Unknown Uij Constraint')
             else:
                 parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + 6], list(adp))
-                adp_instructions = tuple(RefinedParameter(par_index=array_index, multiplicator=1.0) for array_index in range(current_index, current_index + 6))
+                adp_instructions = tuple(RefinedParameter(par_index=int(array_index), multiplicator=1.0) for array_index in range(current_index, current_index + 6))
                 current_index += 6
         elif atom['adp_type'] == 'Uiso':
-            adp_instructions = UIso(uiso=RefinedParameter(par_index=current_index, multiplicator=1.0, added_value=0.0))
+            adp_instructions = UIso(uiso=RefinedParameter(par_index=int(current_index), multiplicator=1.0, added_value=0.0))
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], atom['U_iso_or_equiv'])
             current_index += 1
         else:
@@ -233,10 +233,10 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
         if atom['label'] in constraint_dict.keys() and 'cijk' in constraint_dict[atom['label']].keys() and atom['label'] in atoms_for_gc3:
             constraint = constraint_dict[atom['label']]['cijk']
             instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value) 
-            cijk_instructions = tuple(RefinedParameter(par_index=current_index + par_index,
+            cijk_instructions = tuple(RefinedParameter(par_index=int(current_index + par_index),
                                                        multiplicator=mult,
                                                        added_value=add) if par_index >= 0 
-                                      else FixedParameter(value=add, special_position=constraint.special_position) for par_index, mult, add in instr_zip)
+                                      else FixedParameter(value=float(add), special_position=constraint.special_position) for par_index, mult, add in instr_zip)
             n_pars = jnp.max(constraint.variable_indexes) + 1
 
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + n_pars],
@@ -244,7 +244,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             current_index += n_pars
         elif atom['label'] in atoms_for_gc3:
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + 10], list(cijk))
-            cijk_instructions = tuple(RefinedParameter(par_index=array_index, multiplicator=1.0) for array_index in range(current_index, current_index + 10))
+            cijk_instructions = tuple(RefinedParameter(par_index=int(array_index), multiplicator=1.0) for array_index in range(current_index, current_index + 10))
             current_index += 10
         else:
             cijk_instructions = tuple(FixedParameter(value=0.0) for index in range(10))
@@ -257,10 +257,10 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
         if atom['label'] in constraint_dict.keys() and 'dijkl' in constraint_dict[atom['label']].keys() and atom['label'] in atoms_for_gc4:
             constraint = constraint_dict[atom['label']]['dijkl']
             instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value) 
-            dijkl_instructions = tuple(RefinedParameter(par_index=current_index + par_index,
+            dijkl_instructions = tuple(RefinedParameter(par_index=int(current_index + par_index),
                                                         multiplicator=mult,
                                                         added_value=add) if par_index >= 0 
-                                      else FixedParameter(value=add, special_position=constraint.special_position) for par_index, mult, add in instr_zip)
+                                      else FixedParameter(value=float(add), special_position=constraint.special_position) for par_index, mult, add in instr_zip)
             n_pars = jnp.max(constraint.variable_indexes) + 1
 
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + n_pars],
@@ -268,16 +268,16 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             current_index += n_pars
         elif atom['label'] in atoms_for_gc4:
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + 15], list(dijkl))
-            dijkl_instructions = tuple(RefinedParameter(par_index=array_index, multiplicator=1.0) for array_index in range(current_index, current_index + 15))
+            dijkl_instructions = tuple(RefinedParameter(par_index=int(array_index), multiplicator=1.0) for array_index in range(current_index, current_index + 15))
             current_index += 15
         else:
             dijkl_instructions = tuple(FixedParameter(value=0.0) for index in range(15))
 
         if atom['label'] in constraint_dict.keys() and 'occ' in constraint_dict[atom['label']].keys():
             constraint = constraint_dict[atom['label']]['occ']
-            occupancy = FixedParameter(value=constraint.added_value[0], special_position=constraint.special_position)
+            occupancy = FixedParameter(value=float(constraint.added_value[0]), special_position=constraint.special_position)
         else:
-            occupancy = FixedParameter(value=atom['occupancy'])
+            occupancy = FixedParameter(value=float(atom['occupancy']))
 
         construction_instructions.append(AtomInstructions(
             name=atom['label'],

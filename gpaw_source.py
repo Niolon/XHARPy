@@ -239,6 +239,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
                                                                                  (np.array(symm_mats_vecs[0]), np.array(symm_mats_vecs[1])),
                                                                                  skip_symm=skip_symm,
                                                                                  magmoms=magmoms)
+    e_change = True
     if restart is None:
         atoms = crystal(symbols=symm_symbols,
                         basis=symm_positions % 1,
@@ -252,8 +253,11 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 atoms, calc = gpaw.restart(restart, txt=gpaw_dict['txt'], xc=gpaw_dict['xc'])
+                e1_0 = atoms.get_potential_energy()
+
                 atoms.set_scaled_positions(symm_positions % 1)
                 e1 = atoms.get_potential_energy()
+                e_change = abs(e1_0 - e1) > 1e-20
         except:
             print('  failed to load the density from previous calculation. Starting from scratch')
             atoms = crystal(symbols=symm_symbols,
@@ -271,7 +275,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
     else:
         n_elec = sum([setup.Z for setup in calc.setups])
     density *= n_elec / density.sum()
-    if save is not None:
+    if save is not None and e_change:
         try:
             calc.write(save, mode='all')
         except:
@@ -343,10 +347,10 @@ def f_core_from_spline(spline, g_k, k=13):
 
 
 def calculate_f0j_core(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs):
-    symm_positions, symm_symbols, _ = expand_symm_unique(element_symbols,
-                                                                   positions,
-                                                                   cell_mat_m,
-                                                                   symm_mats_vecs)
+    symm_positions, symm_symbols, *_ = expand_symm_unique(element_symbols,
+                                                          positions,
+                                                          cell_mat_m,
+                                                          symm_mats_vecs)
     atoms = crystal(symbols=symm_symbols,
                     basis=symm_positions % 1,
                     cell=cell_mat_m.T)

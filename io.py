@@ -863,7 +863,7 @@ def write_cif(output_cif_name,
          refinement_string += f"""
  - Refinement was done using structure factors
    as usual for an IAM refinement"""
-    if source_cif['exptl_crystal_description'] is not None and 'sphere' in source_cif['exptl_crystal_description']:
+    if source_cif.get('exptl_crystal_description', None) is not None and 'sphere' in source_cif['exptl_crystal_description']:
         crystal_dimension = add_from_cif('exptl_crystal_size_rad', source_cif)
     else:
         crystal_dimension = '\n'.join([

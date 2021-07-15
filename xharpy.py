@@ -17,7 +17,7 @@ from .restraints import resolve_restraints
 from .conversion import ucif2ucart, cell_constants_to_M
 
 
-def expand_symm_unique(type_symbols, coordinates, cell_mat_m, symm_mats_vec, skip_symm={}):
+def expand_symm_unique(type_symbols, coordinates, cell_mat_m, symm_mats_vec, skip_symm={}, magmoms=None):
     """Expand the type_symbols and coordinates for one complete unit cell
     Will return an atom coordinate on a special position only once 
     also returns the matrix inv_indexes with shape n_symm * n_at for
@@ -28,6 +28,10 @@ def expand_symm_unique(type_symbols, coordinates, cell_mat_m, symm_mats_vec, ski
     n_atoms = 0
     type_symbols_symm = []
     inv_indexes = []
+    if magmoms is not None:
+        magmoms_symm = []
+    else:
+        magmoms_symm = None
     # Only check atom with itself
     for atom_index, (pos0, type_symbol) in enumerate(zip(pos_frac0, type_symbols)):
         if atom_index in skip_symm:
@@ -41,9 +45,11 @@ def expand_symm_unique(type_symbols, coordinates, cell_mat_m, symm_mats_vec, ski
                                                       return_inverse=True)
         un_positions = np.concatenate((un_positions, symm_positions[unique_indexes]))
         type_symbols_symm += [type_symbol] * unique_indexes.shape[0]
+        if magmoms is not None:
+            magmoms_symm += [magmoms[atom_index]] * unique_indexes.shape[0]
         inv_indexes.append(inv_indexes_at + n_atoms)
         n_atoms += unique_indexes.shape[0]
-    return un_positions.copy(), type_symbols_symm, inv_indexes
+    return un_positions.copy(), type_symbols_symm, inv_indexes, magmoms_symm
 
 
 @jax.jit
@@ -804,11 +810,11 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
             #parameters_min1 = jnp.array(x.x)
         else:
             break
-        #with open('save_par_model.pkl', 'wb') as fo:
-        #    pickle.dump({
-        #        'construction_instructions': construction_instructions,
-        #        'parameters': parameters
-        #    }, fo) 
+        with open('save_par_model.pkl', 'wb') as fo:
+            pickle.dump({
+                'construction_instructions': construction_instructions,
+                'parameters': parameters
+            }, fo) 
         
         constructed_xyz, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
         if refine >= reload_step - 1:

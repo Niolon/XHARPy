@@ -226,17 +226,24 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
         del(gpaw_dict['skip_symm'])
     else:
         skip_symm = {}
+    if 'magmoms' in gpaw_dict:
+        magmoms = gpaw_dict['magmoms']
+        del(gpaw_dict['magmoms'])
+    else:
+        magmoms = None
 
     #assert not (not average_symmequiv and not do_not_move)
-    symm_positions, symm_symbols, f0j_indexes = expand_symm_unique(element_symbols,
-                                                                   np.array(positions),
-                                                                   np.array(cell_mat_m),
-                                                                   (np.array(symm_mats_vecs[0]), np.array(symm_mats_vecs[1])),
-                                                                   skip_symm=skip_symm)
+    symm_positions, symm_symbols, f0j_indexes, magmoms_symm = expand_symm_unique(element_symbols,
+                                                                                 np.array(positions),
+                                                                                 np.array(cell_mat_m),
+                                                                                 (np.array(symm_mats_vecs[0]), np.array(symm_mats_vecs[1])),
+                                                                                 skip_symm=skip_symm,
+                                                                                 magmoms=magmoms)
     if restart is None:
         atoms = crystal(symbols=symm_symbols,
                         basis=symm_positions % 1,
-                        cell=cell_mat_m.T)
+                        cell=cell_mat_m.T,
+                        magmoms=magmoms_symm)
         calc = gpaw.GPAW(**gpaw_dict)
         atoms.set_calculator(calc)
         e1 = atoms.get_potential_energy()

@@ -2,6 +2,7 @@ from .xharpy import calc_f, construct_values
 from .conversion import calc_sin_theta_ov_lambda, cell_constants_to_M, calc_sin_theta_ov_lambda
 import numpy as np
 
+
 def calculate_quality_indicators(construction_instructions, parameters, fjs, cell_mat_m, symm_mats_vecs, index_vec_h, intensities, stderr):
     cell_mat_m = np.array(cell_mat_m)
     fjs = np.array(fjs)
@@ -83,9 +84,8 @@ def calculate_drk(df, bins=21, equal_sized_bins=False, cell_mat_m=None):
             limits = np.linspace(res_min, res_max, n_bins + 1)
         except (TypeError, ValueError):
             try:
-                assert not isinstance(bins, str) # this would create a list of chars
-                limits = list(bins)
-            except (TypeError, AssertionError):
+                assert not isinstance(bins, str) # this would
+            except:
                 raise TypeError('bins has to be either an integer number or a list-like')
         except AssertionError:
             # bins is float so a step size

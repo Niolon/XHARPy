@@ -1,3 +1,4 @@
+from ase.units import C
 from jax.config import config
 config.update('jax_enable_x64', True)
 
@@ -621,7 +622,7 @@ TorsionCalculated = namedtuple('TorsionCalculated', [
     'bound_atom_index',   # index of  atom the derived atom is bound_to
     'angle_atom_index',   # index of atom spanning the given angle with bound atom
     'torsion_atom_index', # index of atom giving the torsion angle
-    'distance',           # interatom distance
+    'distance',           # interatom dpositionsistance
     'angle',              # interatom angle
     'torsion_angle'       # interatom torsion angle
 ])
@@ -665,7 +666,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
     print('Preparing')
     index_vec_h = jnp.array(hkl[['h', 'k', 'l']].values.copy())
     type_symbols = [atom.element for atom in construction_instructions]
-    constructed_xyz, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
+    constructed_xyz, constructed_uij, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
 
     dispersion_real = jnp.array([atom.dispersion_real for atom in construction_instructions])
     dispersion_imag = jnp.array([atom.dispersion_imag for atom in construction_instructions])
@@ -677,6 +678,8 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
         from .iam_source import calc_f0j, calculate_f0j_core
     elif f0j_source == 'gpaw_spherical':
         from .gpaw_spherical_source import calc_f0j, calculate_f0j_core
+    elif f0j_source == 'gpaw_lcorr':
+        from .gpaw_source_lcorr import calc_f0j, calculate_f0j_core
     else:
         raise NotImplementedError('Unknown type of f0j_source')
 
@@ -738,16 +741,27 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
         restart = 'save.gpw'
     else:
         restart = None
-
-    fjs = calc_f0j(cell_mat_m,
-                   type_symbols,
-                   constructed_xyz,
-                   index_vec_h,
-                   symm_mats_vecs,
-                   gpaw_dict=options_dict,
-                   save='save.gpw',
-                   restart=restart,
-                   explicit_core=f0j_core is not None)
+    if f0j_source == 'gpaw_lcorr':
+        fjs = calc_f0j(cell_mat_m,
+                       type_symbols,
+                       constructed_xyz,
+                       constructed_uij,
+                       index_vec_h,
+                       symm_mats_vecs,
+                       gpaw_dict=options_dict,
+                       save='save.gpw',
+                       restart=restart,
+                       explicit_core=f0j_core is not None)
+    else:
+        fjs = calc_f0j(cell_mat_m,
+                       type_symbols,
+                       constructed_xyz,
+                       index_vec_h,
+                       symm_mats_vecs,
+                       gpaw_dict=options_dict,
+                       save='save.gpw',
+                       restart=restart,
+                       explicit_core=f0j_core is not None)
     if f0j_core is None:
         fjs += f_dash[None,:,None]
     xyz_density = constructed_xyz
@@ -816,7 +830,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                 'parameters': parameters
             }, fo) 
         
-        constructed_xyz, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
+        constructed_xyz, constructed_uij, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
         if refine >= reload_step - 1:
             restart = 'save.gpw'  
         else:
@@ -824,15 +838,27 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
         if np.max(np.linalg.norm(np.einsum('xy, zy -> zx', cell_mat_m, constructed_xyz - xyz_density), axis=-1)) > max_distance_diff:
             print(f'step {refine + 1}: calculating new structure factors')
             del(fjs)
-            fjs = calc_f0j(cell_mat_m,
-                           type_symbols,
-                           constructed_xyz,
-                           index_vec_h,
-                           symm_mats_vecs,
-                           restart=restart,
-                           gpaw_dict=options_dict,
-                           save='save.gpw',
-                           explicit_core=f0j_core is not None)
+            if f0j_source == 'gpaw_lcorr':
+                fjs = calc_f0j(cell_mat_m,
+                            type_symbols,
+                            constructed_xyz,
+                            constructed_uij,
+                            index_vec_h,
+                            symm_mats_vecs,
+                            gpaw_dict=options_dict,
+                            save='save.gpw',
+                            restart=restart,
+                            explicit_core=f0j_core is not None)
+            else:
+                fjs = calc_f0j(cell_mat_m,
+                            type_symbols,
+                            constructed_xyz,
+                            index_vec_h,
+                            symm_mats_vecs,
+                            gpaw_dict=options_dict,
+                            save='save.gpw',
+                            restart=restart,
+                            explicit_core=f0j_core is not None)
             if f0j_core is None:
                 fjs += f_dash[None,:,None]
             xyz_density = constructed_xyz

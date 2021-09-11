@@ -786,8 +786,9 @@ def create_diff_density_entries(symm_mats_vecs, index_vec_h, scaled_intensity, s
         hkl_symm = np.einsum('x, axy -> ay', hkl_ind, symm_mats)
         hkl_symm, unique_indexes = np.unique(hkl_symm, axis=0, return_index=True)
         shifts = 2 * np.pi * np.einsum('x, ax -> a', hkl_ind, symm_vecs)[unique_indexes]
+        full_angle = 2 * np.pi * np.einsum('ax, xijk -> aijk', hkl_symm, xyz) + angle - shifts[:, None, None, None]
         
-        diff += deltaf * np.sum(np.cos(2 * np.pi * np.einsum('ax, xijk -> aijk', hkl_symm, xyz) + angle - shifts[:, None, None, None]), axis=0)
+        diff += deltaf * np.sum(np.cos(full_angle), axis=0)
     diff = diff / np.linalg.det(cell_mat_m)
 
     return '\n'.join([

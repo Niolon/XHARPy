@@ -272,8 +272,11 @@ def calc_f0j(cell_mat_m, element_symbols, xyz, uij, index_vec_h, symm_mats_vecs,
 
     corr = np.linalg.norm(d0s, axis=-1) + (av_w2sq - av_w1sq) / (2 * np.linalg.norm(d0s, axis=-1))
     print(np.linalg.norm(d0s, axis=-1) - corr)
+    d_add = corr - np.linalg.norm(d0s, axis=-1)
 
-    positions[atom2_indexes] = np.einsum('xy, zy -> zx', np.linalg.inv(cell_mat_m), cart[atom1_indexes] + 5 * x0s * corr[:, None])
+    positions[atom2_indexes] = np.einsum('xy, zy -> zx', np.linalg.inv(cell_mat_m), cart[atom1_indexes]
+                                                                                    + x0s * (np.linalg.norm(d0s, axis=-1)
+                                                                                    + d_add)[:, None])
 
     #assert not (not average_symmequiv and not do_not_move)
 
@@ -333,8 +336,8 @@ def calc_f0j(cell_mat_m, element_symbols, xyz, uij, index_vec_h, symm_mats_vecs,
             print('  Could not save to file')
 
     print('  calculated density with energy', e1)
-    atoms.set_scaled_positions(symm_xyz % 1)
-    calc.atoms = atoms
+    #atoms.set_scaled_positions(symm_xyz % 1)
+    #calc.atoms = atoms
 
     partitioning = HirshfeldPartitioning(calc)
     partitioning.initialize()

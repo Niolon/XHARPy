@@ -251,7 +251,9 @@ def calculate_agreement(har_path, har_key, fcf_path,  neut_path, neut_key, renam
         uij_neut_esd = uij_merged[[name + '_std_neut_' + suffix for name in uij_keys]].values
         
         uij_merged[[f'{suffix}: Delta {u}' for u in ['U11', 'U22', 'U33', 'U23', 'U13', 'U12']]] = uij_har - uij_neut
-        uij_merged[[f'{suffix}: Delta {u}/sigmaN' for u in ['U11', 'U22', 'U33', 'U23', 'U13', 'U12']]] = (uij_har - uij_neut) / uij_neut_esd
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")  
+            uij_merged[[f'{suffix}: Delta {u}/sigmaN' for u in ['U11', 'U22', 'U33', 'U23', 'U13', 'U12']]] = (uij_har - uij_neut) / uij_neut_esd
         with warnings.catch_warnings():
             warnings.simplefilter("ignore") 
             har_uij_mat = uij_har[:, [[0, 5, 4], [5, 1, 3], [4, 3, 2]]]

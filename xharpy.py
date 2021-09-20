@@ -112,9 +112,30 @@ def resolve_instruction(parameters, instruction):
         return_value = instruction.multiplicator * parameters[instruction.par_index] + instruction.added_value
     elif type(instruction).__name__ == 'FixedParameter':
         return_value = instruction.value
+    elif type(instruction).__name__ == 'MultiIndexParameter':
+        multiplicators = jnp.array(instruction.multiplicators)
+        return_value = jnp.sum(multiplicators * parameters[jnp.array(instruction.par_indexes)]) + instruction.added_value
     else:
         raise NotImplementedError('This type of instruction is not implemented')
     return return_value
+
+
+def constrained_values_to_instruction(par_index, mult, add, constraint, current_index):
+    if isinstance(par_index, (tuple, list, np.ndarray)):
+        assert len(par_index) == len(mult), 'par_index and mult have different lengths'
+        return MultiIndexParameter(
+            par_indexes=tuple(np.array(par_index) + current_index),
+            multiplicators=tuple(mult),
+            added_value=add
+        )
+    elif par_index >= 0:
+        return RefinedParameter(
+            par_index=int(current_index + par_index),                                                      
+            multiplicator=mult,
+            added_value=add
+        ) 
+    else:
+        return FixedParameter(value=float(add), special_position=constraint.special_position)
 
 
 # construct the instructions for building the atomic parameters back from the linear parameter matrix
@@ -154,8 +175,8 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             adp_constraint = UEquivCalculated(atom_index=bound_index,
                                               multiplicator=1.2)
             construction_instructions.append(AtomInstructions(xyz=xyz_constraint,
-                                                              uij=adp_constraint,
-                                                              occupancy=FixedParameter(value=float(occupancy))))
+                                                uij=adp_constraint,
+                                                occupancy=FixedParameter(value=float(occupancy))))
             continue
         if atom['label'] in torsion_add.keys():
             bound_atom, angle_atom, torsion_atom, distance, angle, torsion_angle_add, group_index, occupancy = torsion_add[atom['label']]
@@ -188,13 +209,16 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
         if atom['label'] in constraint_dict.keys() and 'xyz' in constraint_dict[atom['label']].keys():
             constraint = constraint_dict[atom['label']]['xyz']
             instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value)
-            xyz_instructions = tuple(RefinedParameter(par_index=int(current_index + par_index),
-                                                      multiplicator=mult,
-                                                      added_value=add) if par_index >= 0 
-                                     else FixedParameter(value=float(add), special_position=constraint.special_position) for par_index, mult, add in instr_zip)
-            n_pars = jnp.max(constraint.variable_indexes) + 1
-            parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + n_pars],
-                                              [xyz[jnp.array(varindex)] for index, varindex in zip(*np.unique(constraint.variable_indexes, return_index=True)) if index >=0])
+            xyz_instructions = tuple(constrained_values_to_instruction(par_index, mult, add, constraint, current_index) for par_index, mult, add in instr_zip)
+            # we need this construction to unpack lists in indexes for the MultiIndexParameters
+            n_pars = max(max(entry) if isinstance(entry, (list, tuple, np.ndarray, jnp.ndarray)) else entry for entry in constraint.variable_indexes) + 1
+            # MultiIndexParameter can never be unique so we can throw it out
+            u_indexes = [-1 if isinstance(entry, (list, tuple, np.ndarray, jnp.ndarray)) else entry for entry in constraint.variable_indexes]
+            parameters = jax.ops.index_update(
+                parameters,
+                jax.ops.index[current_index:current_index + n_pars],
+                [xyz[jnp.array(varindex)] for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0]
+            )
             current_index += n_pars
         else:
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + 3], list(xyz))
@@ -207,14 +231,18 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
                 constraint = constraint_dict[atom['label']]['uij']
                 if type(constraint).__name__ == 'ConstrainedValues':
                     instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value) 
-                    adp_instructions = tuple(RefinedParameter(par_index=int(current_index + par_index),
-                                                            multiplicator= mult,
-                                                            added_value=add) if par_index >= 0 
-                                            else FixedParameter(value=float(add), special_position=constraint.special_position) for par_index, mult, add in instr_zip)
-                    n_pars = jnp.max(constraint.variable_indexes) + 1
+                    adp_instructions = tuple(constrained_values_to_instruction(par_index, mult, add, constraint, current_index) for par_index, mult, add in instr_zip)
+                    # we need this construction to unpack lists in indexes for the MultiIndexParameters
+                    n_pars = max(max(entry) if isinstance(entry, (list, tuple, np.ndarray, jnp.ndarray)) else entry for entry in constraint.variable_indexes) + 1
 
-                    parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + n_pars],
-                                                    [adp[jnp.array(varindex)] for index, varindex in zip(*np.unique(constraint.variable_indexes, return_index=True)) if index >=0])
+                    # MultiIndexParameter can never be unique so we can throw it out
+                    u_indexes = [-1 if isinstance(entry, (list, tuple, np.ndarray, jnp.ndarray)) else entry for entry in constraint.variable_indexes]
+
+                    parameters = jax.ops.index_update(
+                        parameters,
+                        jax.ops.index[current_index:current_index + n_pars],
+                        [adp[jnp.array(varindex)] for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0]
+                    )
                     current_index += n_pars
                 elif type(constraint).__name__ == 'UEquivConstraint':
                     bound_index = jnp.where(names == constraint.bound_atom)[0][0]
@@ -240,14 +268,19 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
         if atom['label'] in constraint_dict.keys() and 'cijk' in constraint_dict[atom['label']].keys() and atom['label'] in atoms_for_gc3:
             constraint = constraint_dict[atom['label']]['cijk']
             instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value) 
-            cijk_instructions = tuple(RefinedParameter(par_index=int(current_index + par_index),
-                                                       multiplicator=mult,
-                                                       added_value=add) if par_index >= 0 
-                                      else FixedParameter(value=float(add), special_position=constraint.special_position) for par_index, mult, add in instr_zip)
-            n_pars = jnp.max(constraint.variable_indexes) + 1
+            cijk_instructions = tuple(constrained_values_to_instruction(par_index, mult, add, constraint, current_index) for par_index, mult, add in instr_zip)
+            # we need this construction to unpack lists in indexes for the MultiIndexParameters
+            n_pars = max(max(entry) if isinstance(entry, (list, tuple, np.ndarray, jnp.ndarray)) else entry for entry in constraint.variable_indexes) + 1
 
-            parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + n_pars],
-                                              [cijk[jnp.array(varindex)] for index, varindex in zip(*np.unique(constraint.variable_indexes, return_index=True)) if index >=0])
+            # MultiIndexParameter can never be unique so we can throw it out
+            u_indexes = [-1 if isinstance(entry, (list, tuple, np.ndarray, jnp.ndarray)) else entry for entry in constraint.variable_indexes]
+
+            parameters = jax.ops.index_update(
+                parameters,
+                jax.ops.index[current_index:current_index + n_pars],
+                [cijk[jnp.array(varindex)] for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0]
+            )
+
             current_index += n_pars
         elif atom['label'] in atoms_for_gc3:
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + 10], list(cijk))
@@ -264,14 +297,16 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
         if atom['label'] in constraint_dict.keys() and 'dijkl' in constraint_dict[atom['label']].keys() and atom['label'] in atoms_for_gc4:
             constraint = constraint_dict[atom['label']]['dijkl']
             instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value) 
-            dijkl_instructions = tuple(RefinedParameter(par_index=int(current_index + par_index),
-                                                        multiplicator=mult,
-                                                        added_value=add) if par_index >= 0 
-                                      else FixedParameter(value=float(add), special_position=constraint.special_position) for par_index, mult, add in instr_zip)
-            n_pars = jnp.max(constraint.variable_indexes) + 1
-
-            parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + n_pars],
-                                              [dijkl[jnp.array(varindex)] for index, varindex in zip(*np.unique(constraint.variable_indexes, return_index=True)) if index >=0])
+            dijkl_instructions = tuple(constrained_values_to_instruction(par_index, mult, add, constraint, current_index) for par_index, mult, add in instr_zip)
+            # we need this construction to unpack lists in indexes for the MultiIndexParameters
+            n_pars = max(max(entry) if isinstance(entry, (list, tuple, np.ndarray, jnp.ndarray)) else entry for entry in constraint.variable_indexes) + 1
+            # MultiIndexParameter can never be unique so we can throw it out
+            u_indexes = [-1 if isinstance(entry, (list, tuple, np.ndarray, jnp.ndarray)) else entry for entry in constraint.variable_indexes]
+            parameters = jax.ops.index_update(
+                parameters,
+                jax.ops.index[current_index:current_index + n_pars],
+                [dijkl[jnp.array(varindex)] for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0]
+            )
             current_index += n_pars
         elif atom['label'] in atoms_for_gc4:
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + 15], list(dijkl))
@@ -371,38 +406,41 @@ def construct_values(parameters, construction_instructions, cell_mat_m):
             uij = jax.ops.index_update(uij, jax.ops.index[index, 5], uiso * jnp.sum(cell_mat_f[:, 0] * cell_mat_f[:, 1]) / lengths_star[0] / lengths_star[1])
     return xyz, uij, cijk, dijkl, occupancies
 
-def resolve_instruction_esd(esds, instruction):
+def resolve_instruction_esd(var_cov_mat, instruction):
     """Resolve fixed and refined parameter esds"""
     if type(instruction).__name__ == 'RefinedParameter':
-        return_value = instruction.multiplicator * esds[instruction.par_index]
+        return_value = instruction.multiplicator * np.sqrt(var_cov_mat[instruction.par_index, instruction.par_index])
     elif type(instruction).__name__ == 'FixedParameter':
         return_value = jnp.nan # One could pick zero, but this should indicate that an error is not defined
+    elif type(instruction).__name__ == 'MultiIndexParameter':
+        jac = jnp.array(instruction.multiplicators)
+        indexes = jnp.array(instruction.par_indexes)
+        return_value = jnp.sqrt(jnp.sqrt(jac[None, :] @ var_cov_mat[indexes][: , indexes] @ jac[None, :].T))[0,0]
     else:
         raise NotImplementedError('Unknown type of parameters')
     return return_value
 
 def construct_esds(var_cov_mat, construction_instructions):
     # TODO Build analogous to the distance calculation function to get esds for all non-primitive calculations
-    esds = jnp.sqrt(np.diag(var_cov_mat))
     xyz = jnp.array(
-        [[resolve_instruction_esd(esds, inner_instruction) for inner_instruction in instruction.xyz]
+        [[resolve_instruction_esd(var_cov_mat, inner_instruction) for inner_instruction in instruction.xyz]
           if type(instruction.xyz) in (tuple, list) else jnp.full(3, jnp.nan) for instruction in construction_instructions]
     )
     uij = jnp.array(
-        [[resolve_instruction_esd(esds, inner_instruction) for inner_instruction in instruction.uij]
+        [[resolve_instruction_esd(var_cov_mat, inner_instruction) for inner_instruction in instruction.uij]
           if type(instruction.uij) in (tuple, list) else jnp.full(6, jnp.nan) for instruction in construction_instructions]
     )
     
     cijk = jnp.array(
-        [[resolve_instruction_esd(esds, inner_instruction) for inner_instruction in instruction.cijk]
+        [[resolve_instruction_esd(var_cov_mat, inner_instruction) for inner_instruction in instruction.cijk]
           if type(instruction.cijk) in (tuple, list) else jnp.full(6, jnp.nan) for instruction in construction_instructions]
     )
     
     dijkl = jnp.array(
-        [[resolve_instruction_esd(esds, inner_instruction) for inner_instruction in instruction.dijkl]
+        [[resolve_instruction_esd(var_cov_mat, inner_instruction) for inner_instruction in instruction.dijkl]
           if type(instruction.dijkl) in (tuple, list) else jnp.full(6, jnp.nan) for instruction in construction_instructions]
     )
-    occupancies = jnp.array([resolve_instruction_esd(esds, instruction.occupancy) for instruction in construction_instructions])
+    occupancies = jnp.array([resolve_instruction_esd(var_cov_mat, instruction.occupancy) for instruction in construction_instructions])
     return xyz, uij, cijk, dijkl, occupancies    
 
 def calc_lsq_factory(cell_mat_m,
@@ -601,6 +639,11 @@ FixedParameter = namedtuple('FixedParameter', [
     'special_position' # stems from an atom on a special position, makes a difference for output of occupancy
 ], defaults=[1.0, False])
 
+MultiIndexParameter = namedtuple('MultiIndexParameter', [
+    'par_indexes',   # tuple of indexes in the parameter array
+    'multiplicators', # tuple of multiplicators for the parameter array
+    'added_value' # a single added value
+])
 
 UEquivCalculated = namedtuple('UEquivCalculated', [
     'atom_index',   # index of atom to set the U_equiv equal to 

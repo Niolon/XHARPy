@@ -5,6 +5,7 @@ import jax.numpy as jnp
 import jax
 import re
 import warnings
+import textwrap
 from .xharpy import (ConstrainedValues, cell_constants_to_M, distance_with_esd, construct_esds, construct_values, u_iso_with_esd, angle_with_esd,
                      calc_f)
 from .quality import calculate_quality_indicators
@@ -735,6 +736,54 @@ def create_aniso_table_string(parameters, construction_instructions, cell, var_c
     return string
 
 
+def create_gc3_table_string(parameters, construction_instructions, cell, var_cov_mat):
+    columns = ['label', '111', '222', '333', '112', '122', '113', '133', '223', '233', '123']
+    columns = ['atom_site_anharm_GC_C_' + name for name in columns]
+
+    string = '\nloop_\n _' + '\n _'.join(columns) + '\n'
+
+    cell_mat_m = cell_constants_to_M(*cell)
+    _, _, cijks, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
+    _, _, cijk_esds, *_ = construct_esds(var_cov_mat, construction_instructions)
+
+    table_needed = False
+    for instr, cijk, cijk_esd in zip(construction_instructions, cijks, cijk_esds):
+        if np.sum(np.abs(cijk)) > 1e-30:
+            table_needed = True
+            cijk_string = ' '.join(value_with_esd(cijk, cijk_esd))
+            cijk_string = '\n'.join(textwrap.wrap(cijk_string, width=75))
+            string += f'{instr.name} {cijk_string}\n'
+    if table_needed:
+        return string
+    else:
+        return ''
+
+
+def create_gc4_table_string(parameters, construction_instructions, cell, var_cov_mat):
+    columns = ['label', '1111', '2222', '3333', '1112', '1222', '1113', '1333', '2223', '2333',
+               '1122', '1133', '2233', '1123', '1223', '1233']
+    columns = ['atom_site_anharm_GC_D_' + name for name in columns]
+
+    string = '\nloop_\n _' + '\n _'.join(columns) + '\n'
+
+    cell_mat_m = cell_constants_to_M(*cell)
+    _, _, _, dijkls, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
+    _, _, _, dijkl_esds, *_ = construct_esds(var_cov_mat, construction_instructions)
+
+    table_needed = False
+    for instr, dijkl, dijk_esd in zip(construction_instructions, dijkls, dijkl_esds):
+        if np.sum(np.abs(dijkl)) > 1e-30:
+            table_needed = True
+            dijkl_string = ' '.join(value_with_esd(dijkl, dijk_esd))
+            dijkl_string = '\n'.join(textwrap.wrap(dijkl_string, width=75))
+            string += f'{instr.name} {dijkl_string}\n'
+    if table_needed:
+        return string
+    else:
+        return ''
+
+
+
 def create_distance_table(bonds, construction_instructions, parameters, var_cov_mat, cell, cell_std, crystal_system):
     columns =  ['geom_bond_atom_site_label_1',
                 'geom_bond_atom_site_label_2',
@@ -796,6 +845,31 @@ def create_diff_density_entries(symm_mats_vecs, index_vec_h, scaled_intensity, s
         cif_entry_string('refine_diff_density_min', float(np.round(np.min(diff), 4))),
         cif_entry_string('refine_diff_density_rms', float(np.round(np.std(diff), 4)))
     ])
+
+
+def create_extinction_entries(parameters, var_cov_mat, refine_dict):
+    if refine_dict['extinction'] == 'none':
+        method = 'none'
+        coeff = '.'
+    else:
+        if refine_dict['core'] == 'scale':
+            exti = parameters[2]
+            esd = np.sqrt(var_cov_mat[2, 2])
+        else:
+            exti = parameters[1]
+            esd = np.sqrt(var_cov_mat[1, 1])
+        coeff = value_with_esd(np.array([exti]), np.array([esd]))
+        if refine_dict['extinction'] == 'shelxl':
+            method = 'Fc^*^=kFc[1+0.001xFc^2^\l^3^/sin(2\q)]^-1/4^'
+        elif refine_dict['extinction'] == 'secondary':
+            method = 'Zachariasen'
+        else:
+            raise NotImplementedError('This extinction is not implemeted in io')
+    entries = [
+        cif_entry_string('refine_ls_extinction_coef', coeff, False),
+        cif_entry_string('refine_ls_extinction_method', method , False)
+    ]
+    return '\n'.join(entries)
 
 
 def write_cif(output_cif_name,
@@ -985,8 +1059,7 @@ systematic absences."""
         cif_entry_string('refine_ls_weighting_scheme', 'sigma', False),
         cif_entry_string('refine_ls_weighting_details', 'w=1/[\s^2^(Fo^2^)]'),
         cif_entry_string('refine_ls_hydrogen_treatment', 'refall', False),
-        cif_entry_string('refine_ls_extinction_method', 'none', False),
-        cif_entry_string('refine_ls_extinction_coef', '.', False),
+        create_extinction_entries(parameters, var_cov_mat, refine_dict),
         cif_entry_string('refine_ls_number_reflns', len(hkl)),
         cif_entry_string('refine_ls_number_parameters', len(parameters)),
         cif_entry_string('refine_ls_number_restraints', 0),
@@ -999,6 +1072,8 @@ systematic absences."""
         cif_entry_string('refine_ls_shift/su_mean', float(np.round(np.mean(shift_ov_su[0]), 3))),
         create_atom_site_table_string(parameters, construction_instructions, cell, cell_std, var_cov_mat, crystal_system),
         create_aniso_table_string(parameters, construction_instructions, cell, var_cov_mat),
+        create_gc3_table_string(parameters, construction_instructions, cell, var_cov_mat),
+        create_gc4_table_string(parameters, construction_instructions, cell, var_cov_mat),
         cif_entry_string('geom_special_details', """All esds are estimated using the full variance-covariance matrix.
 Correlations between cell parameters are taken into account in the 
 calculation of derivatives used for the error propagation to the esds

@@ -848,7 +848,7 @@ def create_diff_density_entries(symm_mats_vecs, index_vec_h, scaled_intensity, s
 
 
 def create_extinction_entries(parameters, var_cov_mat, refine_dict):
-    if refine_dict['extinction'] == 'none':
+    if refine_dict['extinction'] == 'none' or 'extinction' not in refine_dict:
         method = 'none'
         coeff = '.'
     else:

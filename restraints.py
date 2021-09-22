@@ -135,6 +135,8 @@ def resolve_restraints(xyz, uij, restraints, cell_mat_m):
             #4 Calculate differences
             diff_u = u_cart1_r - u_cart2_r
             return_sum += (diff_u[2, 2]**2 + diff_u[1, 2]**2 + diff_u[0, 2]**2) / restraint.stderr**2
+        else:
+            raise NotImplementedError(f'Unknown type of restraint : {type(restraint)}')
 
     return return_sum
 

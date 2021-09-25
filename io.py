@@ -823,6 +823,7 @@ def create_fcf4_table(index_vec_h, structure_factors, intensity, stderr, scaling
     return string
 
 def create_diff_density_entries(symm_mats_vecs, index_vec_h, scaled_intensity, structure_factors, cell_mat_m, dims=np.array([53, 53, 53])):
+    """
     symm_mats, symm_vecs = symm_mats_vecs
     scaled_intensity = np.array(scaled_intensity)
     scaled_intensity[scaled_intensity < 0] = 0
@@ -844,6 +845,12 @@ def create_diff_density_entries(symm_mats_vecs, index_vec_h, scaled_intensity, s
         cif_entry_string('refine_diff_density_max', float(np.round(np.max(diff), 4))),
         cif_entry_string('refine_diff_density_min', float(np.round(np.min(diff), 4))),
         cif_entry_string('refine_diff_density_rms', float(np.round(np.std(diff), 4)))
+    ])
+    """
+    return '\n'.join([
+        cif_entry_string('refine_diff_density_max', '.'),
+        cif_entry_string('refine_diff_density_min', '.'),
+        cif_entry_string('refine_diff_density_rms', '.')
     ])
 
 

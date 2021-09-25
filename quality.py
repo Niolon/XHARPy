@@ -1,6 +1,7 @@
 from .xharpy import calc_f, construct_values
 from .conversion import calc_sin_theta_ov_lambda, cell_constants_to_M, calc_sin_theta_ov_lambda
 import numpy as np
+import warnings
 
 
 def calculate_quality_indicators(construction_instructions, parameters, fjs, cell_mat_m, symm_mats_vecs, index_vec_h, intensities, stderr):
@@ -106,3 +107,42 @@ def calculate_drk(df, bins=21, equal_sized_bins=False, cell_mat_m=None):
         result['lower limit'] = np.array(limits[:-1])
         result['upper limit'] = np.array(limits[1:])
     return result
+
+
+def generate_hm(fcf_path, map_factor=1/3, level_step=0.01):
+    try: 
+        from iotbx import reflection_file_reader
+    except:
+        raise ModuleNotFoundError('cctbx is needed for this feature')
+    reader = reflection_file_reader.cif_reader(fcf_path)
+    arrays = reader.build_miller_arrays()[next(iter(reader.build_miller_arrays()))]
+    fobs = arrays['_refln_F_squared_meas'].f_sq_as_f()
+    try:
+        fcalc = arrays['_refln_F_calc']
+    except ValueError:
+        raise ValueError('No _refln_F_calc in fcf, an fcf6 is needed')
+    diff = fobs.f_obs_minus_f_calc(1.0, arrays['_refln_F_calc'])
+    diff_map = diff.fft_map(map_factor)
+    diff_map.apply_volume_scaling()
+    real = diff_map.real_map()
+    arr = real.as_numpy_array()
+    levels = np.arange(-1.0, 1.0 + level_step, level_step)
+    start_at = np.argwhere(levels < arr.min())[-1, 0]
+    end_at = np.argwhere(levels > arr.max())[0, 0]
+    sum_levels = np.zeros_like(levels)
+    for level_index, level in enumerate(levels[start_at:end_at]):
+        sum_levels[level_index + start_at] += np.sum(np.logical_and(arr[1:,:,:] < level, level < arr[:-1,:,:]))
+        sum_levels[level_index + start_at] += np.sum(np.logical_and(arr[1:,:,:] > level, level > arr[:-1,:,:]))
+        sum_levels[level_index + start_at] += np.sum(np.logical_and(arr[:,1:,:] < level, level < arr[:,:-1,:]))
+        sum_levels[level_index + start_at] += np.sum(np.logical_and(arr[:,1:,:] > level, level > arr[:,:-1,:]))
+        sum_levels[level_index + start_at] += np.sum(np.logical_and(arr[:,:,1:] < level, level < arr[:,:,:-1]))
+        sum_levels[level_index + start_at] += np.sum(np.logical_and(arr[:,:,1:] > level, level > arr[:,:,:-1]))
+    n_pairs = 0
+    for index in range(3):
+        pair_shape = np.array(arr.shape)
+        pair_shape[index] -= 1
+        n_pairs += 2 * np.prod(pair_shape)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        df = np.log10(sum_levels) / np.log10(n_pairs**(1/3))
+    return {'levels': levels, 'df': df}

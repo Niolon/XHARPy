@@ -126,13 +126,13 @@ def constrained_values_to_instruction(par_index, mult, add, constraint, current_
         return MultiIndexParameter(
             par_indexes=tuple(np.array(par_index) + current_index),
             multiplicators=tuple(mult),
-            added_value=add
+            added_value=float(add)
         )
     elif par_index >= 0:
         return RefinedParameter(
             par_index=int(current_index + par_index),                                                      
-            multiplicator=mult,
-            added_value=add
+            multiplicator=float(mult),
+            added_value=float(add)
         ) 
     else:
         return FixedParameter(value=float(add), special_position=constraint.special_position)

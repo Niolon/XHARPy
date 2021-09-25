@@ -6,6 +6,11 @@ import jax
 import jax.numpy as jnp
 import warnings
 import pandas as pd
+from cycler import cycler
+
+bench_colors = cycler(color=['#011671', '#ea5900', '#b10f2e', '#357266', '#e8c547', '#437f97',
+                             '#8697e0', '#ffb485', '#f58ea1', '#53b2a0', '#e8d99e', '#93bccc'])
+
 
 def corr_uij_tric(parameters, uij_neut):
     scale = parameters[0]
@@ -15,27 +20,27 @@ def corr_uij_tric(parameters, uij_neut):
 def corr_uij_mono(parameters, uij_neut):
     scale = parameters[0]
     add = jnp.zeros(6)
-    add = jax.ops.index_add(add, [0, 1, 2], parameters[1:4])
+    add = jax.ops.index_add(add, jnp.array([0, 1, 2]), parameters[1:4])
     add = jax.ops.index_add(add, 4, parameters[4])
     return scale * uij_neut + add
 
 def corr_uij_ortho(parameters, uij_neut):
     scale = parameters[0]
     add = jnp.zeros(6)
-    add = jax.ops.index_add(add, [0, 1, 2], parameters[1:])
+    add = jax.ops.index_add(add, jnp.array([0, 1, 2]), parameters[1:])
     return scale * uij_neut + add
 
 def corr_uij_tetra(parameters, uij_neut):
     scale = parameters[0]
     add = jnp.zeros(6)
-    add = jax.ops.index_add(add, [0, 1], parameters[1])
+    add = jax.ops.index_add(add, jnp.array([0, 1]), parameters[1])
     add = jax.ops.index_add(add, 2, parameters[2])
     return scale * uij_neut + add
 
 def corr_uij_hexa(parameters, uij_neut):
     scale = parameters[0]
     add = jnp.zeros(6)
-    add = jax.ops.index_add(add, [0, 1], parameters[1])
+    add = jax.ops.index_add(add, jnp.array([0, 1]), parameters[1])
     add = jax.ops.index_add(add, 2, parameters[2])
     add = jax.ops.index_add(add, 5, parameters[1] / 2)
     return scale * uij_neut + add
@@ -43,7 +48,7 @@ def corr_uij_hexa(parameters, uij_neut):
 def corr_uij_cubic(parameters, uij_neut):
     scale = parameters[0]
     add = jnp.zeros(6)
-    add = jax.ops.index_add(add, [0, 1, 2], parameters[1])
+    add = jax.ops.index_add(add, jnp.array([0, 1, 2]), parameters[1])
     return scale * uij_neut + add
 
 def corr_uij_tric_nosc(parameters, uij_neut):
@@ -52,31 +57,31 @@ def corr_uij_tric_nosc(parameters, uij_neut):
 
 def corr_uij_mono_nosc(parameters, uij_neut):
     add = jnp.zeros(6)
-    add = jax.ops.index_add(add, [0, 1, 2], parameters[:3])
+    add = jax.ops.index_add(add, jnp.array([0, 1, 2]), parameters[:3])
     add = jax.ops.index_add(add, 4, parameters[3])
     return uij_neut + add
 
 def corr_uij_ortho_nosc(parameters, uij_neut):
     add = jnp.zeros(6)
-    add = jax.ops.index_add(add, [0, 1, 2], parameters)
+    add = jax.ops.index_add(add, jnp.array([0, 1, 2]), parameters)
     return uij_neut + add
 
 def corr_uij_tetra_nosc(parameters, uij_neut):
     add = jnp.zeros(6)
-    add = jax.ops.index_add(add, [0, 1], parameters[0])
+    add = jax.ops.index_add(add, jnp.array([0, 1]), parameters[0])
     add = jax.ops.index_add(add, 2, parameters[1])
     return uij_neut + add
 
 def corr_uij_hexa_nosc(parameters, uij_neut):
     add = jnp.zeros(6)
-    add = jax.ops.index_add(add, [0, 1], parameters[0])
+    add = jax.ops.index_add(add, jnp.array([0, 1]), parameters[0])
     add = jax.ops.index_add(add, 2, parameters[1])
     add = jax.ops.index_add(add, 5, parameters[0] / 2)
     return uij_neut + add
 
 def corr_uij_cubic_nosc(parameters, uij_neut):
     add = jnp.zeros(6)
-    add = jax.ops.index_add(add, [0, 1, 2], parameters[0])
+    add = jax.ops.index_add(add, jnp.array([0, 1, 2]), parameters[0])
     return uij_neut + add
 
 def gen_lsq(corr_func, weights):
@@ -371,4 +376,20 @@ def plot_heatmap(ax, table, columns, rows, cm, cmap_type='diverging', esds=None)
             else:
                 template = f'{{val:{int(-orders[i, j] + 2)}.{int(-orders[i, j])}f}}({{esd_val}})'
                 text = ax.text(j, i, template.format(**{'val':table[i, j], 'esd_val': esd_table[i, j]}),
-                               ha='center', va='center', color=color)                
+                               ha='center', va='center', color=color)     
+
+
+def figure_height(n_dataset):
+    top = 0.293
+    line = 0.185
+    bottom = 0.255
+    return top + n_dataset * line + bottom
+
+def box_options(color, widths=0.35):
+    return dict(
+        boxprops = dict(color=color, facecolor=color),
+        flierprops = dict(markerfacecolor=color, markeredgecolor='none', markersize=4),
+        medianprops = dict(linewidth=1.0, color='#ffffff'),
+        patch_artist=True,
+        widths=widths
+    )

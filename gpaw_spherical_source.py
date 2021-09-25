@@ -44,16 +44,32 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
         del(gpaw_dict['spherical_grid'])
     else:
         grid_name = 'fine'
+    if 'skip_symm' in gpaw_dict:
+        assert len(gpaw_dict['skip_symm']) == 0, 'skip_symm not allowed in this mode' 
+        skip_symm = gpaw_dict['skip_symm']
+        del(gpaw_dict['skip_symm'])
+    else:
+        skip_symm = {}
+    if 'magmoms' in gpaw_dict:
+        magmoms = gpaw_dict['magmoms']
+        del(gpaw_dict['magmoms'])
+    else:
+        magmoms = None
 
     #assert not (not average_symmequiv and not do_not_move)
-    symm_positions, symm_symbols, inv_indexes = expand_symm_unique(element_symbols,
-                                                                   np.array(positions),
-                                                                   np.array(cell_mat_m),
-                                                                   symm_mats_vecs)
+    #assert not (not average_symmequiv and not do_not_move)
+    symm_positions, symm_symbols, f0j_indexes, magmoms_symm = expand_symm_unique(element_symbols,
+                                                                                 np.array(positions),
+                                                                                 np.array(cell_mat_m),
+                                                                                 (np.array(symm_mats_vecs[0]), np.array(symm_mats_vecs[1])),
+                                                                                 skip_symm=skip_symm,
+                                                                                 magmoms=magmoms)
+    e_change = True
     if restart is None:
         atoms = crystal(symbols=symm_symbols,
                         basis=symm_positions % 1,
-                        cell=cell_mat_m.T)
+                        cell=cell_mat_m.T,
+                        magmoms=magmoms_symm)
         calc = gpaw.GPAW(**gpaw_dict)
         atoms.set_calculator(calc)
         e1 = atoms.get_potential_energy()
@@ -62,8 +78,11 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 atoms, calc = gpaw.restart(restart, txt=gpaw_dict['txt'])
+                e1_0 = atoms.get_potential_energy()
+
                 atoms.set_scaled_positions(symm_positions % 1)
                 e1 = atoms.get_potential_energy()
+                e_change = abs(e1_0 - e1) > 1e-20
         except:
             print('  failed to load the density from previous calculation. Starting from scratch')
             atoms = crystal(symbols=symm_symbols,
@@ -75,7 +94,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
 
     e1 = atoms.get_potential_energy()
 
-    if save is not None:
+    if save is not None and e_change:
         try:
             calc.write(save, mode='all')
         except:
@@ -122,14 +141,14 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
             'shells': shells
         }
     #print(symm_mats_r, inv_indexes, index_vec_h)
-    f0j = np.zeros((symm_mats_r.shape[0], len(inv_indexes), index_vec_h.shape[0]), dtype=np.complex128)
+    f0j = np.zeros((symm_mats_r.shape[0], positions.shape[0], index_vec_h.shape[0]), dtype=np.complex128)
     vec_s = np.einsum('xy, zy -> zx', np.linalg.inv(cell_mat_m / Bohr).T, index_vec_h)
     vec_s_symm = np.einsum('kxy, zx -> kzy', symm_mats_r, vec_s)
 
     xxx, yyy, zzz = np.meshgrid(np.arange(-10, 11, 1), np.arange(-10, 11, 1), np.arange(-10, 11, 1))
     supercell_base = np.array((np.ravel(xxx), np.ravel(yyy), np.ravel(zzz)))
 
-    for z_atom_index, grid_atom_index in enumerate([index[0] for index in inv_indexes]):
+    for z_atom_index, grid_atom_index in enumerate([index[0] for index in f0j_indexes]):
         setup_at = calc.setups[grid_atom_index]
 
         spline_at = spline_dict[setup_at.symbol]
@@ -138,7 +157,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
         r_grid = tr.transform_1d_grid(HortonLinear(grid_vals['r_points']))
         center = atoms.get_positions()[grid_atom_index] / Bohr
         sp_grid = AtomGrid(r_grid, size=grid_vals['shells'], center=center)
-        print(f'  Integrating atom {z_atom_index + 1}/{len(inv_indexes)}, n(Points): {sp_grid.points.shape[0]}, r(max): {grid_vals["highlim"]:6.4f} Ang')
+        print(f'  Integrating atom {z_atom_index + 1}/{len(f0j_indexes)}, n(Points): {sp_grid.points.shape[0]}, r(max): {grid_vals["highlim"]:6.4f} Ang')
         grid = sp_grid.points.T
         dens_mats = [calc.wfs.calculate_density_matrix(kpt.f_n, kpt.C_nM) for kpt in calc.wfs.kpt_u]
         atomic_wfns_gd = np.zeros((dens_mats[0].shape[0], *grid.shape[1:]))

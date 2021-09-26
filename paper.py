@@ -226,7 +226,7 @@ def calculate_agreement(har_path, har_key, fcf_path,  neut_path, neut_key, renam
             collect[f'{suffix}:scale Delta U23'] = float(vals[3])
             collect[f'{suffix}:scale Delta U13'] = float(vals[4])
             collect[f'{suffix}:scale Delta U12'] = float(vals[5])
-            uij_merged[f'{suffix}:scale q'] = parameters[0]
+            uij_merged[f'{suffix}:scale q'] = float(parameters[0])
             uij_merged[f'{suffix}:scale Delta U11'] = float(vals[0])
             uij_merged[f'{suffix}:scale Delta U22'] = float(vals[1])
             uij_merged[f'{suffix}:scale Delta U33'] = float(vals[2])

@@ -848,9 +848,9 @@ def create_diff_density_entries(symm_mats_vecs, index_vec_h, scaled_intensity, s
     ])
     """
     return '\n'.join([
-        cif_entry_string('refine_diff_density_max', '.'),
-        cif_entry_string('refine_diff_density_min', '.'),
-        cif_entry_string('refine_diff_density_rms', '.')
+        cif_entry_string('refine_diff_density_max', '.', False),
+        cif_entry_string('refine_diff_density_min', '.', False),
+        cif_entry_string('refine_diff_density_rms', '.', False)
     ])
 
 
@@ -867,7 +867,7 @@ def create_extinction_entries(parameters, var_cov_mat, refine_dict):
             esd = np.sqrt(var_cov_mat[1, 1])
         coeff = value_with_esd(np.array([exti]), np.array([esd]))
         if refine_dict['extinction'] == 'shelxl':
-            method = 'Fc^*^=kFc[1+0.001xFc^2^\l^3^/sin(2\q)]^-1/4^'
+            method = 'SHELXL-2018/3 (Sheldrick 2018)'
         elif refine_dict['extinction'] == 'secondary':
             method = 'Zachariasen'
         else:
@@ -876,6 +876,9 @@ def create_extinction_entries(parameters, var_cov_mat, refine_dict):
         cif_entry_string('refine_ls_extinction_coef', coeff, False),
         cif_entry_string('refine_ls_extinction_method', method , False)
     ]
+    if refine_dict['extinction'] == 'shelxl':
+        entries.append(cif_entry_string('refine_ls_extinction_expression', 'Fc^*^=kFc[1+0.001xFc^2^\l^3^/sin(2\q)]^-1/4^'
+))
     return '\n'.join(entries)
 
 
@@ -1091,31 +1094,5 @@ parameters are assumed to be independent."""),
         create_diff_density_entries(symm_mats_vecs, index_vec_h, intensity/parameters[0], structure_factors, cell_mat_m),
         create_fcf4_table(index_vec_h, structure_factors, intensity, stderr, parameters[0])
     ]
-    answer_string = f"""\n\n_vrf_PLAT926_{dataset_name}
-;
-PROBLEM: Reported and Calculated   R1 Differ
-RESPONSE: The atomic structure factors are calculated by Hirshfeld atom 
-          refinement, and therefore differ from IAM calculations
-;
-_vrf_PLAT927_{dataset_name}
-;
-PROBLEM: Reported and Calculated  wR2 Differ
-RESPONSE: The atomic structure factors are calculated by Hirshfeld atom 
-          refinement, and therefore differ from IAM calculations
-;
-_vrf_PLAT928_{dataset_name}
-;
-PROBLEM: Reported and Calculated    S value   Differ
-RESPONSE: The atomic structure factors are calculated by Hirshfeld atom 
-          refinement, and therefore differ from IAM calculations
-;
-_vrf_PLAT353_{dataset_name}
-;
-PROBLEM: Long   X-H bond lengths.  
-RESPONSE: The aspherical form factors in Hirshfeld atom refinement lead 
-          to longer X-H bond lengths that are closer to the neutron
-          values
-;"""
     with open(output_cif_name, 'w') as fo:
         fo.write('\n'.join(lines).replace('\n\n\n', '\n\n'))
-        fo.write(answer_string)

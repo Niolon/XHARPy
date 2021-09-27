@@ -254,8 +254,8 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
                 adp_instructions = tuple(RefinedParameter(par_index=int(array_index), multiplicator=1.0) for array_index in range(current_index, current_index + 6))
                 current_index += 6
         elif atom['adp_type'] == 'Uiso':
-            adp_instructions = UIso(uiso=RefinedParameter(par_index=int(current_index), multiplicator=1.0, added_value=0.0))
-            parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], atom['U_iso_or_equiv'])
+            adp_instructions = UIso(uiso=RefinedParameter(par_index=int(current_index), multiplicator=1.0))
+            parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], float(atom['U_iso_or_equiv']))
             current_index += 1
         else:
             raise NotImplementedError('Unknown ADP type in cif. Please use the Uiso or Uani convention')
@@ -652,7 +652,7 @@ UEquivCalculated = namedtuple('UEquivCalculated', [
 
 UIso = namedtuple('Uiso',[
     'uiso'          # Parameter for Uiso can either be a fixed parameter or a refined Parameter
-])
+], defaults=[0.1])
 
 SingleTrigonalCalculated = namedtuple('SingleTrigonalCalculated',[
     'bound_atom_index',  # index of atom the derived atom is bound to
@@ -867,11 +867,11 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
             #parameters_min1 = jnp.array(x.x)
         else:
             break
-        with open('save_par_model.pkl', 'wb') as fo:
-            pickle.dump({
-                'construction_instructions': construction_instructions,
-                'parameters': parameters
-            }, fo) 
+        #with open('save_par_model.pkl', 'wb') as fo:
+        #    pickle.dump({
+        #        'construction_instructions': construction_instructions,
+        #        'parameters': parameters
+        #    }, fo) 
         
         constructed_xyz, constructed_uij, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
         if refine >= reload_step - 1:

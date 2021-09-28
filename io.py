@@ -865,7 +865,7 @@ def create_extinction_entries(parameters, var_cov_mat, refine_dict):
         else:
             exti = parameters[1]
             esd = np.sqrt(var_cov_mat[1, 1])
-        coeff = value_with_esd(np.array([exti]), np.array([esd]))
+        coeff = value_with_esd(np.array([exti]), np.array([esd]))[0]
         if refine_dict['extinction'] == 'shelxl':
             method = 'SHELXL-2018/3 (Sheldrick 2018)'
         elif refine_dict['extinction'] == 'secondary':

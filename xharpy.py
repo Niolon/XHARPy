@@ -97,7 +97,7 @@ def calc_f(xyz, uij, cijk, dijkl, occupancies, index_vec_h, cell_mat_f, symm_mat
                                  vec_h_symm,
                                  vec_h_symm,
                                  dijkl[:, gram_charlier4_indexes])
-    gram_charlier4 = (2.0 * jnp.pi**2 / 3.0) * dijkl_inner_sum
+    gram_charlier4 = (2.0 * jnp.pi**4 / 3.0) * dijkl_inner_sum
     gc_factor = 1 - gram_charlier3 + gram_charlier4
 
     positions_symm = jnp.einsum('kxy, zy -> kzx', symm_mats_r, xyz) + symm_vecs_t[:, None, :]

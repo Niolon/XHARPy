@@ -297,7 +297,7 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
         if atom['label'] in constraint_dict.keys() and 'dijkl' in constraint_dict[atom['label']].keys() and atom['label'] in atoms_for_gc4:
             constraint = constraint_dict[atom['label']]['dijkl']
             instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value) 
-            dijkl_instructions = tuple(constrained_values_to_instruction(par_index, mult, add, constraint, current_index) for par_index, mult, add in instr_zip)
+            dijkl_instructions = tuple(constrained_values_to_instruction(par_index, mult*1e-3, add, constraint, current_index) for par_index, mult, add in instr_zip)
             # we need this construction to unpack lists in indexes for the MultiIndexParameters
             n_pars = max(max(entry) if isinstance(entry, (list, tuple, np.ndarray, jnp.ndarray)) else entry for entry in constraint.variable_indexes) + 1
             # MultiIndexParameter can never be unique so we can throw it out
@@ -305,12 +305,12 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             parameters = jax.ops.index_update(
                 parameters,
                 jax.ops.index[current_index:current_index + n_pars],
-                [dijkl[jnp.array(varindex)] for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0]
+                [dijkl[jnp.array(varindex)*1e3] for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0]
             )
             current_index += n_pars
         elif atom['label'] in atoms_for_gc4:
-            parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + 15], list(dijkl))
-            dijkl_instructions = tuple(RefinedParameter(par_index=int(array_index), multiplicator=1.0) for array_index in range(current_index, current_index + 15))
+            parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + 15], list(dijk*1e3))
+            dijkl_instructions = tuple(RefinedParameter(par_index=int(array_index), multiplicator=1e-3) for array_index in range(current_index, current_index + 15))
             current_index += 15
         else:
             dijkl_instructions = tuple(FixedParameter(value=0.0) for index in range(15))

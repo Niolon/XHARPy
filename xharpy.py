@@ -305,11 +305,11 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             parameters = jax.ops.index_update(
                 parameters,
                 jax.ops.index[current_index:current_index + n_pars],
-                [dijkl[jnp.array(varindex)*1e3] for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0]
+                [dijkl[jnp.array(varindex)]*1e3 for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0]
             )
             current_index += n_pars
         elif atom['label'] in atoms_for_gc4:
-            parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + 15], list(dijk*1e3))
+            parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + 15], list(dijkl*1e3))
             dijkl_instructions = tuple(RefinedParameter(par_index=int(array_index), multiplicator=1e-3) for array_index in range(current_index, current_index + 15))
             current_index += 15
         else:
@@ -723,6 +723,8 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
         from .gpaw_spherical_source import calc_f0j, calculate_f0j_core
     elif f0j_source == 'gpaw_lcorr':
         from .gpaw_source_lcorr import calc_f0j, calculate_f0j_core
+    elif f0j_source == 'gpaw_mbis':
+        from .gpaw_mbis_source import calc_f0j, calculate_f0j_core
     else:
         raise NotImplementedError('Unknown type of f0j_source')
 

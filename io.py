@@ -244,6 +244,7 @@ def cif2data(cif_name, cif_dataset=0):
     atom_table.columns = [label.replace('atom_site_', '') for label in atom_table.columns]
     if 'type_symbol' not in atom_table:
         atom_table['type_symbol'] = [str(re.match(r'([A-Za-z]{1,2})\d', line['label']).groups(1)[0]) for _, line in atom_table.iterrows()]
+    atom_table = atom_table.rename({'thermal_displace_type': 'adp_type'}, axis=1).copy()
 
     if all(atom_table['adp_type'] == 'Uiso'):
         atom_table[[
@@ -273,7 +274,6 @@ def cif2data(cif_name, cif_dataset=0):
     symm_mats_vecs = (symm_mats_r, symm_vecs_t)
     symm_strings = list(symmetry_table['space_group_symop_operation_xyz'].values)
 
-    atom_table = atom_table.rename({'thermal_displace_type': 'adp_type'}, axis=1).copy()
     try:
         wavelength = cif['diffrn_radiation_wavelength']
     except:
@@ -646,7 +646,8 @@ def cif_entry_string(name, value, string_sign=True):
     return f'_{name:<32s}  {entry_str}'
 
 
-def add_from_cif(name, cif, std=False):
+def add_from_cif(name, cif, std=False, string_sign=True):
+    #assert not (std and string_sign), 'Cannot be both a string and a val with std'
     if std:
         std_name = name + '_std'
         if std_name in cif:
@@ -655,7 +656,7 @@ def add_from_cif(name, cif, std=False):
                                             cif[std_name]),
                              False)
     try: 
-        return cif_entry_string(name, cif[name])
+        return cif_entry_string(name, cif[name], string_sign)
     except KeyError:
         return cif_entry_string(name, None)
 
@@ -943,7 +944,7 @@ def write_cif(output_cif_name,
       core: {refine_dict['core']}
       grid_mult: {options_dict['gridrefinement']}
       density_conv: {options_dict['convergence']['density']}
-      kpts: {options_dict['kpts']['size'][0]}"""
+      kpts: ({options_dict['kpts']['size'][0]},{options_dict['kpts']['size'][1]},{options_dict['kpts']['size'][2]})"""
     else:
          refinement_string += f"""
  - Refinement was done using structure factors
@@ -1029,9 +1030,9 @@ def write_cif(output_cif_name,
         add_from_cif('diffrn_reflns_limit_k_max', source_cif),
         add_from_cif('diffrn_reflns_limit_l_min', source_cif),
         add_from_cif('diffrn_reflns_limit_l_max', source_cif),
-        add_from_cif('diffrn_reflns_theta_min', source_cif),
-        add_from_cif('diffrn_reflns_theta_max', source_cif),
-        add_from_cif('diffrn_reflns_theta_full', source_cif),
+        add_from_cif('diffrn_reflns_theta_min', shelx_cif),
+        add_from_cif('diffrn_reflns_theta_max', shelx_cif),
+        add_from_cif('diffrn_reflns_theta_full', shelx_cif),
         add_from_cif('diffrn_measured_fraction_theta_max', shelx_cif),
         add_from_cif('diffrn_measured_fraction_theta_full', shelx_cif),
         add_from_cif('diffrn_reflns_Laue_measured_fraction_max', shelx_cif),

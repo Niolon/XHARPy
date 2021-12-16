@@ -157,7 +157,7 @@ adjacent crystal planes along the :math:`k`th lattice vector.
 import itertools
 import warnings
 
-from grid.basegrid import Grid, LocalGrid
+from .basegrid import Grid, LocalGrid
 
 import numpy as np
 

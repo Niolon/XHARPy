@@ -11,6 +11,7 @@ import warnings
 import jax
 import numpy as np
 import pickle
+from copy import deepcopy
 from scipy.optimize import minimize
 from jax.scipy.optimize import minimize as jminimize
 
@@ -144,6 +145,10 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
     Creates the instructions that are needed for reconstructing all atomic parameters from the refined parameters
     Additionally returns an initial guesss for the refined parameter list from the atom table.
     """
+    for gc3_atom in atoms_for_gc3:
+        assert gc3_atom in atom_table['label'], f'Atom {gc3_atom} in Gram-Charlier 3rd order list but not in atom table'
+    for gc4_atom in atoms_for_gc4:
+        assert gc4_atom in atom_table['label'], f'Atom {gc4_atom} in Gram-Charlier 4th order list but not in atom table'
     parameters = jnp.full(10000, jnp.nan)
     current_index = 1
     parameters = jax.ops.index_update(parameters, jax.ops.index[0], scaling0)
@@ -706,6 +711,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
     First will refine the scaling factor. Afterwards all other parameters defined by the parameters, 
     construction_instructions pair will be refined until 10 cycles are done or the optimizer is converged fully
     """
+    options_dict = deepcopy(options_dict)
     print('Preparing')
     index_vec_h = jnp.array(hkl[['h', 'k', 'l']].values.copy())
     type_symbols = [atom.element for atom in construction_instructions]
@@ -725,9 +731,10 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
         from .gpaw_source_lcorr import calc_f0j, calculate_f0j_core
     elif f0j_source == 'gpaw_mbis':
         from .gpaw_mbis_source import calc_f0j, calculate_f0j_core
+    elif f0j_source == 'qe':
+        from .qe_source import calc_f0j, calculate_f0j_core
     else:
         raise NotImplementedError('Unknown type of f0j_source')
-
 
     additional_parameters = 0
     if 'flack' in refinement_dict and refinement_dict['flack']:
@@ -744,7 +751,11 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                 additional_parameters += 1
             else:
                 core_parameter = None
-            f0j_core = jnp.array(calculate_f0j_core(cell_mat_m, type_symbols, constructed_xyz, index_vec_h, symm_mats_vecs))
+            if f0j_source == 'qe':
+                f0j_core, options_dict = calculate_f0j_core(cell_mat_m, type_symbols, index_vec_h, options_dict)
+                f0j_core = jnp.array(f0j_core)
+            else:
+                f0j_core = jnp.array(calculate_f0j_core(cell_mat_m, type_symbols, constructed_xyz, index_vec_h, symm_mats_vecs))
             f0j_core += f_dash[:, None]
         elif refinement_dict['core'] == 'fft':
             core_parameter = None
@@ -793,7 +804,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                        constructed_uij,
                        index_vec_h,
                        symm_mats_vecs,
-                       gpaw_dict=options_dict,
+                       options_dict=options_dict,
                        save='save.gpw',
                        restart=restart,
                        explicit_core=f0j_core is not None)
@@ -803,7 +814,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                        constructed_xyz,
                        index_vec_h,
                        symm_mats_vecs,
-                       gpaw_dict=options_dict,
+                       options_dict=options_dict,
                        save='save.gpw',
                        restart=restart,
                        explicit_core=f0j_core is not None)
@@ -890,7 +901,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                             constructed_uij,
                             index_vec_h,
                             symm_mats_vecs,
-                            gpaw_dict=options_dict,
+                            options_dict=options_dict,
                             save='save.gpw',
                             restart=restart,
                             explicit_core=f0j_core is not None)
@@ -900,7 +911,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                             constructed_xyz,
                             index_vec_h,
                             symm_mats_vecs,
-                            gpaw_dict=options_dict,
+                            options_dict=options_dict,
                             save='save.gpw',
                             restart=restart,
                             explicit_core=f0j_core is not None)

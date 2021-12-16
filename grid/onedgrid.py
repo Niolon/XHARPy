@@ -20,7 +20,7 @@
 """1D integration grid."""
 
 
-from grid.basegrid import OneDGrid
+from .basegrid import OneDGrid
 
 import numpy as np
 

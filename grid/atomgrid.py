@@ -18,8 +18,8 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 # --
 """Module for generating AtomGrid."""
-from grid.basegrid import AngularGrid, Grid, OneDGrid
-from grid.lebedev import generate_lebedev_grid, match_degree, size_to_degree
+from .basegrid import AngularGrid, Grid, OneDGrid
+from .lebedev import generate_lebedev_grid, match_degree, size_to_degree
 
 from importlib_resources import path
 

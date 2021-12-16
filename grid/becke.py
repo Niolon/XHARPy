@@ -22,7 +22,7 @@
 
 import warnings
 
-from grid.utils import get_cov_radii
+from .utils import get_cov_radii
 
 import numpy as np
 

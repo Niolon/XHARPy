@@ -106,7 +106,7 @@ def calc_s12(mat_u1, mat_u2):
     denominator = np.linalg.det(mat_u1_inv + mat_u2_inv)**0.5
     return 100 * (1 - numerator / denominator)
 
-def calculate_agreement(har_path, har_key, fcf_path,  neut_path, neut_key, rename_dict={}):
+def calculate_agreement(har_path, har_key, fcf_path,  neut_path, neut_key, rename_dict={}, adp_conversions=[]):
     cell_keys = ['cell_length_a', 'cell_length_b', 'cell_length_c', 'cell_angle_alpha', 'cell_angle_beta', 'cell_angle_gamma']
     uij_keys = ['U_11', 'U_22', 'U_33', 'U_23', 'U_13','U_12']
     uij_std_keys = [label + '_std' for label in uij_keys]
@@ -119,6 +119,18 @@ def calculate_agreement(har_path, har_key, fcf_path,  neut_path, neut_key, renam
     non_hydrogen_atoms = list(atom_table_neut.loc[atom_table_neut['type_symbol'] != 'H', 'label'])
     uij_table_neut = next(loop for loop in cif_neut['loops'] if 'atom_site_aniso_U_11' in loop.columns)
     uij_table_neut.columns = [name[16:] for name in uij_table_neut.columns]
+
+    for index, line in uij_table_neut.iterrows():
+        for conv_labels, conv_matrix in adp_conversions:
+            if line['label'] in conv_labels:
+                line_uijs = np.array(line[['U_11', 'U_22', 'U_33', 'U_23', 'U_13','U_12']].values)
+                line_uij_mat = line_uijs[np.array([[0, 5, 4], [5, 1, 3], [4, 3, 2]])]
+                conv_uij = conv_matrix.T @ line_uij_mat @ conv_matrix
+                uij_table_neut.loc[index, ['U_11', 'U_22', 'U_33', 'U_23', 'U_13','U_12']] = np.array(
+                    [conv_uij[0, 0], conv_uij[1, 1], conv_uij[2, 2],
+                     conv_uij[1, 2], conv_uij[0, 2], conv_uij[0, 1]]
+                )
+
     bond_table_neut = next(loop for loop in cif_neut['loops'] if 'geom_bond_distance' in loop.columns)
     bond_table_neut.columns = [name[10:] for name in bond_table_neut.columns]
     h_bond_table_neut = bond_table_neut[bond_table_neut['atom_site_label_1'].isin(hydrogen_atoms)].copy()
@@ -134,6 +146,8 @@ def calculate_agreement(har_path, har_key, fcf_path,  neut_path, neut_key, renam
         lattice = cif_neut['space_group_crystal_system']
     except:
         lattice = cif_neut['symmetry_cell_setting']
+
+    
     cif = ciflike_to_dict(har_path, har_key)
 
     atom_table = next(loop for loop in cif['loops'] if 'atom_site_fract_x' in loop.columns)
@@ -295,13 +309,20 @@ def calculate_agreement(har_path, har_key, fcf_path,  neut_path, neut_key, renam
             collect[f'{suffix}:ssd(S12)'] = np.std(np.array([calc_s12(mat_u1, mat_u2) for mat_u1, mat_u2 in zip(har_uij_cart, neut_uij_cart)]))
             collect[f'{suffix}:ssd(VX/VN)'] =  np.std(v_har / v_neut)
             collect[f'{suffix}:ssd((VX-VN)/VN)'] = np.std((v_har - v_neut) / v_neut)
-    fcf = next(loop for loop in ciflike_to_dict(fcf_path, har_key)['loops'] if 'refln_F_squared_meas' in loop.columns)
-    intensity = fcf['refln_F_squared_meas'].values
-    stderr = fcf['refln_F_squared_sigma'].values
     try:
-        f_calc = fcf['refln_F_calc'].values
-    except:
-        f_calc = np.sqrt(fcf['refln_F_squared_calc'].values)
+        fcf = next(loop for loop in ciflike_to_dict(fcf_path, har_key)['loops'] if 'refln_F_squared_meas' in loop.columns)
+        intensity = fcf['refln_F_squared_meas'].values
+        stderr = fcf['refln_F_squared_sigma'].values
+        try:
+            f_calc = fcf['refln_F_calc'].values
+        except:
+            f_calc = np.sqrt(fcf['refln_F_squared_calc'].values)
+    except StopIteration:
+        fcf = next(loop for loop in ciflike_to_dict(fcf_path, har_key)['loops'] if 'diffrn_refln_F_meas' in loop.columns)
+        f_calc = fcf['diffrn_refln_F_calc'].values
+        intensity = fcf['diffrn_refln_F_meas'].values**2
+        stderr = 2 * fcf['diffrn_refln_F_meas'].values * fcf['diffrn_refln_F_sigma']
+
     f_obs = np.sign(intensity) * np.sqrt(np.abs(intensity))
     f_obs_safe = np.array(f_obs)
     f_obs_safe[f_obs_safe == 0] = 1e-9
@@ -391,5 +412,6 @@ def box_options(color, widths=0.35):
         flierprops = dict(markerfacecolor=color, markeredgecolor='none', markersize=4),
         medianprops = dict(linewidth=1.0, color='#ffffff'),
         patch_artist=True,
-        widths=widths
+        widths=widths,
+        #notch=True
     )

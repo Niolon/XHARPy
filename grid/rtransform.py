@@ -24,7 +24,7 @@ import warnings
 from abc import ABC, abstractmethod
 from numbers import Number
 
-from grid.basegrid import OneDGrid
+from .basegrid import OneDGrid
 
 import numpy as np
 

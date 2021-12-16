@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 from ase.units import Bohr
 from gpaw.utilities import unpack2
@@ -498,7 +499,7 @@ def eval_correction(atom_data, setup_data):
     # momentum 2 * lmax.
     grid = AtomGrid(
         radgrid,
-        degs=[2 * lmax] * radgrid.size,
+        degrees=[2 * lmax] * radgrid.size,
     )
 
     d = np.linalg.norm(grid.points, axis=1)
@@ -674,51 +675,51 @@ class GridPart:
 
 
 
-def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs, gpaw_dict=None, restart=None, save='gpaw.gpw', explicit_core=True):
+def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs, options_dict=None, restart=None, save='gpaw.gpw', explicit_core=True):
     """
     Calculate the aspherical atomic form factors from a density grid in the python package gpaw
     for each reciprocal lattice vector present in index_vec_h.
     """
-    if gpaw_dict is None:
-        gpaw_dict = {'xc': 'PBE', 'txt': 'gpaw.txt', 'h': 0.15, 'setups': 'paw'}
+    if options_dict is None:
+        options_dict = {'xc': 'PBE', 'txt': 'gpaw.txt', 'h': 0.15, 'setups': 'paw'}
     else:
-        gpaw_dict = gpaw_dict.copy()
-    if 'gridrefinement' in gpaw_dict:
-        gridrefinement = gpaw_dict['gridrefinement']
+        options_dict = options_dict.copy()
+    if 'gridrefinement' in options_dict:
+        gridrefinement = options_dict['gridrefinement']
         #print(f'gridrefinement set to {gridrefinement}')
-        del(gpaw_dict['gridrefinement'])
+        del(options_dict['gridrefinement'])
     else:
         gridrefinement = 2
-    if 'average_symmequiv' in gpaw_dict:
-        average_symmequiv = gpaw_dict['average_symmequiv']
+    if 'average_symmequiv' in options_dict:
+        average_symmequiv = options_dict['average_symmequiv']
         #print(f'average symmetry equivalents: {average_symmequiv}')
-        del(gpaw_dict['average_symmequiv'])
+        del(options_dict['average_symmequiv'])
     else:
         average_symmequiv = False
-    if 'skip_symm' in gpaw_dict:
-        assert len(gpaw_dict['skip_symm']) == 0 or average_symmequiv, 'skip_symm does need average_symmequiv' 
-        skip_symm = gpaw_dict['skip_symm']
-        del(gpaw_dict['skip_symm'])
+    if 'skip_symm' in options_dict:
+        assert len(options_dict['skip_symm']) == 0 or average_symmequiv, 'skip_symm does need average_symmequiv' 
+        skip_symm = options_dict['skip_symm']
+        del(options_dict['skip_symm'])
     else:
         skip_symm = {}
-    if 'magmoms' in gpaw_dict:
-        magmoms = gpaw_dict['magmoms']
-        del(gpaw_dict['magmoms'])
+    if 'magmoms' in options_dict:
+        magmoms = options_dict['magmoms']
+        del(options_dict['magmoms'])
     else:
         magmoms = None
-    if 'denspart_gtol' in gpaw_dict:
-        denspart_gtol = gpaw_dict['denspart_gtol']
-        del(gpaw_dict['denspart_gtol'])
+    if 'denspart_gtol' in options_dict:
+        denspart_gtol = options_dict['denspart_gtol']
+        del(options_dict['denspart_gtol'])
     else:
         denspart_gtol = 1e-8
-    if 'denspart_maxiter' in gpaw_dict:
-        denspart_maxiter = gpaw_dict['denspart_maxiter']
-        del(gpaw_dict['denspart_maxiter'])
+    if 'denspart_maxiter' in options_dict:
+        denspart_maxiter = options_dict['denspart_maxiter']
+        del(options_dict['denspart_maxiter'])
     else:
         denspart_maxiter = 1000
-    if 'denspart_density_cutoff' in gpaw_dict:
-        denspart_density_cutoff = gpaw_dict['denspart_density_cutoff']
-        del(gpaw_dict['denspart_density_cutoff'])
+    if 'denspart_density_cutoff' in options_dict:
+        denspart_density_cutoff = options_dict['denspart_density_cutoff']
+        del(options_dict['denspart_density_cutoff'])
     else:
         denspart_density_cutoff = 1e-10
 
@@ -735,14 +736,14 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
                         basis=symm_positions % 1,
                         cell=cell_mat_m.T,
                         magmoms=magmoms_symm)
-        calc = gpaw.GPAW(**gpaw_dict)
+        calc = gpaw.GPAW(**options_dict)
         atoms.set_calculator(calc)
         e1 = atoms.get_potential_energy()
     else:
         try:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                atoms, calc = gpaw.restart(restart, txt=gpaw_dict['txt'], xc=gpaw_dict['xc'])
+                atoms, calc = gpaw.restart(restart, txt=options_dict['txt'], xc=options_dict['xc'])
                 e1_0 = atoms.get_potential_energy()
 
                 atoms.set_scaled_positions(symm_positions % 1)
@@ -753,7 +754,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
             atoms = crystal(symbols=symm_symbols,
                             basis=symm_positions % 1,
                             cell=cell_mat_m.T)
-            calc = gpaw.GPAW(**gpaw_dict)
+            calc = gpaw.GPAW(**options_dict)
             atoms.set_calculator(calc)
             e1 = atoms.get_potential_energy()
 
@@ -780,19 +781,30 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
     dp_grid = PeriodicGrid(
         dp_data['points'], dp_data['weights'], dp_data['cellvecs'], wrap=True
     )
-    print('  fittin MBIS for partitioning with denspart')
-    with open('denspart.txt', 'a') as fo:
-        with contextlib.redirect_stdout(fo):
-            print("MBIS partitioning --")
-            pro_model_init = MBISProModel.from_geometry(dp_data['atnums'], dp_data['atcoords'])
-            pro_model, localgrids = optimize_reduce_pro_model(
-                pro_model_init,
-                dp_grid,
-                dp_data['density'],
-                denspart_gtol,
-                denspart_maxiter,
-                denspart_density_cutoff,
-            )
+    print('  using denspart to fit the MBIS partitioning')
+    #with open('denspart.txt', 'a') as fo:
+        #with contextlib.redirect_stdout(fo):
+    print("MBIS partitioning --")
+    if os.path.exists('denspart.npz') and restart is not None and False:
+        with open('denspart.npz', 'rb') as fo:
+            dp_dict = dict(np.load(fo))
+        dp_dict['atcoords'] = atoms.positions
+        pro_model_init = MBISProModel.from_dict(dp_dict)
+    else:
+        pro_model_init = MBISProModel.from_geometry(dp_data['atnums'], dp_data['atcoords'])
+
+
+    pro_model, localgrids = optimize_reduce_pro_model(
+        pro_model_init,
+        dp_grid,
+        dp_data['density'],
+        denspart_gtol,
+        denspart_maxiter,
+        denspart_density_cutoff,
+    )
+
+    with open('denspart.npz', 'wb') as fo:
+        np.savez(fo, **pro_model.to_dict())
     
     if gridrefinement == 1:
         coords = calc.density.gd.get_grid_point_coordinates()

@@ -20,8 +20,8 @@
 """Molecular grid class."""
 
 
-from grid.atomgrid import AtomGrid
-from grid.basegrid import Grid, LocalGrid, OneDGrid
+from .atomgrid import AtomGrid
+from .basegrid import Grid, LocalGrid, OneDGrid
 
 import numpy as np
 

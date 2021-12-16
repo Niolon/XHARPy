@@ -199,36 +199,36 @@ class HirshfeldPartitioning:
 
 
 
-def calc_f0j(cell_mat_m, element_symbols, xyz, uij, index_vec_h, symm_mats_vecs, gpaw_dict=None, restart=None, save='gpaw.gpw', explicit_core=True):
+def calc_f0j(cell_mat_m, element_symbols, xyz, uij, index_vec_h, symm_mats_vecs, options_dict=None, restart=None, save='gpaw.gpw', explicit_core=True):
     """
     Calculate the aspherical atomic form factors from a density grid in the python package gpaw
     for each reciprocal lattice vector present in index_vec_h.
     """
-    if gpaw_dict is None:
-        gpaw_dict = {'xc': 'PBE', 'txt': 'gpaw.txt', 'h': 0.15, 'setups': 'paw'}
+    if options_dict is None:
+        options_dict = {'xc': 'PBE', 'txt': 'gpaw.txt', 'h': 0.15, 'setups': 'paw'}
     else:
-        gpaw_dict = gpaw_dict.copy()
-    if 'gridrefinement' in gpaw_dict:
-        gridrefinement = gpaw_dict['gridrefinement']
+        options_dict = options_dict.copy()
+    if 'gridrefinement' in options_dict:
+        gridrefinement = options_dict['gridrefinement']
         #print(f'gridrefinement set to {gridrefinement}')
-        del(gpaw_dict['gridrefinement'])
+        del(options_dict['gridrefinement'])
     else:
         gridrefinement = 2
-    if 'average_symmequiv' in gpaw_dict:
-        average_symmequiv = gpaw_dict['average_symmequiv']
+    if 'average_symmequiv' in options_dict:
+        average_symmequiv = options_dict['average_symmequiv']
         #print(f'average symmetry equivalents: {average_symmequiv}')
-        del(gpaw_dict['average_symmequiv'])
+        del(options_dict['average_symmequiv'])
     else:
         average_symmequiv = False
-    if 'skip_symm' in gpaw_dict:
-        assert len(gpaw_dict['skip_symm']) == 0 or average_symmequiv, 'skip_symm does need average_symmequiv' 
-        skip_symm = gpaw_dict['skip_symm']
-        del(gpaw_dict['skip_symm'])
+    if 'skip_symm' in options_dict:
+        assert len(options_dict['skip_symm']) == 0 or average_symmequiv, 'skip_symm does need average_symmequiv' 
+        skip_symm = options_dict['skip_symm']
+        del(options_dict['skip_symm'])
     else:
         skip_symm = {}
-    if 'magmoms' in gpaw_dict:
-        magmoms = gpaw_dict['magmoms']
-        del(gpaw_dict['magmoms'])
+    if 'magmoms' in options_dict:
+        magmoms = options_dict['magmoms']
+        del(options_dict['magmoms'])
     else:
         magmoms = None
 
@@ -299,14 +299,14 @@ def calc_f0j(cell_mat_m, element_symbols, xyz, uij, index_vec_h, symm_mats_vecs,
                         basis=symm_positions % 1,
                         cell=cell_mat_m.T,
                         magmoms=magmoms_symm)
-        calc = gpaw.GPAW(**gpaw_dict)
+        calc = gpaw.GPAW(**options_dict)
         atoms.set_calculator(calc)
         e1 = atoms.get_potential_energy()
     else:
         try:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                atoms, calc = gpaw.restart(restart, txt=gpaw_dict['txt'], xc=gpaw_dict['xc'])
+                atoms, calc = gpaw.restart(restart, txt=options_dict['txt'], xc=options_dict['xc'])
                 e1_0 = atoms.get_potential_energy()
 
                 atoms.set_scaled_positions(symm_positions % 1)
@@ -317,7 +317,7 @@ def calc_f0j(cell_mat_m, element_symbols, xyz, uij, index_vec_h, symm_mats_vecs,
             atoms = crystal(symbols=symm_symbols,
                             basis=symm_positions % 1,
                             cell=cell_mat_m.T)
-            calc = gpaw.GPAW(**gpaw_dict)
+            calc = gpaw.GPAW(**options_dict)
             atoms.set_calculator(calc)
             e1 = atoms.get_potential_energy()
 

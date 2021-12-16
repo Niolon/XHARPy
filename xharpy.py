@@ -2,6 +2,7 @@ from ase.units import C
 from jax.config import config
 config.update('jax_enable_x64', True)
 
+import datetime
 import jax.numpy as jnp
 import pandas as pd
 import os
@@ -138,6 +139,15 @@ def constrained_values_to_instruction(par_index, mult, add, constraint, current_
     else:
         return FixedParameter(value=float(add), special_position=constraint.special_position)
 
+def is_multientry(entry):
+    if isinstance(entry, (list, tuple)):
+        return True
+    elif isinstance(entry, (jnp.ndarray, np.ndarray)) and len(entry.shape) != 0:
+        return True
+    else: 
+        return False
+
+
 
 # construct the instructions for building the atomic parameters back from the linear parameter matrix
 def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsion_add, atoms_for_gc3, atoms_for_gc4, scaling0=1.0, exti0=0.0, refinement_dict={}):
@@ -146,9 +156,9 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
     Additionally returns an initial guesss for the refined parameter list from the atom table.
     """
     for gc3_atom in atoms_for_gc3:
-        assert gc3_atom in atom_table['label'], f'Atom {gc3_atom} in Gram-Charlier 3rd order list but not in atom table'
+        assert gc3_atom in list(atom_table['label']), f'Atom {gc3_atom} in Gram-Charlier 3rd order list but not in atom table'
     for gc4_atom in atoms_for_gc4:
-        assert gc4_atom in atom_table['label'], f'Atom {gc4_atom} in Gram-Charlier 4th order list but not in atom table'
+        assert gc4_atom in list(atom_table['label']), f'Atom {gc4_atom} in Gram-Charlier 4th order list but not in atom table'
     parameters = jnp.full(10000, jnp.nan)
     current_index = 1
     parameters = jax.ops.index_update(parameters, jax.ops.index[0], scaling0)
@@ -216,9 +226,9 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value)
             xyz_instructions = tuple(constrained_values_to_instruction(par_index, mult, add, constraint, current_index) for par_index, mult, add in instr_zip)
             # we need this construction to unpack lists in indexes for the MultiIndexParameters
-            n_pars = max(max(entry) if isinstance(entry, (list, tuple, np.ndarray, jnp.ndarray)) else entry for entry in constraint.variable_indexes) + 1
+            n_pars = max(max(entry) if is_multientry(entry) else entry for entry in constraint.variable_indexes) + 1
             # MultiIndexParameter can never be unique so we can throw it out
-            u_indexes = [-1 if isinstance(entry, (list, tuple, np.ndarray, jnp.ndarray)) else entry for entry in constraint.variable_indexes]
+            u_indexes = [-1 if is_multientry(entry) else entry for entry in constraint.variable_indexes]
             parameters = jax.ops.index_update(
                 parameters,
                 jax.ops.index[current_index:current_index + n_pars],
@@ -238,10 +248,10 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
                     instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value) 
                     adp_instructions = tuple(constrained_values_to_instruction(par_index, mult, add, constraint, current_index) for par_index, mult, add in instr_zip)
                     # we need this construction to unpack lists in indexes for the MultiIndexParameters
-                    n_pars = max(max(entry) if isinstance(entry, (list, tuple, np.ndarray, jnp.ndarray)) else entry for entry in constraint.variable_indexes) + 1
+                    n_pars = max(max(entry) if is_multientry(entry) else entry for entry in constraint.variable_indexes) + 1
 
                     # MultiIndexParameter can never be unique so we can throw it out
-                    u_indexes = [-1 if isinstance(entry, (list, tuple, np.ndarray, jnp.ndarray)) else entry for entry in constraint.variable_indexes]
+                    u_indexes = [-1 if is_multientry(entry) else entry for entry in constraint.variable_indexes]
 
                     parameters = jax.ops.index_update(
                         parameters,
@@ -275,10 +285,10 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value) 
             cijk_instructions = tuple(constrained_values_to_instruction(par_index, mult, add, constraint, current_index) for par_index, mult, add in instr_zip)
             # we need this construction to unpack lists in indexes for the MultiIndexParameters
-            n_pars = max(max(entry) if isinstance(entry, (list, tuple, np.ndarray, jnp.ndarray)) else entry for entry in constraint.variable_indexes) + 1
+            n_pars = max(max(entry) if is_multientry(entry) else entry for entry in constraint.variable_indexes) + 1
 
             # MultiIndexParameter can never be unique so we can throw it out
-            u_indexes = [-1 if isinstance(entry, (list, tuple, np.ndarray, jnp.ndarray)) else entry for entry in constraint.variable_indexes]
+            u_indexes = [-1 if is_multientry(entry) else entry for entry in constraint.variable_indexes]
 
             parameters = jax.ops.index_update(
                 parameters,
@@ -304,9 +314,9 @@ def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsi
             instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value) 
             dijkl_instructions = tuple(constrained_values_to_instruction(par_index, mult*1e-3, add, constraint, current_index) for par_index, mult, add in instr_zip)
             # we need this construction to unpack lists in indexes for the MultiIndexParameters
-            n_pars = max(max(entry) if isinstance(entry, (list, tuple, np.ndarray, jnp.ndarray)) else entry for entry in constraint.variable_indexes) + 1
+            n_pars = max(max(entry) if is_multientry(entry) else entry for entry in constraint.variable_indexes) + 1
             # MultiIndexParameter can never be unique so we can throw it out
-            u_indexes = [-1 if isinstance(entry, (list, tuple, np.ndarray, jnp.ndarray)) else entry for entry in constraint.variable_indexes]
+            u_indexes = [-1 if is_multientry(entry) else entry for entry in constraint.variable_indexes]
             parameters = jax.ops.index_update(
                 parameters,
                 jax.ops.index[current_index:current_index + n_pars],
@@ -711,6 +721,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
     First will refine the scaling factor. Afterwards all other parameters defined by the parameters, 
     construction_instructions pair will be refined until 10 cycles are done or the optimizer is converged fully
     """
+    print('Started refinement at ', datetime.datetime.now())
     options_dict = deepcopy(options_dict)
     print('Preparing')
     index_vec_h = jnp.array(hkl[['h', 'k', 'l']].values.copy())
@@ -733,6 +744,8 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
         from .gpaw_mbis_source import calc_f0j, calculate_f0j_core
     elif f0j_source == 'qe':
         from .qe_source import calc_f0j, calculate_f0j_core
+    elif f0j_source == 'gpaw_mpi':
+        from .gpaw_mpi_source import calc_f0j, calculate_f0j_core
     else:
         raise NotImplementedError('Unknown type of f0j_source')
 
@@ -946,6 +959,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
         'fjs_anom': fjs_all,
         'shift_ov_su': shift_ov_su
     }
+    print('Ended refinement at ', datetime.datetime.now())
     return parameters, var_cov_mat, additional_information
 
 

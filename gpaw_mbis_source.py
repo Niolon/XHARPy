@@ -697,7 +697,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
     else:
         average_symmequiv = False
     if 'skip_symm' in options_dict:
-        assert len(options_dict['skip_symm']) == 0 or average_symmequiv, 'skip_symm does need average_symmequiv' 
+        #assert len(options_dict['skip_symm']) == 0 or average_symmequiv, 'skip_symm does need average_symmequiv' 
         skip_symm = options_dict['skip_symm']
         del(options_dict['skip_symm'])
     else:

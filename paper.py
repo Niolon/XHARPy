@@ -275,9 +275,9 @@ def calculate_agreement(har_path, har_key, fcf_path,  neut_path, neut_key, renam
             uij_merged[[f'{suffix}: Delta {u}/sigmaN' for u in ['U11', 'U22', 'U33', 'U23', 'U13', 'U12']]] = (uij_har - uij_neut) / uij_neut_esd
         with warnings.catch_warnings():
             warnings.simplefilter("ignore") 
-            har_uij_mat = uij_har[:, [[0, 5, 4], [5, 1, 3], [4, 3, 2]]]
+            har_uij_mat = (uij_har[:, [[0, 5, 4], [5, 1, 3], [4, 3, 2]]]).astype(np.float64)
             har_uij_cart = ucif2ucart(cell_mat_m, har_uij_mat)
-            neut_uij_mat = uij_neut[:, [[0, 5, 4], [5, 1, 3], [4, 3, 2]]]
+            neut_uij_mat = (uij_neut[:, [[0, 5, 4], [5, 1, 3], [4, 3, 2]]]).astype(np.float64)
             neut_uij_cart = ucif2ucart(cell_mat_m_neut, neut_uij_mat)
         
             uij_merged[f'{suffix}:S12'] = np.array([calc_s12(mat_u1, mat_u2) for mat_u1, mat_u2 in zip(har_uij_cart, neut_uij_cart)])
@@ -290,9 +290,9 @@ def calculate_agreement(har_path, har_key, fcf_path,  neut_path, neut_key, renam
         uij_neut = uij_merged_h[[name + compare_suffix for name in uij_keys]].values
         uij_neut_esd = uij_merged_h[[name + '_std' + compare_suffix for name in uij_keys]].values
 
-        har_uij_mat = uij_har[:, [[0, 5, 4], [5, 1, 3], [4, 3, 2]]]
+        har_uij_mat = (uij_har[:, [[0, 5, 4], [5, 1, 3], [4, 3, 2]]]).astype(np.float64)
         har_uij_cart = ucif2ucart(cell_mat_m, har_uij_mat)
-        neut_uij_mat = uij_neut[:, [[0, 5, 4], [5, 1, 3], [4, 3, 2]]]
+        neut_uij_mat = (uij_neut[:, [[0, 5, 4], [5, 1, 3], [4, 3, 2]]]).astype(np.float64)
         neut_uij_cart = ucif2ucart(cell_mat_m_neut, neut_uij_mat)
         v_har = np.linalg.det(har_uij_cart)
         v_neut = np.linalg.det(neut_uij_cart)
@@ -312,7 +312,7 @@ def calculate_agreement(har_path, har_key, fcf_path,  neut_path, neut_key, renam
     try:
         fcf = next(loop for loop in ciflike_to_dict(fcf_path, har_key)['loops'] if 'refln_F_squared_meas' in loop.columns)
         intensity = fcf['refln_F_squared_meas'].values
-        stderr = fcf['refln_F_squared_sigma'].values
+        esd_int = fcf['refln_F_squared_sigma'].values
         try:
             f_calc = fcf['refln_F_calc'].values
         except:
@@ -321,25 +321,41 @@ def calculate_agreement(har_path, har_key, fcf_path,  neut_path, neut_key, renam
         fcf = next(loop for loop in ciflike_to_dict(fcf_path, har_key)['loops'] if 'diffrn_refln_F_meas' in loop.columns)
         f_calc = fcf['diffrn_refln_F_calc'].values
         intensity = fcf['diffrn_refln_F_meas'].values**2
-        stderr = 2 * fcf['diffrn_refln_F_meas'].values * fcf['diffrn_refln_F_sigma']
+        esd_int = 2 * fcf['diffrn_refln_F_meas'].values * fcf['diffrn_refln_F_sigma']
 
     f_obs = np.sign(intensity) * np.sqrt(np.abs(intensity))
     f_obs_safe = np.array(f_obs)
     f_obs_safe[f_obs_safe == 0] = 1e-9
-    sigma_f_obs = 0.5 * stderr / np.abs(f_obs_safe)
+    sigma_f_obs = 0.5 * esd_int / np.abs(f_obs_safe)
 
-    i_over_2sigma = intensity / stderr > 2
+    i_over_2sigma = intensity / esd_int > 2
     collect['R(F)'] = np.sum(np.abs(np.abs(f_obs) - np.abs(f_calc))) / np.sum(np.abs(f_obs))
     collect['R(F, I>2sigma)'] = np.sum(np.abs(f_obs[i_over_2sigma] - np.abs(f_calc[i_over_2sigma]))) / np.sum(np.abs(f_obs[i_over_2sigma]))
 
     collect['R(F^2)'] = np.sum(np.abs(np.array(intensity) - np.abs(f_calc)**2)) / np.sum(np.array(intensity))
 
-    collect['wR(F^2)'] = np.sqrt(np.sum(1/stderr**2 * (intensity -  np.abs(f_calc)**2)**2) / np.sum(1/stderr**2 * intensity**2))
+    collect['wR(F^2)'] = np.sqrt(np.sum(1/esd_int**2 * (intensity -  np.abs(f_calc)**2)**2) / np.sum(1/esd_int**2 * intensity**2))
     
     n_pars = cif['refine_ls_number_parameters']
 
-    collect['GOF'] = np.sqrt(np.sum(1/stderr**2 * (intensity - np.abs(f_calc)**2)**2) / (len(intensity) - n_pars))
+    collect['GOF'] = np.sqrt(np.sum(1/esd_int**2 * (intensity - np.abs(f_calc)**2)**2) / (len(intensity) - n_pars))
     merged_bonds = merged_bonds[[column for column in merged_bonds.columns if column.startswith('atom') or column.startswith('distance')]]
+    text_columns = [
+        'label',
+        'type_symbol',
+        'htype',
+        'xc',
+        'dataset',
+        'atom_site_label_2',
+         'atom_site_label_1'
+    ]
+    for column in uij_merged.columns:
+        if column not in text_columns:
+            uij_merged[column] = uij_merged[column].values.astype(np.float64)
+
+    for column in merged_bonds.columns:
+        if column not in text_columns:
+            merged_bonds[column] = merged_bonds[column].values.astype(np.float64)
     return collect, merged_bonds, uij_merged
 
 def plot_heatmap(ax, table, columns, rows, cm, cmap_type='diverging', esds=None):

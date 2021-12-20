@@ -4,17 +4,12 @@ config.update('jax_enable_x64', True)
 
 import datetime
 import jax.numpy as jnp
-import pandas as pd
-import os
-from collections import OrderedDict, namedtuple
-from itertools import product
+from collections import namedtuple
 import warnings
 import jax
 import numpy as np
-import pickle
 from copy import deepcopy
 from scipy.optimize import minimize
-from jax.scipy.optimize import minimize as jminimize
 
 from .restraints import resolve_restraints
 from .conversion import ucif2ucart, cell_constants_to_M
@@ -803,7 +798,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
         max_distance_diff = 1e-6
 
     if 'weights' not in hkl.columns:
-        hkl['weights'] = 1 / hkl['stderr']**2
+        hkl['weights'] = 1 / hkl['esd_int']**2
 
     print('  calculating first atomic form factors')
     if reload_step == 0:
@@ -862,10 +857,10 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                  args=(parameters.copy()),
                  x0=parameters[0],
                  jac=True,
-                 options={'gtol': 1e-8 * jnp.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)})
+                 options={'gtol': 1e-8 * jnp.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)})
     for index, val in enumerate(x.x):
         parameters = jax.ops.index_update(parameters, jax.ops.index[index], val)
-    print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)):8.6f}, nit: {x.nit}, {x.message}')
+    print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)):8.6f}, nit: {x.nit}, {x.message}')
 
     r_opt_density = 1e10
     for refine in range(20):
@@ -875,7 +870,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
                      jac=grad_calc_lsq,
                      method='BFGS',
                      args=(jnp.array(fjs)),
-                     options={'gtol': 1e-8 * jnp.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)})
+                     options={'gtol': 1e-8 * jnp.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)})
         
         #x = jminimize(
         #    calc_lsq,
@@ -883,7 +878,7 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
         #    method='BFGS',
         #    args=(jnp.array(fjs))
         #)
-        print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["stderr"].values**2)):8.6f}, nit: {x.nit}, {x.message}')
+        print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)):8.6f}, nit: {x.nit}, {x.message}')
         shift = parameters - x.x
         parameters = jnp.array(x.x) 
         #if x.nit == 0:

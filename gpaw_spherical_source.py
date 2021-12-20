@@ -33,9 +33,9 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
         options_dict = {'xc': 'PBE', 'txt': 'gpaw.txt', 'h': 0.15, 'setups': 'paw', 'mode': 'lcao', 'basis': 'dzp'}
     else:
         options_dict = options_dict.copy()
-    if 'gridrefinement' in options_dict:
-        warnings.warn('gridrefinement in options_dict this is not used in spherical mode')
-        del(options_dict['gridrefinement'])
+    if 'gridinterpolation' in options_dict:
+        warnings.warn('gridinterpolation in options_dict this is not used in spherical mode')
+        del(options_dict['gridinterpolation'])
     if 'average_symmequiv' in options_dict:
         warnings.warn("'average_symmequiv' is not allowed in spherical mode")
         del(options_dict['average_symmequiv'])

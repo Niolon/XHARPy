@@ -5,9 +5,10 @@ import jax.numpy as jnp
 import jax
 import re
 import warnings
+from io import StringIO
 import textwrap
-from .xharpy import (ConstrainedValues, cell_constants_to_M, distance_with_esd, construct_esds, construct_values, u_iso_with_esd, angle_with_esd,
-                     calc_f)
+from .xharpy import (ConstrainedValues, cell_constants_to_M, distance_with_esd, construct_esds, construct_values, 
+                     u_iso_with_esd, angle_with_esd, calc_f)
 from .quality import calculate_quality_indicators
 
 
@@ -354,6 +355,22 @@ def lst2constraint_dict(filename):
     return constraint_dict
 
 
+def shelxl_hkl_to_pd(hkl_name):
+    with open(hkl_name, 'r') as fo:
+        content = fo.read()
+
+    # if zero line in there use as end
+    content = content.split('   0   0   0    0.00    0.00')[0]
+    df = pd.read_csv(StringIO(content), sep='\s+', header=None)
+    if len(df.columns) == 5:
+        df.columns = ['h', 'k', 'l', 'intensity', 'esd_int']
+    elif len(df.columns) == 6:
+        df.columns = ['h', 'k', 'l', 'intensity', 'esd_int', 'batch_no']
+    else:
+        raise ValueError('Could not read hkl_file, more than 6 or less than 5 columns found')
+    return df
+
+
 
 def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, construction_instructions, fjs, cell, dataset_name, fcf_mode):
     hkl = hkl.copy()
@@ -368,7 +385,7 @@ def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, construction
     wavelength = refine_dict['wavelength']
 
     intensity = hkl['intensity'].values.copy()
-    stderr = hkl['stderr'].values.copy()
+    esd_int = hkl['esd_int'].values.copy()
 
     structure_factors = np.array(calc_f(
         xyz=constructed_xyz,
@@ -389,20 +406,20 @@ def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, construction
 
     if refine_dict['extinction'] == 'none':
         hkl['intensity'] = np.array(intensity / parameters[0])
-        hkl['stderr'] = np.array(stderr / parameters[0])
+        hkl['esd_int'] = np.array(esd_int / parameters[0])
     else:
         i_calc0 = np.abs(structure_factors)**2
         if refine_dict['extinction'] == 'secondary':
             # Secondary exctinction, as shelxl needs a wavelength                
             hkl['intensity'] = np.array(intensity / parameters[0] * (1 + parameters[extinction_parameter] * i_calc0))
-            hkl['stderr'] = np.array(stderr / parameters[0] * (1 + parameters[extinction_parameter] * i_calc0))
+            hkl['esd_int'] = np.array(esd_int / parameters[0] * (1 + parameters[extinction_parameter] * i_calc0))
 
         else:
             sintheta = np.linalg.norm(np.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 * wavelength
             sintwotheta = 2 * sintheta * np.sqrt(1 - sintheta**2)
             extinction_factors = 0.001 * wavelength**3 / sintwotheta
             hkl['intensity'] = np.array(intensity / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0))
-            hkl['stderr'] = np.array(stderr / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0))
+            hkl['esd_int'] = np.array(esd_int / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0))
 
 
     if fcf_mode == 6:
@@ -446,8 +463,8 @@ def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, construction
 
         hkl['abs(f_calc)'] = np.abs(structure_factors)
         hkl['phase_angle'] = np.rad2deg(np.angle(structure_factors)) % 360
-        template = '{h:>4d}{k:>4d}{l:>4d} {intensity:13.2f} {stderr:13.2f} {abs(f_calc):13.2f} {phase_angle:7.1f}\n'
-        #template = '{h} {k} {l} {intensity:.2f} {stderr:.2f} {abs(f_calc):.2f} {phase_angle:.1f}\n'
+        template = '{h:>4d}{k:>4d}{l:>4d} {intensity:13.2f} {esd_int:13.2f} {abs(f_calc):13.2f} {phase_angle:7.1f}\n'
+        #template = '{h} {k} {l} {intensity:.2f} {esd_int:.2f} {abs(f_calc):.2f} {phase_angle:.1f}\n'
         columns = [
             'refln_index_h',
             'refln_index_k',
@@ -462,7 +479,7 @@ def write_fcf(filename, hkl, refine_dict, parameters, symm_strings, construction
     elif fcf_mode == 4:
         hkl['i_calc'] = np.abs(structure_factors)**2
         hkl['observed'] = 'o'
-        template = '{h:>4d}{k:>4d}{l:>4d} {i_calc:13.2f} {intensity:13.2f} {stderr:13.2f} {observed}\n'
+        template = '{h:>4d}{k:>4d}{l:>4d} {i_calc:13.2f} {intensity:13.2f} {esd_int:13.2f} {observed}\n'
         columns = [
             'refln_index_h',
             'refln_index_k',
@@ -810,7 +827,7 @@ def create_angle_table(angle_names, construction_instructions, parameters, var_c
     return string
 
 
-def create_fcf4_table(index_vec_h, structure_factors, intensity, stderr, scaling):
+def create_fcf4_table(index_vec_h, structure_factors, intensity, esd_int, scaling):
     columns =  ['refln_index_h',
                 'refln_index_k',
                 'refln_index_l',
@@ -819,7 +836,7 @@ def create_fcf4_table(index_vec_h, structure_factors, intensity, stderr, scaling
                 'refln_F_squared_sigma']
     string = '\nloop_\n _' + '\n _'.join(columns) + '\n'
 
-    for (h, k, l), i_calc, i_meas, esd_meas in zip(index_vec_h, np.abs(structure_factors)**2, intensity / scaling, stderr / scaling):
+    for (h, k, l), i_calc, i_meas, esd_meas in zip(index_vec_h, np.abs(structure_factors)**2, intensity / scaling, esd_int / scaling):
         string += f'{h:>4d}{k:>4d}{l:>4d}{i_calc:14.2f} {i_meas:14.2f}{esd_meas:14.2f}\n'
     return string
 
@@ -908,13 +925,13 @@ def write_cif(output_cif_name,
 
     crystal_system = shelx_cif['space_group_crystal_system']
 
-    hkl['strong_condition'] = hkl['intensity'] / hkl['stderr'] > 2
+    hkl['strong_condition'] = hkl['intensity'] / hkl['esd_int'] > 2
     index_vec_h = hkl[['h', 'k', 'l']].values
     intensity = hkl['intensity'].values
-    stderr = hkl['stderr'].values
+    esd_int = hkl['esd_int'].values
     cell_mat_m = cell_constants_to_M(*cell)
     cell_mat_f = np.linalg.inv(cell_mat_m).T
-    ishar = all([value in options_dict for value in ('xc', 'h', 'gridrefinement', 'mode', 'basis', 'convergence', 'kpts')])
+    ishar = all([value in options_dict for value in ('xc', 'h', 'gridinterpolation', 'mode', 'basis', 'convergence', 'kpts')])
     constructed_xyz, constructed_uij, constructed_cijk, constructed_dijkl, constructed_occupancies = construct_values(parameters, construction_instructions, cell_mat_m)
 
     structure_factors = np.array(calc_f(
@@ -942,7 +959,7 @@ def write_cif(output_cif_name,
       xc: {options_dict['xc']}
       h: {options_dict['h']}
       core: {refine_dict['core']}
-      grid_mult: {options_dict['gridrefinement']}
+      grid_mult: {options_dict['gridinterpolation']}
       density_conv: {options_dict['convergence']['density']}
       kpts: ({options_dict['kpts']['size'][0]},{options_dict['kpts']['size'][1]},{options_dict['kpts']['size'][2]})"""
     else:
@@ -958,7 +975,7 @@ def write_cif(output_cif_name,
             add_from_cif('exptl_crystal_size_min', source_cif)
         ])
 
-    quality_dict = calculate_quality_indicators(construction_instructions, parameters, fjs, cell_mat_m, symm_mats_vecs, index_vec_h, intensity, stderr)
+    quality_dict = calculate_quality_indicators(construction_instructions, parameters, fjs, cell_mat_m, symm_mats_vecs, index_vec_h, intensity, esd_int)
 
     bond_table = next(loop for loop in shelx_cif['loops'] if 'geom_bond_distance' in loop.columns)
     bonds = [(line['geom_bond_atom_site_label_1'],
@@ -1093,7 +1110,7 @@ parameters are assumed to be independent."""),
         create_distance_table(bonds, construction_instructions, parameters, var_cov_mat, cell, cell_std, crystal_system),
         create_angle_table(angle_names, construction_instructions, parameters, var_cov_mat, cell, cell_std, crystal_system),
         create_diff_density_entries(symm_mats_vecs, index_vec_h, intensity/parameters[0], structure_factors, cell_mat_m),
-        create_fcf4_table(index_vec_h, structure_factors, intensity, stderr, parameters[0])
+        create_fcf4_table(index_vec_h, structure_factors, intensity, esd_int, parameters[0])
     ]
     with open(output_cif_name, 'w') as fo:
         fo.write('\n'.join(lines).replace('\n\n\n', '\n\n'))

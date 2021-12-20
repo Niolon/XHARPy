@@ -684,12 +684,12 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
         options_dict = {'xc': 'PBE', 'txt': 'gpaw.txt', 'h': 0.15, 'setups': 'paw'}
     else:
         options_dict = options_dict.copy()
-    if 'gridrefinement' in options_dict:
-        gridrefinement = options_dict['gridrefinement']
-        #print(f'gridrefinement set to {gridrefinement}')
-        del(options_dict['gridrefinement'])
+    if 'gridinterpolation' in options_dict:
+        gridinterpolation = options_dict['interpolation']
+        #print(f'interpolation set to {interpolation}')
+        del(options_dict['interpolation'])
     else:
-        gridrefinement = 2
+        interpolation = 2
     if 'average_symmequiv' in options_dict:
         average_symmequiv = options_dict['average_symmequiv']
         #print(f'average symmetry equivalents: {average_symmequiv}')
@@ -760,7 +760,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
 
     e1 = atoms.get_potential_energy()
 
-    density = np.array(calc.get_all_electron_density(gridrefinement=gridrefinement, skip_core=explicit_core))
+    density = np.array(calc.get_all_electron_density(gridrefinement=gridinterpolation, skip_core=explicit_core))
     #if explicit_core:
     #    n_elec = sum([setup.Z for setup in calc.setups]) - sum(setup.Nc for setup in calc.density.setups)
     #else:
@@ -806,13 +806,13 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
     with open('denspart.npz', 'wb') as fo:
         np.savez(fo, **pro_model.to_dict())
     
-    if gridrefinement == 1:
+    if gridinterpolation == 1:
         coords = calc.density.gd.get_grid_point_coordinates()
         coords = np.rollaxis(coords, 0, 4).reshape(np.prod(coords.shape[1:]), 3)
-    elif gridrefinement == 2:
+    elif gridinterpolation == 2:
         coords = calc.density.finegd.get_grid_point_coordinates()
         coords = np.rollaxis(coords, 0, 4).reshape(np.prod(coords.shape[1:]), 3)
-    elif gridrefinement == 4:
+    elif gridinterpolation == 4:
         coords = calc.density.finegd.get_grid_point_coordinates()
 
         delta_x = coords[0, 1, 0, 0] - coords[0, 0, 0, 0] 
@@ -826,7 +826,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
         coords[2, :, :, 1::2] += delta_z / 2
         coords = np.rollaxis(coords, 0, 4).reshape(np.prod(coords.shape[1:]), 3)
     else:
-        raise NotImplementedError('only possible values for gridrefinement are 1, 2 and 4')
+        raise NotImplementedError('only possible values for gridinterpolation are 1, 2 and 4')
     
     assert -density.shape[0] // 2 < index_vec_h[:,0].min(), 'Your gridspacing is too large.'
     assert density.shape[0] // 2 > index_vec_h[:,0].max(), 'Your gridspacing is too large.'

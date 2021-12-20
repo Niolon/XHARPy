@@ -208,12 +208,12 @@ def calc_f0j(cell_mat_m, element_symbols, xyz, uij, index_vec_h, symm_mats_vecs,
         options_dict = {'xc': 'PBE', 'txt': 'gpaw.txt', 'h': 0.15, 'setups': 'paw'}
     else:
         options_dict = options_dict.copy()
-    if 'gridrefinement' in options_dict:
-        gridrefinement = options_dict['gridrefinement']
-        #print(f'gridrefinement set to {gridrefinement}')
-        del(options_dict['gridrefinement'])
+    if 'gridinterpolation' in options_dict:
+        gridinterpolation = options_dict['gridinterpolation']
+        #print(f'gridinterpolation set to {gridinterpolation}')
+        del(options_dict['gridinterpolation'])
     else:
-        gridrefinement = 2
+        gridinterpolation = 2
     if 'average_symmequiv' in options_dict:
         average_symmequiv = options_dict['average_symmequiv']
         #print(f'average symmetry equivalents: {average_symmequiv}')
@@ -323,7 +323,7 @@ def calc_f0j(cell_mat_m, element_symbols, xyz, uij, index_vec_h, symm_mats_vecs,
 
     e1 = atoms.get_potential_energy()
 
-    density = np.array(calc.get_all_electron_density(gridrefinement=gridrefinement, skip_core=explicit_core))
+    density = np.array(calc.get_all_electron_density(gridrefinement=gridinterpolation, skip_core=explicit_core))
     if explicit_core:
         n_elec = sum([setup.Z for setup in calc.setups]) - sum(setup.Nc for setup in calc.density.setups)
     else:
@@ -341,7 +341,7 @@ def calc_f0j(cell_mat_m, element_symbols, xyz, uij, index_vec_h, symm_mats_vecs,
 
     partitioning = HirshfeldPartitioning(calc)
     partitioning.initialize()
-    overall_hdensity = partitioning.hdensity.get_density(list(range(symm_positions.shape[0])), gridrefinement=gridrefinement, skip_core=explicit_core)[0]
+    overall_hdensity = partitioning.hdensity.get_density(list(range(symm_positions.shape[0])), gridrefinement=gridinterpolation, skip_core=explicit_core)[0]
     assert -density.shape[0] // 2 < index_vec_h[:,0].min(), 'Your gridspacing is too large.'
     assert density.shape[0] // 2 > index_vec_h[:,0].max(), 'Your gridspacing is too large.'
     assert -density.shape[1] // 2 < index_vec_h[:,1].min(), 'Your gridspacing is too large.'
@@ -355,7 +355,7 @@ def calc_f0j(cell_mat_m, element_symbols, xyz, uij, index_vec_h, symm_mats_vecs,
         for atom_index, symm_atom_indexes in enumerate(f0j_indexes):
             f0j_sum = np.zeros_like(h, dtype=np.complex128)
             for symm_matrix, symm_atom_index in zip(symm_mats_vecs[0], symm_atom_indexes):
-                h_density = density * partitioning.hdensity.get_density([symm_atom_index], gridrefinement=gridrefinement, skip_core=explicit_core)[0] / overall_hdensity
+                h_density = density * partitioning.hdensity.get_density([symm_atom_index], gridrefinement=gridinterpolation, skip_core=explicit_core)[0] / overall_hdensity
                 frac_position = symm_positions[symm_atom_index]
                 h_rot, k_rot, l_rot = np.einsum('xy, y... -> x...', symm_matrix, np.array((h, k, l))).astype(np.int64)
                 phase_to_zero = np.exp(-2j * np.pi * (frac_position[0] * h + frac_position[1] * k + frac_position[2] * l))
@@ -377,7 +377,7 @@ def calc_f0j(cell_mat_m, element_symbols, xyz, uij, index_vec_h, symm_mats_vecs,
                     equiv_symm_index, equiv_atom_index = already_known[symm_atom_index]
                     f0j[symm_index, atom_index, :] = f0j[equiv_symm_index, equiv_atom_index, :].copy()
                 else:
-                    h_density = density * partitioning.hdensity.get_density([symm_atom_index], gridrefinement=gridrefinement, skip_core=explicit_core)[0] / overall_hdensity
+                    h_density = density * partitioning.hdensity.get_density([symm_atom_index], gridrefinement=gridinterpolation, skip_core=explicit_core)[0] / overall_hdensity
                     frac_position = symm_positions[symm_atom_index]
                     phase_to_zero = np.exp(-2j * np.pi * (frac_position[0] * h_vec + frac_position[1] * k_vec + frac_position[2] * l_vec))
                     f0j[symm_index, atom_index, :] = ((np.fft.ifftn(h_density) * np.prod(density.shape))[h_vec, k_vec, l_vec] * phase_to_zero).copy()

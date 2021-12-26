@@ -2,7 +2,7 @@ import sys
 import os
 import argparse
 from .xharpy import har, create_construction_instructions
-from .io import cif2data, lst2constraint_dict, write_cif, write_fcf, write_res, shelxl_hkl_to_pd
+from .io import cif2data, lst2constraint_dict, write_cif, write_fcf, shelxl_hkl_to_pd
 
 
 def input_with_default(question, default):

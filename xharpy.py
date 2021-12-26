@@ -145,7 +145,16 @@ def is_multientry(entry):
 
 
 # construct the instructions for building the atomic parameters back from the linear parameter matrix
-def create_construction_instructions(atom_table, constraint_dict, sp2_add, torsion_add, atoms_for_gc3, atoms_for_gc4, scaling0=1.0, exti0=0.0, refinement_dict={}):
+def create_construction_instructions(
+    atom_table,
+    constraint_dict, 
+    sp2_add={}, 
+    torsion_add={}, 
+    atoms_for_gc3=[], 
+    atoms_for_gc4=[], 
+    scaling0=1.0, 
+    exti0=1e-6, 
+    refinement_dict={}):
     """
     Creates the instructions that are needed for reconstructing all atomic parameters from the refined parameters
     Additionally returns an initial guesss for the refined parameter list from the atom table.
@@ -710,13 +719,15 @@ TorsionPositionConstraint = namedtuple('TorsionCalculated', [
     'torsion_angle'       # interatom torsion angle
 ])
 
-def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, f0j_source='gpaw', reload_step=1, options_dict={}, refinement_dict={}, restraints=[]):
+def har(cell, symm_mats_vecs, hkl, construction_instructions, parameters, f0j_source='gpaw', reload_step=1, options_dict={}, refinement_dict={}, restraints=[]):
     """
     Basic Hirshfeld atom refinement routine. Will calculate the electron density on a grid spanning the unit cell
     First will refine the scaling factor. Afterwards all other parameters defined by the parameters, 
     construction_instructions pair will be refined until 10 cycles are done or the optimizer is converged fully
     """
-    print('Started refinement at ', datetime.datetime.now())
+    start = datetime.datetime.now()
+    print('Started refinement at ', start)
+    cell_mat_m = cell_constants_to_M(*cell)
     options_dict = deepcopy(options_dict)
     print('Preparing')
     index_vec_h = jnp.array(hkl[['h', 'k', 'l']].values.copy())
@@ -950,11 +961,15 @@ def har(cell_mat_m, symm_mats_vecs, hkl, construction_instructions, parameters, 
     else:
         fjs_all = fjs
     shift_ov_su = shift / np.sqrt(np.diag(var_cov_mat))
+    end = datetime.datetime.now()
+    print('Ended refinement at ', end)
+
     additional_information = {
         'fjs_anom': fjs_all,
-        'shift_ov_su': shift_ov_su
+        'shift_ov_su': shift_ov_su,
+        'start': start,
+        'end': end
     }
-    print('Ended refinement at ', datetime.datetime.now())
     return parameters, var_cov_mat, additional_information
 
 

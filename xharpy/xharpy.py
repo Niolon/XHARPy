@@ -1,13 +1,16 @@
 from ase.units import C
+from jax._src.numpy.lax_numpy import deg2rad
 from jax.config import config
 config.update('jax_enable_x64', True)
 
 import datetime
+from typing import List, Set, Dict, Tuple, Optional, Union, Any
 import jax.numpy as jnp
 from collections import namedtuple
 import warnings
 import jax
 import numpy as np
+import numpy.typing as npt
 from copy import deepcopy
 from scipy.optimize import minimize
 
@@ -15,11 +18,129 @@ from .restraints import resolve_restraints
 from .conversion import ucif2ucart, cell_constants_to_M
 
 
-def expand_symm_unique(type_symbols, coordinates, cell_mat_m, symm_mats_vec, skip_symm={}, magmoms=None):
-    """Expand the type_symbols and coordinates for one complete unit cell
-    Will return an atom coordinate on a special position only once 
-    also returns the matrix inv_indexes with shape n_symm * n_at for
-    reconstructing the complete atom list including multiples of special position atoms"""
+### Internal Objects ####
+AtomInstructions = namedtuple('AtomInstructions', [
+    'name', # Name of atom, supposed to be unique
+    'element', # Element symbol, e.g. 'Ca'
+    'dispersion_real', # dispersion correction f'
+    'dispersion_imag', # dispersion correction f''
+    'xyz', # fractional coordinates
+    'uij', # uij parameters U11, U22, U33, U23, U13, U12
+    'cijk', # Gram Charlier 3rd Order C111, C222, C333, C112, C122, C113, C133, C223, C233, C123,
+    'dijkl', # Gram Charlier 4th Order D1111, D2222, D3333, D1112, D1222, D1113, D1333, D2223, D2333, D1122, D1133, D2233, D1123, D1223, D1233
+    'occupancy' # the occupancy
+], defaults= [None, None, None, None, None, None, None, None])
+
+
+RefinedParameter = namedtuple('RefinedParameter', [
+    'par_index',     # index of the parameter in in the parameter array
+    'multiplicator', # Multiplicator for the parameter. (default: 1.0)
+    'added_value'    # Value that is added to the parameter (e.g. for occupancies)
+], defaults=(None, 1, 0))
+
+
+FixedParameter = namedtuple('FixedParameter', [
+    'value',         # fixed value of the parameter 
+    'special_position' # stems from an atom on a special position, makes a difference for output of occupancy
+], defaults=[1.0, False])
+
+MultiIndexParameter = namedtuple('MultiIndexParameter', [
+    'par_indexes',   # tuple of indexes in the parameter array
+    'multiplicators', # tuple of multiplicators for the parameter array
+    'added_value' # a single added value
+])
+
+Parameter = Union[RefinedParameter, FixedParameter, MultiIndexParameter]
+
+UEquivCalculated = namedtuple('UEquivCalculated', [
+    'atom_index',   # index of atom to set the U_equiv equal to 
+    'multiplicator' # factor to multiply u_equiv with
+])
+
+UIso = namedtuple('Uiso',[
+    'uiso'          # Parameter for Uiso can either be a fixed parameter or a refined Parameter
+], defaults=[0.1])
+
+SingleTrigonalCalculated = namedtuple('SingleTrigonalCalculated',[
+    'bound_atom_index',  # index of atom the derived atom is bound to
+    'plane_atom1_index', # first bonding partner of bound_atom
+    'plane_atom2_index', # second bonding partner of bound_atom
+    'distance'           # interatomic distance
+])
+
+TorsionCalculated = namedtuple('TorsionCalculated', [
+    'bound_atom_index',   # index of  atom the derived atom is bound_to
+    'angle_atom_index',   # index of atom spanning the given angle with bound atom
+    'torsion_atom_index', # index of atom giving the torsion angle
+    'distance',           # interatom dpositionsistance
+    'angle',              # interatom angle
+    'torsion_angle'       # interatom torsion angle
+])
+
+### Objects for Use by the User
+
+ConstrainedValues = namedtuple('ConstrainedValues', [
+    'variable_indexes', # 0-x (positive): variable index; -1 means 0 -> not refined
+    'multiplicators', # For higher symmetries mathematical conditions can include multiplicators
+    'added_value', # Values that are added
+    'special_position' # stems from an atom on a special position, makes a difference for output of occupancy
+], defaults=[[], [], [], False])
+
+UEquivConstraint = namedtuple('UEquivConstraint', [
+    'bound_atom', # Name of the bound atom
+    'multiplicator' # Multiplicator for UEquiv Constraint (Usually nonterminal: 1.2, terminal 1.5)
+])
+
+TrigonalPositionConstraint = namedtuple('TrigonalPositionConstraint', [
+    'bound_atom_name', # name of bound atom
+    'plane_atom1_name', # first bonding partner of bound atom
+    'plane_atom2_name', # second bonding partner of bound atom
+    'distance' # interatomic distance
+])
+
+TorsionPositionConstraint = namedtuple('TorsionCalculated', [
+    'bound_atom_name',   # index of  atom the derived atom is bound_to
+    'angle_atom_name',   # index of atom spanning the given angle with bound atom
+    'torsion_atom_name', # index of atom giving the torsion angle
+    'distance',           # interatom distance
+    'angle',              # interatom angle
+    'torsion_angle_add'   # interatom torsion angle addition. Use e.g 120° for second sp3 atom,
+    'refine'              # If True torsion angle will be refined otherwise it will be fixed to torsion_angle_add
+])
+
+
+def expand_symm_unique(
+        type_symbols: List[str],
+        coordinates: npt.NDArray[np.float64],
+        cell_mat_m: npt.NDArray[np.float64],
+        symm_mats_vec: Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]],
+        skip_symm: Dict[str, List[int]] = {},
+        magmoms: Optional[npt.NDArray[np.float64]] = None
+    ) -> Tuple[npt.NDArray[np.float64], List[str], npt.NDArray[np.float64], Optional[npt.NDArray[np.float64]]]:
+    """Expand the type_symbols and coordinates for one complete unit cell. Atoms on special positions
+    appear only once. For disorder on a special position use skip_symm.
+
+    Args:
+        type_symbols (List[str]): Element symbols of the atoms in the asymmetric unit
+        coordinates (npt.NDArray[np.float64]):  (N, 3) array of atomic coordinates
+        cell_mat_m (npt.NDArray[np.float64]): Matrix with cell vectors as column vectors
+        symm_mats_vec (Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]): (K, 3, 3) array of symmetry 
+            matrices and (K, 3) array of translation vectors for all symmetry elements in the unit cell
+        skip_symm (Dict[str, List[int]], optional): Symmetry elements with indexes given the list(s) in the 
+        dictionary values with not be applied to the respective atoms with the atom names given in the key(s).
+        Indexes need to be identical to the ones in symm_mats_vec. Defaults to {}.
+        magmoms (Optional[npt.NDArray[np.float64]], optional): [description]. Defaults to None.
+
+    Returns:
+        un_positions (npt.NDArray[np.float64]): (M, 3) array of unique atom positions within the
+            unit cell
+        type_symbols_symm (List[str]): List of length M with element symbols for the unique atom 
+            positions within the unit cell
+        inv_indexes (npt.NDArray[np.float64]): (K, N) matrix to with indexes mapping the unique atom positions
+            back to the individual symmetry elements and atom positions in the asymmetric unit
+        magmoms_symm (Optional[npt.NDArray[np.float64]]], optional): numpy array containing magnetic moments for
+           symmetry generated atoms
+    """
     symm_mats_r, symm_vecs_t = symm_mats_vec
     pos_frac0 = coordinates % 1
     un_positions = np.zeros((0, 3))
@@ -47,29 +168,67 @@ def expand_symm_unique(type_symbols, coordinates, cell_mat_m, symm_mats_vec, ski
             magmoms_symm += [magmoms[atom_index]] * unique_indexes.shape[0]
         inv_indexes.append(inv_indexes_at + n_atoms)
         n_atoms += unique_indexes.shape[0]
-    return un_positions.copy(), type_symbols_symm, inv_indexes, magmoms_symm
+    if magmoms_symm is not None:
+        magmoms_symm = np.array(magmoms_symm)
+    return un_positions.copy(), type_symbols_symm, np.array(inv_indexes), magmoms_symm
 
 
 @jax.jit
-def calc_f(xyz, uij, cijk, dijkl, occupancies, index_vec_h, cell_mat_f, symm_mats_vecs, fjs):
-    """Calculate the overall structure factors for given indexes of hkl"""
-    
-    #einsum indexes: k: n_symm, z: n_atom, h: n_hkl
+def calc_f(
+    xyz: jnp.ndarray,
+    uij: jnp.ndarray,
+    cijk: jnp.ndarray,
+    dijkl: jnp.ndarray,
+    occupancies: jnp.ndarray,
+    index_vec_h: jnp.ndarray,
+    cell_mat_f: jnp.ndarray,
+    symm_mats_vecs: Tuple[jnp.ndarray, jnp.ndarray],
+    fjs: jnp.ndarray
+) -> jnp.ndarray :
+    """Given a set of parameters, calculate the structure factors for all given reflections
+
+    Args:
+        xyz (jnp.ndarray): (N,3) array of atom positions in the asymmetric unit
+        uij (jnp.ndarray): (N, 6) array of anisotropic displacement parameters 
+            (isotropic parameters have to be transformed to anitropic parameters).
+            Parameters need to be in convention as used e.g. Shelxl or the cif as U.
+            Order: U11, U22, U33, U23, U13, U12
+        cijk (jnp.ndarray): (N, 10) array of hird-order Gram-Charlier parameters as defined
+            in Inter. Tables of Cryst. B (2010): Eq 1.2.12.7. Order: C111, C222, C333,
+            C112, C122, C113, C133, C223, C233, C123
+        dijkl (jnp.ndarray): (N, 15) array of fourth-order Gram-Charlier parameters as defined
+            in Inter. Tables of Cryst. B (2010): Eq 1.2.12.7. Order: D1111, D2222, D3333,
+            D1112, D1222, D1113, D_1333, D2223, D2333, D1122, D1133, D2233, D1123, D1223,
+            D1233
+        occupancies (jnp.ndarray): (N) array of atomic occupancies. Atoms on special positions
+            need to have and occupancy of 1/multiplicity
+        index_vec_h (jnp.ndarray): (H, 3) array of Miller indicees of observed reflections
+        cell_mat_f (jnp.ndarray): (3, 3) array with the reciprocal lattice vectors as
+            row vectors
+        symm_mats_vecs (Tuple[jnp.ndarray, jnp.ndarray]): (K, 3, 3) array of symmetry 
+            matrices and (K, 3) array of translation vectors for all symmetry elements in the unit cell
+        fjs (jnp.ndarray): (K, N, H) array of atomic form factors for all reflections and symmetry
+            generated atoms within the unit cells. Atoms on special positions are present multiple
+            times and have the atomic form factor of the full atom.
+
+    Returns:
+        structure factors (jnp.ndarray): (H) array with complex structure factors for each reflection
+    """    
+    #einsum indexes: k: n_symm, z: n_atom, h[description]: n_hkl
     lengths_star = jnp.linalg.norm(cell_mat_f, axis=0)
-    #cell_mat_g_star = jnp.einsum('ja, jb -> ab', cell_mat_f, cell_mat_f)
     symm_mats_r, symm_vecs_t = symm_mats_vecs
-    #vec_S = jnp.einsum('xy, zy -> zx', cell_mat_f, index_vec_h)
-    #vec_S_symm = jnp.einsum('kxy, zy -> kzx', symm_mats_r, vec_S)
-    #vec_S_symm = jnp.einsum('zx, kxy -> kzy', vec_S, symm_mats_r) # entspricht H.T @ R
-    vec_h_symm = jnp.einsum('zx, kxy -> kzy', index_vec_h, symm_mats_r) # entspricht H.T @ R
+
+    vec_h_symm = jnp.einsum('zx, kxy -> kzy', index_vec_h, symm_mats_r) # vectorised version of H.T @ R
     u_mats = uij[:, jnp.array([[0, 5, 4],
-                              [5, 1, 3],
-                              [4, 3, 2]])]
-    vib_factors = jnp.exp(-2 * jnp.pi**2 * jnp.einsum('kha, khb, zab -> kzh', vec_h_symm, vec_h_symm, u_mats * jnp.outer(lengths_star, lengths_star)))
-    #vib_factors = jnp.exp(-2 * jnp.pi**2 * jnp.einsum('kha, khb, zab -> kzh', vec_h_symm, vec_h_symm, u_mats * cell_mat_g_star))
-    
-    #vib_factors = jnp.exp(-2 * jnp.pi**2 * jnp.einsum('kha, khb, zab -> kzh', vec_S_symm, vec_S_symm, u_mats))
-    #TODO Check if Gram-Charlier is correct this way
+                               [5, 1, 3],
+                               [4, 3, 2]])]
+
+    # Shelxl / Ucif convention
+    vib_factors = jnp.exp(-2 * jnp.pi**2 * jnp.einsum('kha, khb, zab -> kzh',
+                                                      vec_h_symm,
+                                                      vec_h_symm,
+                                                      u_mats * jnp.outer(lengths_star, lengths_star)))
+
     gram_charlier3_indexes = jnp.array([[[0, 3, 5], [3, 4, 9], [5, 9, 6]],
                                         [[3, 4, 9], [4, 1, 7], [9, 7, 8]],
                                         [[5, 9, 6], [9, 7, 8], [6, 8, 2]]])
@@ -103,8 +262,20 @@ def calc_f(xyz, uij, cijk, dijkl, occupancies, index_vec_h, cell_mat_f, symm_mat
     return structure_factors
 
 
-def resolve_instruction(parameters, instruction):
-    """Resolve fixed and refined parameters"""
+def resolve_instruction(parameters: jnp.ndarray, instruction: Parameter) -> jnp.ndarray:
+    """Resolve a construction instruction to build the corresponding numerical value
+
+    Args:
+        parameters (jnp.ndarray): (P) array of parameters used for the refinement
+        instruction (Any): Instruction of one of the known instruction type namedtuples to generate
+           the numerical value from the parameters and/or the values in the instruction
+
+    Raises:
+        NotImplementedError: Type of instruction is currently not one of the known namedtuple types
+
+    Returns:
+        jnp.ndarray: a jax.numpy array of size 0 that contains the calculated value
+    """    
     if type(instruction).__name__ == 'RefinedParameter':
         return_value = instruction.multiplicator * parameters[instruction.par_index] + instruction.added_value
     elif type(instruction).__name__ == 'FixedParameter':
@@ -117,7 +288,25 @@ def resolve_instruction(parameters, instruction):
     return return_value
 
 
-def constrained_values_to_instruction(par_index, mult, add, constraint, current_index):
+def constrained_values_to_instruction(
+    par_index: int,
+    mult: float,
+    add: float,
+    constraint: Any,
+    current_index: int
+) -> Parameter:
+    """[summary]
+
+    Args:
+        par_index (int): [description]
+        mult (float): [description]
+        add (float): [description]
+        constraint (Any): [description]
+        current_index (int): [description]
+
+    Returns:
+        Any: [description]
+    """
     if isinstance(par_index, (tuple, list, np.ndarray)):
         assert len(par_index) == len(mult), 'par_index and mult have different lengths'
         return MultiIndexParameter(
@@ -148,8 +337,7 @@ def is_multientry(entry):
 def create_construction_instructions(
     atom_table,
     constraint_dict, 
-    sp2_add={}, 
-    torsion_add={}, 
+    cell=None, 
     atoms_for_gc3=[], 
     atoms_for_gc4=[], 
     scaling0=1.0, 
@@ -180,65 +368,90 @@ def create_construction_instructions(
             current_index += 1            
     construction_instructions = []
     known_torsion_indexes = {}
+    if cell is None:
+        cell_mat_m = None
+    else:
+        cell_mat_m = cell_constants_to_M(*cell)
     names = atom_table['label']   
     for _, atom in atom_table.iterrows():
-        if atom['label'] in sp2_add.keys():
-            bound_atom, plane_atom1, plane_atom2, distance, occupancy = sp2_add[atom['label']]
-            bound_index = jnp.where(names == bound_atom)[0][0]
-            plane_atom1_index = jnp.where(names == plane_atom1)[0][0]
-            plane_atom2_index = jnp.where(names == plane_atom2)[0][0]
-            xyz_constraint = SingleTrigonalCalculated(bound_atom_index=bound_index,
-                                                      plane_atom1_index=plane_atom1_index,
-                                                      plane_atom2_index=plane_atom2_index,
-                                                      distance=distance)
-            adp_constraint = UEquivCalculated(atom_index=bound_index,
-                                              multiplicator=1.2)
-            construction_instructions.append(AtomInstructions(xyz=xyz_constraint,
-                                                uij=adp_constraint,
-                                                occupancy=FixedParameter(value=float(occupancy))))
-            continue
-        if atom['label'] in torsion_add.keys():
-            bound_atom, angle_atom, torsion_atom, distance, angle, torsion_angle_add, group_index, occupancy = torsion_add[atom['label']]
-            if group_index not in known_torsion_indexes.keys():
-                known_torsion_indexes[group_index] = current_index
-                #TODO: The torsion add_start needs to be calculated for each group
-                torsion_add_start = 0.0
-                parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], torsion_add_start)
-                current_index += 1
-            bound_index = jnp.where(names == bound_atom)[0][0]
-            angle_index = jnp.where(names == angle_atom)[0][0]
-            torsion_index = jnp.where(names == torsion_atom)[0][0]
-            torsion_parameter = RefinedParameter(par_index=known_torsion_indexes[group_index],
-                                                 multiplicator=1.0,
-                                                 added_value=torsion_angle_add)
-            xyz_constraint = TorsionCalculated(bound_atom_index=bound_index,
-                                               angle_atom_index=angle_index,
-                                               torsion_atom_index=torsion_index,
-                                               distance=FixedParameter(value=float(distance)),
-                                               angle=FixedParameter(value=float(angle)),
-                                               torsion_angle=torsion_parameter)
-            adp_constraint = UEquivCalculated(atom_index=bound_index,
-                                              multiplicator=1.5)
-            construction_instructions.append(AtomInstructions(xyz=xyz_constraint,
-                                                              uij=adp_constraint,
-                                                              occupancy=FixedParameter(value=float(occupancy))))
-            continue
-
         xyz = atom[['fract_x', 'fract_y', 'fract_z']].values.astype(np.float64)
         if atom['label'] in constraint_dict.keys() and 'xyz' in constraint_dict[atom['label']].keys():
             constraint = constraint_dict[atom['label']]['xyz']
-            instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value)
-            xyz_instructions = tuple(constrained_values_to_instruction(par_index, mult, add, constraint, current_index) for par_index, mult, add in instr_zip)
-            # we need this construction to unpack lists in indexes for the MultiIndexParameters
-            n_pars = max(max(entry) if is_multientry(entry) else entry for entry in constraint.variable_indexes) + 1
-            # MultiIndexParameter can never be unique so we can throw it out
-            u_indexes = [-1 if is_multientry(entry) else entry for entry in constraint.variable_indexes]
-            parameters = jax.ops.index_update(
-                parameters,
-                jax.ops.index[current_index:current_index + n_pars],
-                [xyz[jnp.array(varindex)] for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0]
-            )
-            current_index += n_pars
+            if type(constraint).__name__ == 'TrigonalPositionConstraint':
+                bound_index = jnp.where(names == constraint.bound_atom_name)[0][0]
+                plane_atom1_index = jnp.where(names == constraint.plane_atom1_name)[0][0]
+                plane_atom2_index = jnp.where(names == constraint.plane_atom2_name)[0][0]
+                xyz_instructions = SingleTrigonalCalculated(bound_atom_index=bound_index,
+                                                            plane_atom1_index=plane_atom1_index,
+                                                            plane_atom2_index=plane_atom2_index,
+                                                            distance=constraint.distance)
+            elif type(constraint).__name__ == 'TorsionPositionConstraint':
+                bound_index = jnp.where(names == constraint.bound_atom_name)[0][0]
+                angle_index = jnp.where(names == constraint.angle_atom_name)[0][0]
+                torsion_index = jnp.where(names == constraint.torsion_atom_name)[0][0]
+                index_tuple = (bound_index, angle_index, torsion_index)
+                if not constraint.refined:
+                    torsion_index = None
+                elif index_tuple not in known_torsion_indexes:
+                    assert cell_mat_m is not None, 'You need to pass a cell for the calculation of the torsion start values.'
+                    atom_cart = cell_mat_m @ xyz
+                    bound_xyz = atom_table.loc[bound_index,['fract_x', 'fract_y', 'fract_z']].values.astype(np.float64)
+                    bound_cart = cell_mat_m @ bound_xyz
+                    angle_xyz = atom_table.loc[angle_index,['fract_x', 'fract_y', 'fract_z']].values.astype(np.float64)
+                    angle_cart = cell_mat_m @ angle_xyz
+                    torsion_xyz = atom_table.loc[torsion_index,['fract_x', 'fract_y', 'fract_z']].values.astype(np.float64)
+                    torsion_cart = cell_mat_m @ torsion_xyz
+                    b1 = angle_cart- torsion_cart
+                    b2 = bound_cart - angle_cart
+                    b3 = atom_cart - bound_cart
+                    n1 = np.cross(b1, b2)
+                    n1 /= np.linalg.norm(n1)
+                    n2 = np.cross(b2, b3)
+                    n2 /= np.linalg.norm(n2)
+                    m1 = np.cross(n1, b2 / np.linalg.norm(b2))
+                    x = np.dot(n1, n2)
+                    y = np.dot(m1, n2)
+                    torsion0 = np.arctan2(y, x) - np.deg2rad(constraint.torsion_angle_add)
+                    parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], torsion0)
+                    known_torsion_indexes[index_tuple] = current_index
+                    torsion_index = current_index
+                    current_index += 1
+                else:
+                    torsion_index =  known_torsion_indexes[index_tuple]
+                
+                if constraint.refined:
+                    torsion_parameter = RefinedParameter(
+                        par_index=current_index,
+                        multiplicator=1.0,
+                        added_value=np.deg2rad(constraint.torsion_angle_add)
+                    )
+                else:
+                    torsion_parameter = FixedParameter(
+                        value=constraint.torsion_angle_add
+                    )
+                xyz_instructions = TorsionCalculated(
+                    bound_atom_index=bound_index,
+                    angle_atom_index=angle_index,
+                    torsion_atom_index=torsion_index,
+                    distance=FixedParameter(value=float(constraint.distance)),
+                    angle=FixedParameter(value=float(constraint.angle)),
+                    torsion_angle=torsion_parameter
+                )
+            elif type(constraint).__name__ == 'ConstrainedValues':
+                instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value)
+                xyz_instructions = tuple(constrained_values_to_instruction(par_index, mult, add, constraint, current_index) for par_index, mult, add in instr_zip)
+                # we need this construction to unpack lists in indexes for the MultiIndexParameters
+                n_pars = max(max(entry) if is_multientry(entry) else entry for entry in constraint.variable_indexes) + 1
+                # MultiIndexParameter can never be unique so we can throw it out
+                u_indexes = [-1 if is_multientry(entry) else entry for entry in constraint.variable_indexes]
+                parameters = jax.ops.index_update(
+                    parameters,
+                    jax.ops.index[current_index:current_index + n_pars],
+                    [xyz[jnp.array(varindex)] for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0]
+                )
+                current_index += n_pars
+            else:
+                raise(NotImplementedError(f'Unknown type of xyz constraint for atom {atom["label"]}'))
         else:
             parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + 3], list(xyz))
             xyz_instructions = tuple(RefinedParameter(par_index=int(array_index), multiplicator=1.0) for array_index in range(current_index, current_index + 3))
@@ -622,6 +835,8 @@ def calc_var_cor_mat(cell_mat_m,
     grad_func = jax.jit(jax.grad(function))
 
     collect = jnp.zeros((len(parameters), len(parameters)))
+
+    # TODO: Figure out a way to make this more efficient
     for index, weight in enumerate(weights):
         val = grad_func(parameters, jnp.array(fjs), index)[:, None]
         collect += weight * (val @ val.T)
@@ -630,94 +845,6 @@ def calc_var_cor_mat(cell_mat_m,
     chi_sq = lsq_func(parameters, jnp.array(fjs)) / (index_vec_h.shape[0] - len(parameters))
 
     return chi_sq * jnp.linalg.inv(collect)
-
-
-### Internal Objects ####
-AtomInstructions = namedtuple('AtomInstructions', [
-    'name', # Name of atom, supposed to be unique
-    'element', # Element symbol, e.g. 'Ca'
-    'dispersion_real', # dispersion correction f'
-    'dispersion_imag', # dispersion correction f''
-    'xyz', # fractional coordinates
-    'uij', # uij parameters U11, U22, U33, U23, U13, U12
-    'cijk', # Gram Charlier 3rd Order C111, C222, C333, C112, C122, C113, C133, C223, C233, C123,
-    'dijkl', # Gram Charlier 4th Order D1111, D2222, D3333, D1112, D1222, D1113, D1333, D2223, D2333, D1122, D1133, D2233, D1123, D1223, D1233
-    'occupancy' # the occupancy
-], defaults= [None, None, None, None, None, None, None, None])
-
-
-RefinedParameter = namedtuple('RefinedParameter', [
-    'par_index',     # index of the parameter in in the parameter array
-    'multiplicator', # Multiplicator for the parameter. (default: 1.0)
-    'added_value'    # Value that is added to the parameter (e.g. for occupancies)
-], defaults=(None, 1, 0))
-
-
-FixedParameter = namedtuple('FixedParameter', [
-    'value',         # fixed value of the parameter 
-    'special_position' # stems from an atom on a special position, makes a difference for output of occupancy
-], defaults=[1.0, False])
-
-MultiIndexParameter = namedtuple('MultiIndexParameter', [
-    'par_indexes',   # tuple of indexes in the parameter array
-    'multiplicators', # tuple of multiplicators for the parameter array
-    'added_value' # a single added value
-])
-
-UEquivCalculated = namedtuple('UEquivCalculated', [
-    'atom_index',   # index of atom to set the U_equiv equal to 
-    'multiplicator' # factor to multiply u_equiv with
-])
-
-UIso = namedtuple('Uiso',[
-    'uiso'          # Parameter for Uiso can either be a fixed parameter or a refined Parameter
-], defaults=[0.1])
-
-SingleTrigonalCalculated = namedtuple('SingleTrigonalCalculated',[
-    'bound_atom_index',  # index of atom the derived atom is bound to
-    'plane_atom1_index', # first bonding partner of bound_atom
-    'plane_atom2_index', # second bonding partner of bound_atom
-    'distance'           # interatomic distance
-])
-
-TorsionCalculated = namedtuple('TorsionCalculated', [
-    'bound_atom_index',   # index of  atom the derived atom is bound_to
-    'angle_atom_index',   # index of atom spanning the given angle with bound atom
-    'torsion_atom_index', # index of atom giving the torsion angle
-    'distance',           # interatom dpositionsistance
-    'angle',              # interatom angle
-    'torsion_angle'       # interatom torsion angle
-])
-
-### Objects for Use by the User
-
-ConstrainedValues = namedtuple('ConstrainedValues', [
-    'variable_indexes', # 0-x (positive): variable index; -1 means 0 -> not refined
-    'multiplicators', # For higher symmetries mathematical conditions can include multiplicators
-    'added_value', # Values that are added
-    'special_position' # stems from an atom on a special position, makes a difference for output of occupancy
-], defaults=[[], [], [], False])
-
-UEquivConstraint = namedtuple('UEquivConstraint', [
-    'bound_atom', # Name of the bound atom
-    'multiplicator' # Multiplicator for UEquiv Constraint (Usually nonterminal: 1.2, terminal 1.5)
-])
-
-TrigonalPositionConstraint = namedtuple('TrigonalPositionConstraint', [
-    'bound_atom_name', # name of bound atom
-    'plane_atom1_name', # first bonding partner of bound atom
-    'plane_atom2_name', # second bonding partner of bound atom
-    'distance' # interatomic distance
-])
-
-TorsionPositionConstraint = namedtuple('TorsionCalculated', [
-    'bound_atom_name',   # index of  atom the derived atom is bound_to
-    'angle_atom_name',   # index of atom spanning the given angle with bound atom
-    'torsion_atom_name', # index of atom giving the torsion angle
-    'distance',           # interatom distance
-    'angle',              # interatom angle
-    'torsion_angle'       # interatom torsion angle
-])
 
 def har(cell, symm_mats_vecs, hkl, construction_instructions, parameters, f0j_source='gpaw', reload_step=1, options_dict={}, refinement_dict={}, restraints=[]):
     """

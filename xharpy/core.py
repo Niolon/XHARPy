@@ -5,7 +5,7 @@ from jax.core import Value
 config.update('jax_enable_x64', True)
 
 import datetime
-from typing import List, Set, Dict, Tuple, Optional, Union, Any
+from typing import Callable, List, Set, Dict, Tuple, Optional, Union, Any
 import jax.numpy as jnp
 import pandas as pd
 from collections import namedtuple
@@ -124,8 +124,8 @@ def expand_symm_unique(
 
     Args:
         type_symbols (List[str]): Element symbols of the atoms in the asymmetric unit
-        coordinates (npt.NDArray[np.float64]):  (N, 3) array of atomic coordinates
-        cell_mat_m (npt.NDArray[np.float64]): Matrix with cell vectors as column vectors
+        coordinates (npt.NDArray[np.float64]):  (N, 3) array of fractional atomic coordinates
+        cell_mat_m (npt.NDArray[np.float64]): Matrix with cell vectors as column vectors, (Angstroem)
         symm_mats_vec (Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]): (K, 3, 3) array of symmetry 
             matrices and (K, 3) array of translation vectors for all symmetry elements in the unit cell
         skip_symm (Dict[str, List[int]], optional): Symmetry elements with indexes given the list(s) in the 
@@ -769,21 +769,44 @@ def construct_esds(var_cov_mat, construction_instructions):
     occupancies = jnp.array([resolve_instruction_esd(var_cov_mat, instruction.occupancy) for instruction in construction_instructions])
     return xyz, uij, cijk, dijkl, occupancies    
 
-def calc_lsq_factory(cell_mat_m,
-                     symm_mats_vecs,
-                     index_vec_h,
-                     intensities_obs,
-                     weights,
-                     construction_instructions,
-                     fjs_core,
-                     refinement_dict,
-                     #flack_parameter,
-                     #core_parameter,
-                     #extinction_parameter,
-                     #wavelength,
-                     restraint_instr_ind=[]):
-    """Generates a calc_lsq function. Doing this with a factory function allows for both flexibility but also
-    speed by automatic loop and conditional unrolling for all the stuff that is constant for a given structure."""
+def calc_lsq_factory(
+    cell_mat_m: jnp.ndarray,
+    symm_mats_vecs: Tuple[jnp.ndarray, jnp.ndarray],
+    index_vec_h: jnp.ndarray,
+    intensities_obs: jnp.ndarray,
+    weights: jnp.ndarray,
+    construction_instructions: List[AtomInstructions],
+    fjs_core: jnp.ndarray,
+    refinement_dict: Dict[str, Any],
+    wavelength: Optional(float),
+    restraint_instr_ind: List[Any]=[]
+) -> Callable:
+    """Creates calc_lsq functions that can be used with jax.jit and jax.grad. This way we can 
+    accound for the very different needs of structures, while keeping the code down the line relatively simple.
+
+    Args:
+        cell_mat_m (jnp.ndarray): (3, 3) array with the cell vectors as row vectors 
+        symm_mats_vecs (Tuple[jnp.ndarray, jnp.ndarray]): (K, 3, 3) array of symmetry 
+            matrices and (K, 3) array of translation vectors for all symmetry elements in the unit cell
+        index_vec_h (jnp.ndarray): (H, 3) array of Miller indicees of observed reflections
+        intensities_obs (jnp.ndarray): (H) array of observed reflection intensities
+        weights (jnp.ndarray): (H) array of weights for the individual reflections
+        construction_instructions (List[AtomInstructions]): List of instructions for reconstructing the atomic
+            parameters
+        fjs_core (jnp.ndarray): (N, H) array of atomic core form factors calculated seperatey
+        refinement_dict (Dict[str, Any]): Dictionary that contains options for the refinement.
+        wavelength (float, optional): wavelength of radiation used for measurement in Angstroem
+        restraint_instr_ind (List[Any], optional): List of internal restraint options. Is still
+            very early in development, probably buggy and should not be used for research at the moment. Defaults to [].
+
+    Raises:
+        NotImplementedError: Extinction method not implemented
+        NotImplementedError: Core treatment method not implemented
+
+    Returns:
+        Callable: function that return the sum of least squares for a given set of parameters
+           and (if selected non-core) atomic form factors.
+    """
     cell_mat_f = jnp.linalg.inv(cell_mat_m).T
     additional_parameters = 0
     if refinement_dict.get('flack', False):
@@ -796,9 +819,8 @@ def calc_lsq_factory(cell_mat_m,
         additional_parameters += 1
     extinction = refinement_dict.get('extinction', 'none')
     if  extinction == 'shelxl':
-        assert 'wavelength' in refinement_dict, 'Wavelength needs to be defined in refinement_dict for shelxl extinction'
+        assert wavelength is not None, 'Wavelength needs to be defined in refinement_dict for shelxl extinction'
         extinction_parameter = additional_parameters + 1
-        wavelength = refinement_dict['wavelength']
         additional_parameters += 1
         sintheta = jnp.linalg.norm(jnp.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 * wavelength
         sintwotheta = 2 * sintheta * jnp.sqrt(1 - sintheta**2)
@@ -874,20 +896,46 @@ def calc_lsq_factory(cell_mat_m,
         return lsq * (1 + resolve_restraints(xyz, uij, restraint_instr_ind, cell_mat_m) / (len(intensities_obs) - len(parameters)))
     return jax.jit(function)
 
-def calc_var_cor_mat(cell_mat_m,
-                     symm_mats_vecs,
-                     index_vec_h,
-                     construction_instructions,
-                     intensities_obs,
-                     weights,
-                     parameters,
-                     fjs,
-                     fjs_core,
-                     refinement_dict):
-                     #flack_parameter,
-                     #core_parameter,
-                     #extinction_parameter,
-                     #waveleng    
+def calc_var_cor_mat(
+    cell_mat_m: jnp.ndarray,
+    symm_mats_vecs: Tuple[jnp.ndarray, jnp.ndarray],
+    index_vec_h: jnp.ndarray,
+    intensities_obs: jnp.ndarray ,
+    weights: jnp.ndarray,
+    construction_instructions: List[AtomInstructions],
+    fjs_core: jnp.ndarray,
+    parameters: jnp.ndarray,
+    fjs: jnp.ndarray,
+    refinement_dict: Dict[str, Any],
+    wavelength: Optional(float) = None
+) -> jnp.ndarray:
+    """Calculates the variance-covariance matrix for a given set of parameters
+    At the moment is pretty slow, as it is not parallelised over reflections
+
+    Args:
+        cell_mat_m (jnp.ndarray): (3, 3) array with the cell vectors as row vectors 
+        symm_mats_vecs (Tuple[jnp.ndarray, jnp.ndarray]): (K, 3, 3) array of symmetry 
+            matrices and (K, 3) array of translation vectors for all symmetry elements in the unit cell
+        index_vec_h (jnp.ndarray): (H, 3) array of Miller indicees of observed reflections
+        intensities_obs (jnp.ndarray): (H) array of observed reflection intensities
+        weights (jnp.ndarray): (H) array of weights for the individual reflections
+        construction_instructions (List[AtomInstructions]): List of instructions for reconstructing the atomic
+            parameters
+        fjs_core (jnp.ndarray): (N, H) array of atomic core form factors calculated seperatey
+        parameters (jnp.ndarray): (P) array with the refined parameters
+        fjs (jnp.ndarray): (K, N, H) array of atomic form factors for all reflections and symmetry
+            generated atoms within the unit cells. Atoms on special positions are present multiple
+            times and have the atomic form factor of the full atom.
+        refinement_dict (Dict[str, Any]): Dictionary that contains options for the refinement.
+        wavelength (float, optional): wavelength of radiation used for measurement in Angstroem
+
+    Raises:
+        NotImplementedError: Extinction method not implemented
+        NotImplementedError: Core treadment not implemented
+
+    Returns:
+        jnp.ndarray: (P, P) array containing the variance-covariance matrix
+    """    
     cell_mat_f = jnp.linalg.inv(cell_mat_m).T
     additional_parameters = 0
     if refinement_dict.get('flack', False):
@@ -900,9 +948,8 @@ def calc_var_cor_mat(cell_mat_m,
         additional_parameters += 1
     extinction = refinement_dict.get('extinction', 'none')
     if  extinction == 'shelxl':
-        assert 'wavelength' in refinement_dict, 'Wavelength needs to be defined in refinement_dict for shelxl extinction'
+        assert 'wavelength' is not None, 'Wavelength needs to be defined in refinement_dict for shelxl extinction'
         extinction_parameter = additional_parameters + 1
-        wavelength = refinement_dict['wavelength']
         additional_parameters += 1
         sintheta = jnp.linalg.norm(jnp.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 * wavelength
         sintwotheta = 2 * sintheta * jnp.sqrt(1 - sintheta**2)
@@ -983,27 +1030,86 @@ def calc_var_cor_mat(cell_mat_m,
         val = grad_func(parameters, jnp.array(fjs), index)[:, None]
         collect += weight * (val @ val.T)
 
-    lsq_func = calc_lsq_factory(cell_mat_m, symm_mats_vecs, index_vec_h, intensities_obs, weights, construction_instructions, fjs_core, flack_parameter, core_parameter, extinction_parameter, wavelength)
+    lsq_func = calc_lsq_factory(
+        cell_mat_m,
+        symm_mats_vecs,
+        index_vec_h,
+        intensities_obs,
+        weights,
+        construction_instructions,
+        fjs_core,
+        refinement_dict,
+        wavelength
+    )
     chi_sq = lsq_func(parameters, jnp.array(fjs)) / (index_vec_h.shape[0] - len(parameters))
 
     return chi_sq * jnp.linalg.inv(collect)
 
-def har(
-    cell,
-    symm_mats_vecs, 
-    hkl, 
-    construction_instructions, 
-    parameters, 
-    f0j_source='gpaw', 
-    reload_step=1, 
-    computation_dict={}, 
-    refinement_dict={}, 
-    restraints=[]
-):
-    """
-    Basic Hirshfeld atom refinement routine. Will calculate the electron density on a grid spanning the unit cell
-    First will refine the scaling factor. Afterwards all other parameters defined by the parameters, 
-    construction_instructions pair will be refined until 10 cycles are done or the optimizer is converged fully
+def refine(
+    cell: jnp.ndarray,
+    symm_mats_vecs: Tuple[jnp.ndarray, jnp.ndarray], 
+    hkl: pd.DataFrame, 
+    construction_instructions: List[AtomInstructions], 
+    parameters: jnp.ndarray, 
+    wavelength: Optional(float) = None,
+    refinement_dict: dict = {},
+    computation_dict: dict = {} 
+)-> Tuple[jnp.ndarray, jnp.ndarray, Dict[str, Any]]:
+    """Refinement routine. The routine will refine for the given intensities against wR2(F^2).
+
+    Args:
+        cell (jnp.ndarray): array with the lattice coordinates (Angstroem, Degree)
+        symm_mats_vecs (Tuple[jnp.ndarray, jnp.ndarray]): (K, 3, 3) array of symmetry 
+            matrices and (K, 3) array of translation vectors for all symmetry elements in the unit cell
+        hkl (pd.DataFrame): pandas DataFrame containing the reflection data. Needs to have
+            at least five columns: h, k, l, intensity, weight. Alternatively weight can be 
+            substituted by esd_int. If no weight column is available the weights will be calculated as
+            1/est_int**2. Additional columns will be ignored
+        construction_instructions (List[AtomInstructions]): List of instructions for reconstructing the atomic
+            parameters from the list of refined parameters
+        parameters (jnp.ndarray): Starting values for the list of parameters
+        wavelength (float): Measurement wavelength in Angstroem. Currently only used for Shelxl style 
+           extinction correction. Can be omitted otherwise.
+        refinement_dict (dict, optional): Dictionary with refinement options. Defaults to {}.
+           Available options are:
+                f0j_source:    Source of the atomic form factors. 
+                               The computation_dict will be passed on to this method
+                               Tested options: 'gpaw', 'iam', 'gpaw_mpi'
+                               Some limitations: 'gpaw_spherical'
+                               Still untested: 'gpaw_lcorr', 'gpaw_mbis', 'qe'
+                               See the individual files in f0j_sources for more information
+                               Default: 'gpaw'
+                reload_step:   Starting with this step the computation will try to reuse the density
+                               if this is implemented in the source.
+                               Default: 1
+                core:          If this is implemented will integrate the frozen core density on a spherical 
+                               grid and only use the valence density for the updated atomic form factos
+                               options are 'combine', which will not treat the core density separately,
+                               'constant' which will integrate and add the core density without scaling parameter
+                               and 'scale' which will refine a scaling parameter for the core density which might
+                               for systematic deviations due to a coarse valence density grid (untested!)
+                               Default: 'constant'
+                max_dist_diff: If the difference in atomic position is under this value in 
+                               Angstroems, no new structure factors will be calculated
+                               Default: 1e-6
+                max_iter:      Maximum of refinement cycles if convergence not reached
+                               Default: 100
+                min_iter:      Minimum refinement cycles. The refinement will stop if the wR2 increases if the 
+                               current cycle is higher than min_iter
+                restraints:    Not fully implemented. Do not use at the moment.
+
+
+        computation_dict (dict, optional): Dict with options that are passed on to the f0j_source. See the 
+            individual calc_f0j functions for a more detailed description.
+            Defaults to {}.
+
+    Raises:
+        NotImplementedError: f0j_source not implemented
+        NotImplementedError: Unknown core description
+        NotImplementedError: Second point where the core description could be missing
+
+    Returns:
+        Tuple[jnp.ndarray, jnp.ndarray, Dict[str, Any]]: [description]
     """
     start = datetime.datetime.now()
     print('Started refinement at ', start)
@@ -1017,79 +1123,53 @@ def har(
     dispersion_real = jnp.array([atom.dispersion_real for atom in construction_instructions])
     dispersion_imag = jnp.array([atom.dispersion_imag for atom in construction_instructions])
     f_dash = dispersion_real + 1j * dispersion_imag
-
+    f0j_source = refinement_dict.get('f0j_source', 'gpaw')
     if f0j_source == 'gpaw':
-        from .gpaw_source import calc_f0j, calculate_f0j_core
+        from .f0j_sources.gpaw_source import calc_f0j, calculate_f0j_core
     elif f0j_source == 'iam':
-        from .iam_source import calc_f0j, calculate_f0j_core
+        from .f0j_sources.iam_source import calc_f0j, calculate_f0j_core
     elif f0j_source == 'gpaw_spherical':
-        from .gpaw_spherical_source import calc_f0j, calculate_f0j_core
+        from .f0j_sources.gpaw_spherical_source import calc_f0j, calculate_f0j_core
     elif f0j_source == 'gpaw_lcorr':
-        from .gpaw_source_lcorr import calc_f0j, calculate_f0j_core
+        from .f0j_sources.gpaw_lcorr_source import calc_f0j, calculate_f0j_core
     elif f0j_source == 'gpaw_mbis':
-        from .gpaw_mbis_source import calc_f0j, calculate_f0j_core
+        from .f0j_sources.gpaw_mbis_source import calc_f0j, calculate_f0j_core
     elif f0j_source == 'qe':
-        from .qe_source import calc_f0j, calculate_f0j_core
+        from .f0j_sources.qe_source import calc_f0j, calculate_f0j_core
     elif f0j_source == 'gpaw_mpi':
-        from .gpaw_mpi_source import calc_f0j, calculate_f0j_core
+        from .f0j_sources.gpaw_mpi_source import calc_f0j, calculate_f0j_core
     else:
         raise NotImplementedError('Unknown type of f0j_source')
 
-    additional_parameters = 0
-    if 'flack' in refinement_dict and refinement_dict['flack']:
-        flack_parameter = additional_parameters + 1
-        additional_parameters += 1
-    else:
-        flack_parameter = None
-    if 'core' in refinement_dict:
-        if f0j_source in ('iam'):
-            warnings.warn('core description is not possible with this f0j source')
-        if refinement_dict['core'] in ('scale', 'constant'):
-            if refinement_dict['core'] == 'scale':
-                core_parameter = additional_parameters + 1
-                additional_parameters += 1
-            else:
-                core_parameter = None
-            if f0j_source == 'qe':
-                f0j_core, computation_dict = calculate_f0j_core(cell_mat_m, type_symbols, index_vec_h, computation_dict)
-                f0j_core = jnp.array(f0j_core)
-            else:
-                f0j_core = jnp.array(calculate_f0j_core(cell_mat_m, type_symbols, constructed_xyz, index_vec_h, symm_mats_vecs))
-            f0j_core += f_dash[:, None]
-        elif refinement_dict['core'] == 'combine':
-            core_parameter = None
-            f0j_core = None
-        else:
-            raise ValueError('Choose either scale, constant or combine for core description')
-    else:
-        core_parameter = None
-        f0j_core = None
-    if 'extinction' in refinement_dict:
-        if refinement_dict['extinction'] == 'secondary':
-            extinction_parameter = additional_parameters + 1
-            additional_parameters += 1
-            wavelength = None
-        elif refinement_dict['extinction'] == 'none':
-            extinction_parameter = None
-            wavelength = None
-        elif refinement_dict['extinction'] == 'shelxl':
-            assert 'wavelength' in refinement_dict, 'Wavelength needs to be defined in refinement_dict for shelxl extinction'
-            extinction_parameter = additional_parameters + 1
-            wavelength = refinement_dict['wavelength']
-            additional_parameters += 1
-        else:
-            raise ValueError('Choose either shelxl, secondary or none for extinction description')
-    else:
-        extinction_parameter = None
-        wavelength = None
+    reload_step = refinement_dict.get('reload_step', 1)
 
-    if 'max_diff_recalc' in refinement_dict:
-        max_distance_diff = refinement_dict['max_distance_recalc']
-    else:
-        max_distance_diff = 1e-6
+    restraints = refinement_dict.get('restraints', [])
+    if len(restraints) > 0:
+        warnings.warn('Restraints are still highly experimental, The current implementation did not reproduce SHELXL results. So do not use them for research right now!')
 
-    if 'weights' not in hkl.columns:
-        hkl['weights'] = 1 / hkl['esd_int']**2
+    core = refinement_dict.get('core', 'constant')
+    if f0j_source in ('iam') and core != 'combine':
+        warnings.warn('core description is not possible with this f0j source')
+    if core in ('scale', 'constant'):
+        if f0j_source == 'qe':
+            f0j_core, computation_dict = calculate_f0j_core(cell_mat_m, type_symbols, index_vec_h, computation_dict)
+            f0j_core = jnp.array(f0j_core)
+        else:
+            f0j_core = jnp.array(calculate_f0j_core(cell_mat_m, type_symbols, constructed_xyz, index_vec_h, symm_mats_vecs))
+        f0j_core += f_dash[:, None]
+    elif refinement_dict['core'] == 'combine':
+        pass
+    else:
+        raise NotImplementedError('Choose either scale, constant or combine for core description')
+
+    max_distance_diff = refinement_dict.get('max_distance_recalc', 1e-6)
+
+    max_iter = refinement_dict.get('max_iter', 100)
+
+    min_iter = refinement_dict.get('min_iter', 10)
+
+    if 'weight' not in hkl.columns:
+        hkl['weight'] = 1 / hkl['esd_int']**2
 
     print('  calculating first atomic form factors')
     if reload_step == 0:
@@ -1126,17 +1206,14 @@ def har(
                                 symm_mats_vecs,
                                 jnp.array(hkl[['h', 'k', 'l']]),
                                 jnp.array(hkl['intensity']),
-                                jnp.array(hkl['weights']),
+                                jnp.array(hkl['weight']),
                                 construction_instructions,
                                 f0j_core,
-                                flack_parameter,
-                                core_parameter,
-                                extinction_parameter,
+                                refinement_dict,
                                 wavelength,
                                 restraints)
     print('  setting up gradients')
     grad_calc_lsq = jax.jit(jax.grad(calc_lsq))
-
 
     def minimize_scaling(x, parameters):
         parameters_new = None
@@ -1154,7 +1231,7 @@ def har(
     print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)):8.6f}, nit: {x.nit}, {x.message}')
 
     r_opt_density = 1e10
-    for refine in range(20):
+    for refine in range(max_iter):
         print(f'  minimizing least squares sum')
         x = minimize(calc_lsq,
                      parameters,
@@ -1163,20 +1240,13 @@ def har(
                      args=(jnp.array(fjs)),
                      options={'gtol': 1e-8 * jnp.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)})
         
-        #x = jminimize(
-        #    calc_lsq,
-        #    x0=parameters,
-        #    method='BFGS',
-        #    args=(jnp.array(fjs))
-        #)
         print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)):8.6f}, nit: {x.nit}, {x.message}')
         shift = parameters - x.x
         parameters = jnp.array(x.x) 
         #if x.nit == 0:
         #    break
-        if x.fun < r_opt_density or refine < 10:
+        if x.fun < r_opt_density or refine < min_iter:
             r_opt_density = x.fun
-            #parameters_min1 = jnp.array(x.x)
         else:
             break
         #with open('save_par_model.pkl', 'wb') as fo:
@@ -1195,25 +1265,25 @@ def har(
             del(fjs)
             if f0j_source == 'gpaw_lcorr':
                 fjs = calc_f0j(cell_mat_m,
-                            type_symbols,
-                            constructed_xyz,
-                            constructed_uij,
-                            index_vec_h,
-                            symm_mats_vecs,
-                            computation_dict=computation_dict,
-                            save='save.gpw',
-                            restart=restart,
-                            explicit_core=f0j_core is not None)
+                               type_symbols,
+                               constructed_xyz,
+                               constructed_uij,
+                               index_vec_h,
+                               symm_mats_vecs,
+                               computation_dict=computation_dict,
+                               save='save.gpw',
+                               restart=restart,
+                               explicit_core=f0j_core is not None)
             else:
                 fjs = calc_f0j(cell_mat_m,
-                            type_symbols,
-                            constructed_xyz,
-                            index_vec_h,
-                            symm_mats_vecs,
-                            computation_dict=computation_dict,
-                            save='save.gpw',
-                            restart=restart,
-                            explicit_core=f0j_core is not None)
+                               type_symbols,
+                               constructed_xyz,
+                               index_vec_h,
+                               symm_mats_vecs,
+                               computation_dict=computation_dict,
+                               save='save.gpw',
+                               restart=restart,
+                               explicit_core=f0j_core is not None)
             if f0j_core is None:
                 fjs += f_dash[None,:,None]
             xyz_density = constructed_xyz
@@ -1223,23 +1293,27 @@ def har(
     var_cov_mat = calc_var_cor_mat(cell_mat_m,
                                    symm_mats_vecs,
                                    index_vec_h,
-                                   construction_instructions,
                                    jnp.array(hkl['intensity']),
-                                   jnp.array(hkl['weights']),
+                                   jnp.array(hkl['weight']),
+                                   construction_instructions,
+                                   f0j_core,
                                    parameters,
                                    fjs,
-                                   f0j_core,
-                                   flack_parameter,
-                                   core_parameter,
-                                   extinction_parameter,
+                                   refinement_dict,
                                    wavelength)
-    if f0j_core is not None:
-        if core_parameter is not None:
-            fjs_all = parameters[core_parameter] * fjs + f0j_core[None, :, :]
+    if core == 'constant':
+        fjs_all = fjs + f0j_core[None, :, :]
+    elif core == 'scale':
+        # only flack and scaling factor can be before core parameter
+        if refinement_dict.get('flack', False):
+            core_parameter = 2
         else:
-            fjs_all = fjs + f0j_core[None, :, :]
-    else:
+            core_parameter = 1
+        fjs_all = parameters[core_parameter] * fjs + f0j_core[None, :, :]
+    elif core == 'combine':
         fjs_all = fjs
+    else:
+        raise NotImplementedError('The used core is not implemented at the end of the har function (calculation of f0j')
     shift_ov_su = shift / np.sqrt(np.diag(var_cov_mat))
     end = datetime.datetime.now()
     print('Ended refinement at ', end)

@@ -1,6 +1,7 @@
 from collections import namedtuple
 import jax.numpy as np
 import pandas as pd
+import warnings
 from .conversion import ucif2ucart
 
 
@@ -62,9 +63,11 @@ RigidADPRestrInd = namedtuple('RigidADPRestrInd', [
 
 ### Functions
 
+
 def create_restraint_instructions(atom_table, restraints):
     # For the time being takes only explicit pairs. In the end shoud be modified to take ranges like SIMU in ShelXL
     # At the end maybe even do SAME
+    warnings.warn('Restraints are still buggy, not implemented in the esd calculation and severly undertested. You should not use them for publication results at the moment.')
     return_list = []
     names = atom_table['label']
     for restraint in restraints:

@@ -9,7 +9,7 @@ from . import cubetools
 from scipy.interpolate import interp1d
 from scipy.integrate import simps
 import warnings
-from .core import expand_symm_unique
+from ..core import expand_symm_unique
 
 mass_dict = {
     'H': 1.008,  'He': 4.0026, 'Li': 6.9675, 'Be': 9.0122, 'B': 10.814, 'C': 12.011, 'N': 14.007, 'O': 15.999,

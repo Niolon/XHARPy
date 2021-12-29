@@ -18,7 +18,7 @@ from scipy.interpolate import interp1d
 from scipy.integrate import simps
 import gpaw
 import warnings
-from .core import expand_symm_unique
+from ..core import expand_symm_unique
 
 
 class HirshfeldDensity(RealSpaceDensity):

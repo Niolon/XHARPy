@@ -15,12 +15,12 @@ from scipy.special import spherical_jn
 import gpaw
 import warnings
 import importlib.resources as pkg_resources
-from .core import expand_symm_unique
-from .grid.atomgrid import AtomGrid
-from .grid.onedgrid import HortonLinear
-from .grid.rtransform import PowerRTransform
-from .grid.utils import get_cov_radii
-from .real_spher_harm import ylm_func_dict
+from ..core import expand_symm_unique
+from ..grid.atomgrid import AtomGrid
+from ..grid.onedgrid import HortonLinear
+from ..grid.rtransform import PowerRTransform
+from ..grid.utils import get_cov_radii
+from ..real_spher_harm import ylm_func_dict
 from . import rho
 
 

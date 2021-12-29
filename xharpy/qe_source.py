@@ -46,7 +46,7 @@ def qe_entry_string(name, value, string_sign=True):
         raise NotImplementedError(f'{type(value)} is not implemented')
     return f'    {name} = {entry_str}'
 
-def qe_pw_file(symm_symbols, symm_positions, cell_mat_m, options_dict):
+def qe_pw_file(symm_symbols, symm_positions, cell_mat_m, computation_dict):
     qe_options = {
         'control': {
             'prefix': 'scf',
@@ -63,7 +63,7 @@ def qe_pw_file(symm_symbols, symm_positions, cell_mat_m, options_dict):
             'mixing_beta': 0.2
         }
     }
-    for section, secval in options_dict.items():
+    for section, secval in computation_dict.items():
         if section in ('paw_files', 'core_electrons', 'k_points'):
             # these are either given in tables in QE or not used
             continue
@@ -73,11 +73,11 @@ def qe_pw_file(symm_symbols, symm_positions, cell_mat_m, options_dict):
             qe_options[section] = secval
     output = []
     unique_symbols = set(symm_symbols)
-    assert 'paw_files' in options_dict, "'paw_files' entry in options_dict is missing"
+    assert 'paw_files' in computation_dict, "'paw_files' entry in computation_dict is missing"
     lines = []
     for symbol in unique_symbols:
-        assert symbol in options_dict['paw_files'], f"No paw file (e.g. .UPF) given for {symbol} in options_dict['paw_files']"
-        pp = options_dict['paw_files'][symbol]
+        assert symbol in computation_dict['paw_files'], f"No paw file (e.g. .UPF) given for {symbol} in computation_dict['paw_files']"
+        pp = computation_dict['paw_files'][symbol]
         mass = mass_dict[symbol]
         lines.append(f'{symbol} {mass:8.3f}  {pp}')
     pp_string = '\n'.join(lines)
@@ -86,8 +86,8 @@ def qe_pw_file(symm_symbols, symm_positions, cell_mat_m, options_dict):
     output.append('CELL_PARAMETERS angstrom\n' + cell_mat_str)
     atoms_string = '\n'.join(f'{sym} {pos[0]:12.10f} {pos[1]:12.10f} {pos[2]:12.10f}' for sym, pos in zip(symm_symbols, symm_positions))
     output.append('ATOMIC_POSITIONS crystal\n' + atoms_string)
-    if 'k_points' in options_dict:
-        output.append(f"K_POINTS {options_dict['k_points']['mode']}\n{options_dict['k_points']['input']}")
+    if 'k_points' in computation_dict:
+        output.append(f"K_POINTS {computation_dict['k_points']['mode']}\n{computation_dict['k_points']['input']}")
 
     qe_options['system']['nat'] = symm_positions.shape[0]
     qe_options['system']['ntyp'] = len(unique_symbols)
@@ -104,7 +104,7 @@ def qe_pw_file(symm_symbols, symm_positions, cell_mat_m, options_dict):
     output.insert(0, '\n'.join(lines))
     return '\n\n'.join(output) + '\n\n'
 
-def qe_pp_file(options_dict):
+def qe_pp_file(computation_dict):
     qe_options = {
         'inputpp': {
             'prefix': 'scf',
@@ -117,11 +117,11 @@ def qe_pp_file(options_dict):
             'fileout': 'density.cube'
         }
     }
-    if 'control' in options_dict and 'prefix' in options_dict['control']:
-        qe_options['inputpp']['prefix'] = options_dict['control']['prefix']
-    if 'control' in options_dict and 'prefix' in options_dict['control']:
-        qe_options['inputpp']['prefix'] = options_dict['control']['prefix']
-    if 'core_electrons' in options_dict:
+    if 'control' in computation_dict and 'prefix' in computation_dict['control']:
+        qe_options['inputpp']['prefix'] = computation_dict['control']['prefix']
+    if 'control' in computation_dict and 'prefix' in computation_dict['control']:
+        qe_options['inputpp']['prefix'] = computation_dict['control']['prefix']
+    if 'core_electrons' in computation_dict:
         # we have precalculated core electrons -> FT(core) has been done separately
         qe_options['inputpp']['plot_num'] = 17
     lines = []
@@ -135,63 +135,63 @@ def qe_pp_file(options_dict):
         lines.append('/')
     return '\n'.join(lines) + '\n\n'
     
-def qe_density(symm_symbols, symm_positions, cell_mat_m, options_dict):
+def qe_density(symm_symbols, symm_positions, cell_mat_m, computation_dict):
     with open('pw.in', 'w') as fo:
-        fo.write(qe_pw_file(symm_symbols, symm_positions, cell_mat_m, options_dict))
+        fo.write(qe_pw_file(symm_symbols, symm_positions, cell_mat_m, computation_dict))
     #time.sleep(1)
     #with open('pw.out', 'w') as fo:
     #    subprocess.call(['pw.x', '-i', 'pw.in', '-o', 'pw.out'], stdout=fo, stderr=subprocess.DEVNULL, shell=True)
     subprocess.call(['pw.x -i pw.in'], stderr=subprocess.DEVNULL, shell=True)
     with open('pp.in', 'w') as fo:
-        fo.write(qe_pp_file(options_dict))
+        fo.write(qe_pp_file(computation_dict))
     with open('pp.out', 'w') as fo:
         subprocess.call(['pp.x', '-i', 'pp.in'], stdout=fo, stderr=subprocess.DEVNULL)
     density, _ = cubetools.read_cube('density.cube')
     element_list = list(mass_dict.keys())
     n_elec = sum([element_list.index(symb) + 1 for symb in symm_symbols])
-    if 'core_density' in options_dict:
-        n_elec -= sum([options_dict['core_density'][symb] for symb in symm_symbols])
-        print(options_dict['core_density'])
+    if 'core_density' in computation_dict:
+        n_elec -= sum([computation_dict['core_density'][symb] for symb in symm_symbols])
+        print(computation_dict['core_density'])
     print(len(symm_symbols), n_elec)
     return density * n_elec / density.sum()
 
-def qe_atomic_density(symm_symbols, symm_positions, cell_mat_m, options_dict):
-    at_options_dict = deepcopy(options_dict)
-    if 'electrons' not in at_options_dict:
-        at_options_dict['electrons'] = {}
-    if 'control' not in at_options_dict:
-        at_options_dict['control'] = {}
-    at_options_dict['control']['prefix'] = 'adensity'
-    at_options_dict['electrons']['electron_maxstep'] = 0
-    at_options_dict['electrons']['startingwfc'] = 'atomic'
-    at_options_dict['electrons']['scf_must_converge'] = False
-    return qe_density(symm_symbols, symm_positions, cell_mat_m, at_options_dict)
+def qe_atomic_density(symm_symbols, symm_positions, cell_mat_m, computation_dict):
+    at_computation_dict = deepcopy(computation_dict)
+    if 'electrons' not in at_computation_dict:
+        at_computation_dict['electrons'] = {}
+    if 'control' not in at_computation_dict:
+        at_computation_dict['control'] = {}
+    at_computation_dict['control']['prefix'] = 'adensity'
+    at_computation_dict['electrons']['electron_maxstep'] = 0
+    at_computation_dict['electrons']['startingwfc'] = 'atomic'
+    at_computation_dict['electrons']['scf_must_converge'] = False
+    return qe_density(symm_symbols, symm_positions, cell_mat_m, at_computation_dict)
 
 
 
-def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs, options_dict=None, restart=None, explicit_core=True, save=None):
+def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs, computation_dict=None, restart=None, explicit_core=True, save=None):
     """
     Calculate the aspherical atomic form factors from a density grid in the python package gpaw
     for each reciprocal lattice vector present in index_vec_h.
     """
-    assert options_dict is not None, 'there is no default options_dict for the qe_source'
-    options_dict = deepcopy(options_dict)
-    if 'average_symmequiv' in options_dict:
-        average_symmequiv = options_dict['average_symmequiv']
+    assert computation_dict is not None, 'there is no default computation_dict for the qe_source'
+    computation_dict = deepcopy(computation_dict)
+    if 'average_symmequiv' in computation_dict:
+        average_symmequiv = computation_dict['average_symmequiv']
         #print(f'average symmetry equivalents: {average_symmequiv}')
-        del(options_dict['average_symmequiv'])
+        del(computation_dict['average_symmequiv'])
     else:
         average_symmequiv = False
-    if 'skip_symm' in options_dict:
-        assert len(options_dict['skip_symm']) == 0 or average_symmequiv, 'skip_symm does need average_symmequiv' 
-        skip_symm = options_dict['skip_symm']
-        del(options_dict['skip_symm'])
+    if 'skip_symm' in computation_dict:
+        assert len(computation_dict['skip_symm']) == 0 or average_symmequiv, 'skip_symm does need average_symmequiv' 
+        skip_symm = computation_dict['skip_symm']
+        del(computation_dict['skip_symm'])
     else:
         skip_symm = {}
     if restart:
-        if 'electrons' not in options_dict:
-            options_dict['electrons'] = {}
-        options_dict['electrons']['startingwfc'] = 'file'
+        if 'electrons' not in computation_dict:
+            computation_dict['electrons'] = {}
+        computation_dict['electrons']['startingwfc'] = 'file'
 
 
     #assert not (not average_symmequiv and not do_not_move)
@@ -202,10 +202,10 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
                                                                                  skip_symm=skip_symm,
                                                                                  magmoms=None)
 
-    density = qe_density(symm_symbols, symm_positions, cell_mat_m, options_dict)
+    density = qe_density(symm_symbols, symm_positions, cell_mat_m, computation_dict)
     print('  calculated density')
 
-    overall_hdensity = qe_atomic_density(symm_symbols, symm_positions, cell_mat_m, options_dict)
+    overall_hdensity = qe_atomic_density(symm_symbols, symm_positions, cell_mat_m, computation_dict)
     assert -density.shape[0] // 2 < index_vec_h[:,0].min(), 'Your gridspacing is too large.'
     assert density.shape[0] // 2 > index_vec_h[:,0].max(), 'Your gridspacing is too large.'
     assert -density.shape[1] // 2 < index_vec_h[:,1].min(), 'Your gridspacing is too large.'
@@ -219,7 +219,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
         for atom_index, symm_atom_indexes in enumerate(f0j_indexes):
             f0j_sum = np.zeros_like(h, dtype=np.complex128)
             for symm_matrix, symm_atom_index in zip(symm_mats_vecs[0], symm_atom_indexes):
-                atomic_density = qe_atomic_density([symm_symbols[symm_atom_index]], symm_positions[None,symm_atom_index,:],cell_mat_m, options_dict)
+                atomic_density = qe_atomic_density([symm_symbols[symm_atom_index]], symm_positions[None,symm_atom_index,:],cell_mat_m, computation_dict)
                 h_density = density * atomic_density/ overall_hdensity
                 frac_position = symm_positions[symm_atom_index]
                 h_rot, k_rot, l_rot = np.einsum('xy, y... -> x...', symm_matrix, np.array((h, k, l))).astype(np.int64)
@@ -242,7 +242,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
                     equiv_symm_index, equiv_atom_index = already_known[symm_atom_index]
                     f0j[symm_index, atom_index, :] = f0j[equiv_symm_index, equiv_atom_index, :].copy()
                 else:
-                    atomic_density = qe_atomic_density([symm_symbols[symm_atom_index]], symm_positions[None,symm_atom_index,:],cell_mat_m, options_dict)
+                    atomic_density = qe_atomic_density([symm_symbols[symm_atom_index]], symm_positions[None,symm_atom_index,:],cell_mat_m, computation_dict)
                     h_density = density * atomic_density/ overall_hdensity
                     frac_position = symm_positions[symm_atom_index]
                     phase_to_zero = np.exp(-2j * np.pi * (frac_position[0] * h_vec + frac_position[1] * k_vec + frac_position[2] * l_vec))
@@ -265,15 +265,15 @@ def f_core_from_spline(spline, g_k, k=13):
     return simps(int_me, x=r) * y00_factor
 
 
-def calculate_f0j_core(cell_mat_m, element_symbols, index_vec_h, options_dict):
+def calculate_f0j_core(cell_mat_m, element_symbols, index_vec_h, computation_dict):
     ang_per_bohr = 0.529177210903
     cell_mat_f = np.linalg.inv(cell_mat_m).T
     g_k3 = np.einsum('xy, zy -> zx', cell_mat_f, index_vec_h)
     g_k = np.linalg.norm(g_k3, axis=-1) * ang_per_bohr
-    pseudo_folder = options_dict['control']['pseudo_dir']
+    pseudo_folder = computation_dict['control']['pseudo_dir']
     core_factors_element = {}
     core_electrons = {}
-    for element_symbol, upf_name in options_dict['paw_files'].items():
+    for element_symbol, upf_name in computation_dict['paw_files'].items():
         assert upf_name.lower().endswith('.upf'), 'Currently only .upf files are implemented for core description'
         print(  f'  calculating core density for {element_symbol} from {upf_name}')
         with open(os.path.join(pseudo_folder, upf_name)) as fo:
@@ -298,5 +298,5 @@ def calculate_f0j_core(cell_mat_m, element_symbols, index_vec_h, options_dict):
         y00_factor = 0.5 * np.pi**(-0.5)
         int_me = 4 * np.pi * r**2  * core * j0
         core_factors_element[element_symbol] = simps(int_me, x=r) * y00_factor
-    options_dict['core_electrons'] = core_electrons
-    return np.array([core_factors_element[symbol] for symbol in element_symbols]), options_dict
+    computation_dict['core_electrons'] = core_electrons
+    return np.array([core_factors_element[symbol] for symbol in element_symbols]), computation_dict

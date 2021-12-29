@@ -639,7 +639,7 @@ element_parameters = {
               13.267400]
 }
 
-def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs, options_dict=None, restart=None, save=None, explicit_core=False):
+def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs, computation_dict=None, restart=None, save=None, explicit_core=False):
     cell_mat_f = np.linalg.inv(cell_mat_m)
     vec_S_norm = np.linalg.norm(np.einsum('xy, hy -> hx', cell_mat_f.T, index_vec_h), axis=-1)
     n_symm = symm_mats_vecs[0].shape[0]

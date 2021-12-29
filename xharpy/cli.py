@@ -68,7 +68,7 @@ def cli(**kwargs):
     else:
         extinction = kwargs['extinction'][0]
 
-    options_dict = {
+    computation_dict = {
         'xc': 'SCAN',
         'txt': 'gpaw.txt',
         'mode': 'fd',
@@ -80,20 +80,20 @@ def cli(**kwargs):
         'symmetry': {'symmorphic': False}
     }
     if 'xc' not in kwargs:
-        options_dict['xc'] = input_with_default(
+        computation_dict['xc'] = input_with_default(
             'Give the name of the functional for the calculation in GPAW',
             'SCAN'
         )
     else:
-        options_dict['xc'] = kwargs['xc'][0]
+        computation_dict['xc'] = kwargs['xc'][0]
     
     if 'gridspacing' not in kwargs:
-        options_dict['h'] = float(input_with_default(
+        computation_dict['h'] = float(input_with_default(
             'Give the grid-spacing for the FD wavefunction calculation',
             '0.20'
         ))
     else:
-        options_dict['h'] = kwargs['gridspacing'][0]
+        computation_dict['h'] = kwargs['gridspacing'][0]
 
     if 'kpoints' not in kwargs:
         kpoints_str = input_with_default(
@@ -108,7 +108,7 @@ def cli(**kwargs):
     else:
         kpoints = kwargs['kpoints']
 
-    options_dict['kpts'] = {'size': tuple(kpoints), 'gamma': True}
+    computation_dict['kpts'] = {'size': tuple(kpoints), 'gamma': True}
 
     if 'mpi_cores' not in kwargs:
         mpi_string = input_with_default(
@@ -122,7 +122,7 @@ def cli(**kwargs):
     elif mpi_string.strip() == '1':
         calc_source = 'gpaw'
     else:
-        options_dict['mpicores'] = int(mpi_string)
+        computation_dict['mpicores'] = int(mpi_string)
         calc_source = 'gpaw_mpi'
 
     if 'output_folder' not in kwargs:
@@ -150,7 +150,7 @@ def cli(**kwargs):
         hkl,
         construction_instructions,
         parameters,
-        options_dict=options_dict,
+        computation_dict=computation_dict,
         f0j_source=calc_source,
         reload_step=1,
         refinement_dict=refinement_dict
@@ -170,7 +170,7 @@ def cli(**kwargs):
         symm_mats_vecs=symm_mats_vecs,
         hkl=hkl,
         shift_ov_su=information['shift_ov_su'],
-        options_dict=options_dict,
+        computation_dict=computation_dict,
         refine_dict=refinement_dict,
         cell=cell,
         cell_std=cell_std

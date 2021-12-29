@@ -352,41 +352,41 @@ with open('core_r_values.pic', 'wb') as fo:
 """
 
 
-def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs, options_dict=None, restart=None, save='gpaw.gpw', explicit_core=True):
+def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs, computation_dict=None, restart=None, save='gpaw.gpw', explicit_core=True):
     """
     Calculate the aspherical atomic form factors from a density grid in the python package gpaw
     for each reciprocal lattice vector present in index_vec_h.
     """
-    if options_dict is None:
-        options_dict = {'xc': 'PBE', 'txt': 'gpaw.txt', 'h': 0.15, 'setups': 'paw'}
+    if computation_dict is None:
+        computation_dict = {'xc': 'PBE', 'txt': 'gpaw.txt', 'h': 0.15, 'setups': 'paw'}
     else:
-        options_dict = options_dict.copy()
-    if 'gridinterpolation' in options_dict:
-        gridinterpolation = options_dict['gridinterpolation']
+        computation_dict = computation_dict.copy()
+    if 'gridinterpolation' in computation_dict:
+        gridinterpolation = computation_dict['gridinterpolation']
         #print(f'gridinterpolation set to {gridinterpolation}')
-        del(options_dict['gridinterpolation'])
+        del(computation_dict['gridinterpolation'])
     else:
         gridinterpolation = 2
-    if 'average_symmequiv' in options_dict:
-        average_symmequiv = options_dict['average_symmequiv']
+    if 'average_symmequiv' in computation_dict:
+        average_symmequiv = computation_dict['average_symmequiv']
         #print(f'average symmetry equivalents: {average_symmequiv}')
-        del(options_dict['average_symmequiv'])
+        del(computation_dict['average_symmequiv'])
     else:
         average_symmequiv = False
-    if 'skip_symm' in options_dict:
-        assert len(options_dict['skip_symm']) == 0 or average_symmequiv, 'skip_symm does need average_symmequiv' 
-        skip_symm = options_dict['skip_symm']
-        del(options_dict['skip_symm'])
+    if 'skip_symm' in computation_dict:
+        assert len(computation_dict['skip_symm']) == 0 or average_symmequiv, 'skip_symm does need average_symmequiv' 
+        skip_symm = computation_dict['skip_symm']
+        del(computation_dict['skip_symm'])
     else:
         skip_symm = {}
-    if 'magmoms' in options_dict:
-        magmoms = options_dict['magmoms']
-        del(options_dict['magmoms'])
+    if 'magmoms' in computation_dict:
+        magmoms = computation_dict['magmoms']
+        del(computation_dict['magmoms'])
     else:
         magmoms = None
-    if 'mpicores' in options_dict:
-        ncores = options_dict['mpicores']
-        del(options_dict['mpicores'])
+    if 'mpicores' in computation_dict:
+        ncores = computation_dict['mpicores']
+        del(computation_dict['mpicores'])
     else:
         ncores = None
     
@@ -409,7 +409,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
             'cell': cell_mat_m.T,
             'magmoms': magmoms_symm
         },
-        'kw_gpaw': options_dict,
+        'kw_gpaw': computation_dict,
         'restart': restart,
         'save': save
     }

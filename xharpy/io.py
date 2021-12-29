@@ -913,7 +913,7 @@ def write_cif(output_cif_name,
               symm_mats_vecs,
               hkl,
               shift_ov_su,
-              options_dict,
+              computation_dict,
               refine_dict,
               cell,
               cell_std):
@@ -931,7 +931,7 @@ def write_cif(output_cif_name,
     esd_int = hkl['esd_int'].values
     cell_mat_m = cell_constants_to_M(*cell)
     cell_mat_f = np.linalg.inv(cell_mat_m).T
-    ishar = all([value in options_dict for value in ('xc', 'h', 'gridinterpolation', 'mode', 'basis', 'convergence', 'kpts')])
+    ishar = all([value in computation_dict for value in ('xc', 'h', 'gridinterpolation', 'mode', 'basis', 'convergence', 'kpts')])
     constructed_xyz, constructed_uij, constructed_cijk, constructed_dijkl, constructed_occupancies = construct_values(parameters, construction_instructions, cell_mat_m)
 
     structure_factors = np.array(calc_f(
@@ -956,12 +956,12 @@ def write_cif(output_cif_name,
     derived from Hirshfeld densities
   - Density calculation was done with ASE/GPAW using the
     following settings
-      xc: {options_dict['xc']}
-      h: {options_dict['h']}
+      xc: {computation_dict['xc']}
+      h: {computation_dict['h']}
       core: {refine_dict['core']}
-      grid_mult: {options_dict['gridinterpolation']}
-      density_conv: {options_dict['convergence']['density']}
-      kpts: ({options_dict['kpts']['size'][0]},{options_dict['kpts']['size'][1]},{options_dict['kpts']['size'][2]})"""
+      grid_mult: {computation_dict['gridinterpolation']}
+      density_conv: {computation_dict['convergence']['density']}
+      kpts: ({computation_dict['kpts']['size'][0]},{computation_dict['kpts']['size'][1]},{computation_dict['kpts']['size'][2]})"""
     else:
          refinement_string += f"""
  - Refinement was done using structure factors

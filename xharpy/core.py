@@ -996,7 +996,7 @@ def har(
     parameters, 
     f0j_source='gpaw', 
     reload_step=1, 
-    options_dict={}, 
+    computation_dict={}, 
     refinement_dict={}, 
     restraints=[]
 ):
@@ -1008,7 +1008,7 @@ def har(
     start = datetime.datetime.now()
     print('Started refinement at ', start)
     cell_mat_m = cell_constants_to_M(*cell)
-    options_dict = deepcopy(options_dict)
+    computation_dict = deepcopy(computation_dict)
     print('Preparing')
     index_vec_h = jnp.array(hkl[['h', 'k', 'l']].values.copy())
     type_symbols = [atom.element for atom in construction_instructions]
@@ -1051,7 +1051,7 @@ def har(
             else:
                 core_parameter = None
             if f0j_source == 'qe':
-                f0j_core, options_dict = calculate_f0j_core(cell_mat_m, type_symbols, index_vec_h, options_dict)
+                f0j_core, computation_dict = calculate_f0j_core(cell_mat_m, type_symbols, index_vec_h, computation_dict)
                 f0j_core = jnp.array(f0j_core)
             else:
                 f0j_core = jnp.array(calculate_f0j_core(cell_mat_m, type_symbols, constructed_xyz, index_vec_h, symm_mats_vecs))
@@ -1103,7 +1103,7 @@ def har(
                        constructed_uij,
                        index_vec_h,
                        symm_mats_vecs,
-                       options_dict=options_dict,
+                       computation_dict=computation_dict,
                        save='save.gpw',
                        restart=restart,
                        explicit_core=f0j_core is not None)
@@ -1113,7 +1113,7 @@ def har(
                        constructed_xyz,
                        index_vec_h,
                        symm_mats_vecs,
-                       options_dict=options_dict,
+                       computation_dict=computation_dict,
                        save='save.gpw',
                        restart=restart,
                        explicit_core=f0j_core is not None)
@@ -1200,7 +1200,7 @@ def har(
                             constructed_uij,
                             index_vec_h,
                             symm_mats_vecs,
-                            options_dict=options_dict,
+                            computation_dict=computation_dict,
                             save='save.gpw',
                             restart=restart,
                             explicit_core=f0j_core is not None)
@@ -1210,7 +1210,7 @@ def har(
                             constructed_xyz,
                             index_vec_h,
                             symm_mats_vecs,
-                            options_dict=options_dict,
+                            computation_dict=computation_dict,
                             save='save.gpw',
                             restart=restart,
                             explicit_core=f0j_core is not None)

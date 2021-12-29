@@ -1,7 +1,7 @@
 import sys
 import os
 import argparse
-from .xharpy import har, create_construction_instructions
+from .core import har, create_construction_instructions
 from .io import cif2data, lst2constraint_dict, write_cif, write_fcf, shelxl_hkl_to_pd
 
 

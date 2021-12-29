@@ -1,11 +1,13 @@
 from ase.units import C
 from jax._src.numpy.lax_numpy import deg2rad
 from jax.config import config
+from jax.core import Value
 config.update('jax_enable_x64', True)
 
 import datetime
 from typing import List, Set, Dict, Tuple, Optional, Union, Any
 import jax.numpy as jnp
+import pandas as pd
 from collections import namedtuple
 import warnings
 import jax
@@ -98,13 +100,13 @@ TrigonalPositionConstraint = namedtuple('TrigonalPositionConstraint', [
     'distance' # interatomic distance
 ])
 
-TorsionPositionConstraint = namedtuple('TorsionCalculated', [
+TorsionPositionConstraint = namedtuple('TorsionPositionConstraint', [
     'bound_atom_name',   # index of  atom the derived atom is bound_to
     'angle_atom_name',   # index of atom spanning the given angle with bound atom
     'torsion_atom_name', # index of atom giving the torsion angle
     'distance',           # interatom distance
     'angle',              # interatom angle
-    'torsion_angle_add'   # interatom torsion angle addition. Use e.g 120° for second sp3 atom,
+    'torsion_angle_add',  # interatom torsion angle addition. Use e.g 120° for second sp3 atom,
     'refine'              # If True torsion angle will be refined otherwise it will be fixed to torsion_angle_add
 ])
 
@@ -132,13 +134,12 @@ def expand_symm_unique(
         magmoms (Optional[npt.NDArray[np.float64]], optional): [description]. Defaults to None.
 
     Returns:
-        un_positions (npt.NDArray[np.float64]): (M, 3) array of unique atom positions within the
+        npt.NDArray[np.float64]: (M, 3) array of unique atom positions within the
             unit cell
-        type_symbols_symm (List[str]): List of length M with element symbols for the unique atom 
-            positions within the unit cell
-        inv_indexes (npt.NDArray[np.float64]): (K, N) matrix to with indexes mapping the unique atom positions
+        List[str]: List of length M with element symbols for the unique atom positions within the unit cell
+        npt.NDArray[np.float64]: (K, N) matrix to with indexes mapping the unique atom positions
             back to the individual symmetry elements and atom positions in the asymmetric unit
-        magmoms_symm (Optional[npt.NDArray[np.float64]]], optional): numpy array containing magnetic moments for
+        Optional[npt.NDArray[np.float64]], optional): numpy array containing magnetic moments for
            symmetry generated atoms
     """
     symm_mats_r, symm_vecs_t = symm_mats_vec
@@ -188,7 +189,8 @@ def calc_f(
     """Given a set of parameters, calculate the structure factors for all given reflections
 
     Args:
-        xyz (jnp.ndarray): (N,3) array of atom positions in the asymmetric unit
+        xyz (jnp.ndarray): (N,3) array of fractional coordinates for the atoms in the 
+            asymmetric unit
         uij (jnp.ndarray): (N, 6) array of anisotropic displacement parameters 
             (isotropic parameters have to be transformed to anitropic parameters).
             Parameters need to be in convention as used e.g. Shelxl or the cif as U.
@@ -201,7 +203,7 @@ def calc_f(
             D1112, D1222, D1113, D_1333, D2223, D2333, D1122, D1133, D2233, D1123, D1223,
             D1233
         occupancies (jnp.ndarray): (N) array of atomic occupancies. Atoms on special positions
-            need to have and occupancy of 1/multiplicity
+            need to have an occupancy of 1/multiplicity
         index_vec_h (jnp.ndarray): (H, 3) array of Miller indicees of observed reflections
         cell_mat_f (jnp.ndarray): (3, 3) array with the reciprocal lattice vectors as
             row vectors
@@ -212,7 +214,7 @@ def calc_f(
             times and have the atomic form factor of the full atom.
 
     Returns:
-        structure factors (jnp.ndarray): (H) array with complex structure factors for each reflection
+        jnp.ndarray: (H)-sized array with complex structure factors for each reflection
     """    
     #einsum indexes: k: n_symm, z: n_atom, h[description]: n_hkl
     lengths_star = jnp.linalg.norm(cell_mat_f, axis=0)
@@ -292,20 +294,21 @@ def constrained_values_to_instruction(
     par_index: int,
     mult: float,
     add: float,
-    constraint: Any,
+    constraint: ConstrainedValues,
     current_index: int
 ) -> Parameter:
-    """[summary]
+    """Convert the given constraint instruction to the internal parameter representation for the
+    construction instructions.
 
     Args:
-        par_index (int): [description]
-        mult (float): [description]
-        add (float): [description]
-        constraint (Any): [description]
-        current_index (int): [description]
+        par_index (int): par_index as given in the ConstrainedValues
+        mult (float): multiplicator 
+        add (float): added_value
+        constraint (ConstrainedValues): source_constraint
+        current_index (int): current index for assigning parameters.
 
     Returns:
-        Any: [description]
+        Parameter: the appropriate RefinedParameter, MultiParameter or FixedParameter object
     """
     if isinstance(par_index, (tuple, list, np.ndarray)):
         assert len(par_index) == len(mult), 'par_index and mult have different lengths'
@@ -323,7 +326,15 @@ def constrained_values_to_instruction(
     else:
         return FixedParameter(value=float(add), special_position=constraint.special_position)
 
-def is_multientry(entry):
+def is_multientry(entry: Any) -> bool:
+    """Check if argument is a multientry
+
+    Args:
+        entry (Any): entry to be check
+
+    Returns:
+        bool: True if it is a multientry (list, tuple or ndarray)
+    """    
     if isinstance(entry, (list, tuple)):
         return True
     elif isinstance(entry, (jnp.ndarray, np.ndarray)) and len(entry.shape) != 0:
@@ -331,22 +342,57 @@ def is_multientry(entry):
     else: 
         return False
 
-
-
 # construct the instructions for building the atomic parameters back from the linear parameter matrix
 def create_construction_instructions(
-    atom_table,
-    constraint_dict, 
-    cell=None, 
-    atoms_for_gc3=[], 
-    atoms_for_gc4=[], 
-    scaling0=1.0, 
-    exti0=1e-6, 
-    refinement_dict={}):
-    """
-    Creates the instructions that are needed for reconstructing all atomic parameters from the refined parameters
-    Additionally returns an initial guesss for the refined parameter list from the atom table.
-    """
+    atom_table: pd.DataFrame,
+    constraint_dict: Dict[str, Dict[str, ConstrainedValues]], 
+    cell: Optional[jnp.ndarray] = None, 
+    atoms_for_gc3: List[str] = [], 
+    atoms_for_gc4: List[str] = [], 
+    scaling0: float = 1.0, 
+    exti0: float = 1e-6, 
+    refinement_dict: Dict[str, Any] = {}
+) -> Tuple[List[AtomInstructions], jnp.ndarray]:
+    """Creates the list of atomic instructions that are used during the refinement to reconstruct the 
+    atomic parameters from the parameter list.
+
+    Args:
+        atom_table (pd.DataFrame): pandas DataFrame that contains the atomic information. Columns 
+            are named like their counterparts in the cif file but without the common start for
+            each table (e.g. atom_site_fract_x -> fract_x). The easiest way to generate an 
+            atom_table is with the cif2data function
+        constraint_dict (Dict[str, Dict[str, ConstrainedValues]]): outer key is the atom label
+            possible inner keys are: xyz, uij, cijk, dijkl and occ. The value of the inner 
+            dict needs to be one of the possible Constraint sources 
+        cell (Optional[jnp.ndarray], optional): jnp.array containing the cell parameters. Only
+            necessary to calculate starting values for refined torsion angles of placed hydrogen 
+            atoms. Defaults to None.
+        atoms_for_gc3 (List[str], optional): List of atoms for which Gram-Charlier parameters. 
+            of third order are to be refined. Defaults to [].
+        atoms_for_gc4 (List[str], optional): List of atoms for which Gram-Charlier parameters. 
+            of fourth order are to be refined. Defaults to [].
+        scaling0 (float, optional): Starting value for the overall scaling factor. Defaults to 1.0.
+        exti0 (float, optional): Starting value for the extinction correction parameter. Is only used
+            if extinction is actually refined. Defaults to 1e-6.
+        refinement_dict (Dict[str, Any], optional): Dictionary that contains options for the refinement.
+            Defaults to {}.
+
+    Raises:
+        ValueError: Found one or more missing essential columns in atom_table
+        NotImplementedError: Constraint Type is not implemented
+        NotImplementedError: Uij-type is not implemented
+
+    Returns:
+        List[AtomInstructions]: list of AtomInstructions used in the refinement.
+        jnp.ndarray: starting values for the parameters
+    """    
+    essential_columns = ['label', 'type_symbol', 'occupancy', 'fract_x', 'fract_y',
+                         'fract_z', 'type_scat_dispersion_real', 'type_scat_dispersion_imag'
+                         'adp_type']
+    missing_columns = [c for c in essential_columns if c not in atom_table.columns]
+    if len(missing_columns) > 0:
+        raise ValueError(f'The following columns were missing from the atom table {", ".join(missing_columns)}')
+
     for gc3_atom in atoms_for_gc3:
         assert gc3_atom in list(atom_table['label']), f'Atom {gc3_atom} in Gram-Charlier 3rd order list but not in atom table'
     for gc4_atom in atoms_for_gc4:
@@ -372,26 +418,26 @@ def create_construction_instructions(
         cell_mat_m = None
     else:
         cell_mat_m = cell_constants_to_M(*cell)
-    names = atom_table['label']   
+    names = list(atom_table['label'])
     for _, atom in atom_table.iterrows():
         xyz = atom[['fract_x', 'fract_y', 'fract_z']].values.astype(np.float64)
         if atom['label'] in constraint_dict.keys() and 'xyz' in constraint_dict[atom['label']].keys():
             constraint = constraint_dict[atom['label']]['xyz']
             if type(constraint).__name__ == 'TrigonalPositionConstraint':
-                bound_index = jnp.where(names == constraint.bound_atom_name)[0][0]
-                plane_atom1_index = jnp.where(names == constraint.plane_atom1_name)[0][0]
-                plane_atom2_index = jnp.where(names == constraint.plane_atom2_name)[0][0]
+                bound_index = names.index(constraint.bound_atom_name)
+                plane_atom1_index = names.index(constraint.plane_atom1_name)
+                plane_atom2_index = names.index(constraint.plane_atom2_name)
                 xyz_instructions = SingleTrigonalCalculated(bound_atom_index=bound_index,
                                                             plane_atom1_index=plane_atom1_index,
                                                             plane_atom2_index=plane_atom2_index,
                                                             distance=constraint.distance)
             elif type(constraint).__name__ == 'TorsionPositionConstraint':
-                bound_index = jnp.where(names == constraint.bound_atom_name)[0][0]
-                angle_index = jnp.where(names == constraint.angle_atom_name)[0][0]
-                torsion_index = jnp.where(names == constraint.torsion_atom_name)[0][0]
+                bound_index = names.index(constraint.bound_atom_name)
+                angle_index = names.index(constraint.angle_atom_name)
+                torsion_index = names.index(constraint.torsion_atom_name)
                 index_tuple = (bound_index, angle_index, torsion_index)
-                if not constraint.refined:
-                    torsion_index = None
+                if not constraint.refine:
+                    torsion_parameter_index = None
                 elif index_tuple not in known_torsion_indexes:
                     assert cell_mat_m is not None, 'You need to pass a cell for the calculation of the torsion start values.'
                     atom_cart = cell_mat_m @ xyz
@@ -414,20 +460,20 @@ def create_construction_instructions(
                     torsion0 = np.arctan2(y, x) - np.deg2rad(constraint.torsion_angle_add)
                     parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], torsion0)
                     known_torsion_indexes[index_tuple] = current_index
-                    torsion_index = current_index
+                    torsion_parameter_index = current_index
                     current_index += 1
                 else:
-                    torsion_index =  known_torsion_indexes[index_tuple]
+                    torsion_parameter_index = known_torsion_indexes[index_tuple]
                 
-                if constraint.refined:
+                if constraint.refine:
                     torsion_parameter = RefinedParameter(
-                        par_index=current_index,
+                        par_index=torsion_parameter_index,
                         multiplicator=1.0,
                         added_value=np.deg2rad(constraint.torsion_angle_add)
                     )
                 else:
                     torsion_parameter = FixedParameter(
-                        value=constraint.torsion_angle_add
+                        value=np.deg2rad(constraint.torsion_angle_add)
                     )
                 xyz_instructions = TorsionCalculated(
                     bound_atom_index=bound_index,
@@ -477,7 +523,7 @@ def create_construction_instructions(
                     )
                     current_index += n_pars
                 elif type(constraint).__name__ == 'UEquivConstraint':
-                    bound_index = jnp.where(names == constraint.bound_atom)[0][0]
+                    bound_index = names.index(constraint.bound_atom)
                     adp_instructions = UEquivCalculated(atom_index=bound_index, multiplicator=constraint.multiplicator)
                 else:
                     raise NotImplementedError('Unknown Uij Constraint')
@@ -569,9 +615,37 @@ def create_construction_instructions(
 
 
 
-def construct_values(parameters, construction_instructions, cell_mat_m):
+def construct_values(
+    parameters: jnp.ndarray,
+    construction_instructions: List[AtomInstructions],
+    cell_mat_m: jnp.ndarray
+) -> Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray]:
     """Reconstruct xyz, adp-parameters and occupancies from the given construction instructions. Allows for the
-    Flexible usage of combinations of fixed parameters and parameters that are refined, as well as constraints"""
+    Flexible usage of combinations of fixed parameters and parameters that are refined, as well as constraints
+
+    Args:
+        parameters (jnp.ndarray): parameters used during the refinement.
+        construction_instructions (List[AtomInstructions]): List of instructions for reconstructing the atomic
+            parameters
+        cell_mat_m (jnp.ndarray): (3, 3) array with the cell vectors as row vectors, used for Uiso calculation.
+
+    Returns:
+        jnp.ndarray: (N,3) array of fractional coordinates for the atoms in the 
+            asymmetric unit
+        jnp.ndarray: (N, 6) array of anisotropic displacement parameters 
+            (isotropic parameters are transformed to anitropic parameters).
+            Parameters need to be in convention as used e.g. Shelxl or the cif as U.
+            Order: U11, U22, U33, U23, U13, U12
+        jnp.ndarray: (N, 10) array of hird-order Gram-Charlier parameters as defined
+            in Inter. Tables of Cryst. B (2010): Eq 1.2.12.7. Order: C111, C222, C333,
+            C112, C122, C113, C133, C223, C233, C123
+        np.ndarray: (N, 15) array of fourth-order Gram-Charlier parameters as defined
+            in Inter. Tables of Cryst. B (2010): Eq 1.2.12.7. Order: D1111, D2222, D3333,
+            D1112, D1222, D1113, D_1333, D2223, D2333, D1122, D1133, D2233, D1123, D1223,
+            D1233
+        jnp.ndarray: (N) array of atomic occupancies. Atoms on special positions
+            have an occupancy of 1/multiplicity
+    """
     cell_mat_f = jnp.linalg.inv(cell_mat_m).T
     lengths_star = jnp.linalg.norm(cell_mat_f, axis=0)
     xyz = jnp.array(
@@ -604,8 +678,8 @@ def construct_values(parameters, construction_instructions, cell_mat_m):
             vec_ab = (angle_xyz - torsion_xyz)
             vec_bc_norm = -(bound_xyz - angle_xyz) / jnp.linalg.norm(bound_xyz - angle_xyz)
             distance = resolve_instruction(parameters, instruction.xyz.distance)
-            angle = jnp.deg2rad(resolve_instruction(parameters, instruction.xyz.angle))
-            torsion_angle = jnp.deg2rad(resolve_instruction(parameters, instruction.xyz.torsion_angle))
+            angle = resolve_instruction(parameters, instruction.xyz.angle)
+            torsion_angle = resolve_instruction(parameters, instruction.xyz.torsion_angle)
             vec_d2 = jnp.array([distance * jnp.cos(angle),
                                 distance * jnp.sin(angle) * jnp.cos(torsion_angle),
                                 distance * jnp.sin(angle) * jnp.sin(torsion_angle)])
@@ -638,8 +712,24 @@ def construct_values(parameters, construction_instructions, cell_mat_m):
             uij = jax.ops.index_update(uij, jax.ops.index[index, 5], uiso * jnp.sum(cell_mat_f[:, 0] * cell_mat_f[:, 1]) / lengths_star[0] / lengths_star[1])
     return xyz, uij, cijk, dijkl, occupancies
 
-def resolve_instruction_esd(var_cov_mat, instruction):
-    """Resolve fixed and refined parameter esds"""
+def resolve_instruction_esd(
+    var_cov_mat: jnp.ndarray,
+    instruction: Parameter
+) -> float:
+    """Calculates the estimated standard deviation (esd) for a value calculated from a parameter
+
+    Args:
+        var_cov_mat (jnp.ndarray): (P, P) array containing the variances and covariances, 
+            where P is the number of refined parameters.
+        instruction (Parameter): one parameter instruction, as used for generating atomic
+            parameters (and in this case esds) from the refined parameters
+
+    Raises:
+        NotImplementedError: Unknown type of Parameter used
+
+    Returns:
+        float: esd as float or np.nan if parameter has no esd
+    """
     if type(instruction).__name__ == 'RefinedParameter':
         return_value = instruction.multiplicator * np.sqrt(var_cov_mat[instruction.par_index, instruction.par_index])
     elif type(instruction).__name__ == 'FixedParameter':
@@ -656,21 +746,25 @@ def construct_esds(var_cov_mat, construction_instructions):
     # TODO Build analogous to the distance calculation function to get esds for all non-primitive calculations
     xyz = jnp.array(
         [[resolve_instruction_esd(var_cov_mat, inner_instruction) for inner_instruction in instruction.xyz]
-          if type(instruction.xyz) in (tuple, list) else jnp.full(3, jnp.nan) for instruction in construction_instructions]
+          if type(instruction.xyz) in (tuple, list, np.ndarray, jnp.ndarray) else jnp.full(3, jnp.nan) 
+          for instruction in construction_instructions]
     )
     uij = jnp.array(
         [[resolve_instruction_esd(var_cov_mat, inner_instruction) for inner_instruction in instruction.uij]
-          if type(instruction.uij) in (tuple, list) else jnp.full(6, jnp.nan) for instruction in construction_instructions]
+          if type(instruction.uij) in (tuple, list, np.ndarray, jnp.ndarray) else jnp.full(6, jnp.nan) 
+          for instruction in construction_instructions]
     )
     
     cijk = jnp.array(
         [[resolve_instruction_esd(var_cov_mat, inner_instruction) for inner_instruction in instruction.cijk]
-          if type(instruction.cijk) in (tuple, list) else jnp.full(6, jnp.nan) for instruction in construction_instructions]
+          if type(instruction.cijk) in (tuple, list, np.ndarray, jnp.ndarray) else jnp.full(6, jnp.nan) 
+          for instruction in construction_instructions]
     )
     
     dijkl = jnp.array(
         [[resolve_instruction_esd(var_cov_mat, inner_instruction) for inner_instruction in instruction.dijkl]
-          if type(instruction.dijkl) in (tuple, list) else jnp.full(6, jnp.nan) for instruction in construction_instructions]
+          if type(instruction.dijkl) in (tuple, list, np.ndarray, jnp.ndarray) else jnp.full(6, jnp.nan) 
+          for instruction in construction_instructions]
     )
     occupancies = jnp.array([resolve_instruction_esd(var_cov_mat, instruction.occupancy) for instruction in construction_instructions])
     return xyz, uij, cijk, dijkl, occupancies    
@@ -682,27 +776,53 @@ def calc_lsq_factory(cell_mat_m,
                      weights,
                      construction_instructions,
                      fjs_core,
-                     flack_parameter,
-                     core_parameter,
-                     extinction_parameter,
-                     wavelength,
+                     refinement_dict,
+                     #flack_parameter,
+                     #core_parameter,
+                     #extinction_parameter,
+                     #wavelength,
                      restraint_instr_ind=[]):
     """Generates a calc_lsq function. Doing this with a factory function allows for both flexibility but also
     speed by automatic loop and conditional unrolling for all the stuff that is constant for a given structure."""
-    construct_values_j = jax.jit(construct_values, static_argnums=(1))
     cell_mat_f = jnp.linalg.inv(cell_mat_m).T
-    if wavelength is not None:
-        # This means a shelxl style extinction correction as that is currently the only reason to pass a wavelength
+    additional_parameters = 0
+    if refinement_dict.get('flack', False):
+        refine_flack = True
+        flack_parameter = additional_parameters + 1
+        additional_parameters += 1
+    core = refinement_dict.get('core', 'constant')
+    if  core == 'scale':
+        core_parameter = additional_parameters + 1
+        additional_parameters += 1
+    extinction = refinement_dict.get('extinction', 'none')
+    if  extinction == 'shelxl':
+        assert 'wavelength' in refinement_dict, 'Wavelength needs to be defined in refinement_dict for shelxl extinction'
+        extinction_parameter = additional_parameters + 1
+        wavelength = refinement_dict['wavelength']
+        additional_parameters += 1
         sintheta = jnp.linalg.norm(jnp.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 * wavelength
         sintwotheta = 2 * sintheta * jnp.sqrt(1 - sintheta**2)
         extinction_factors = 0.001 * wavelength**3 / sintwotheta
+    elif extinction == 'secondary':
+        extinction_parameter = additional_parameters + 1
+        additional_parameters += 1
+    elif extinction == 'none':
+        pass
+    else:
+        raise NotImplementedError('Extinction method not implemented in lsq_factory')
+    
+    construct_values_j = jax.jit(construct_values, static_argnums=(1))
+
     def function(parameters, fjs):
         xyz, uij, cijk, dijkl, occupancies = construct_values_j(parameters, construction_instructions, cell_mat_m)
-        if fjs_core is not None:
-            if core_parameter is not None:
-                fjs = parameters[core_parameter] * fjs + fjs_core[None, :, :]
-            else:
-                fjs = fjs + fjs_core[None, :, :]
+        if core == 'scale':
+            fjs = parameters[core_parameter] * fjs + fjs_core[None, :, :]
+        elif core == 'constant':
+            fjs = fjs + fjs_core[None, :, :]
+        elif core == 'combine':
+            pass
+        else:
+            raise NotImplementedError('core description not implemented in lsq_factory')
 
         structure_factors = calc_f(
             xyz=xyz,
@@ -715,20 +835,18 @@ def calc_lsq_factory(cell_mat_m,
             symm_mats_vecs=symm_mats_vecs,
             fjs=fjs
         )
-        if extinction_parameter is None:
+        if extinction == 'none':
             intensities_calc = parameters[0] * jnp.abs(structure_factors)**2
             #restraint_addition = 0
-        else:
+        elif extinction == 'shelxl':
             i_calc0 = jnp.abs(structure_factors)**2
-            if wavelength is None:
-                # Secondary exctinction, as shelxl needs a wavelength                
-                intensities_calc = parameters[0] * i_calc0 / (1 + parameters[extinction_parameter] * i_calc0)
-                #restraint_addition = 0
-            else:
-                intensities_calc = parameters[0] * i_calc0 / jnp.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0)
-                #restraint_addition = 1.0 / 0.1 * parameters[extinction_parameter]**2
-
-        if flack_parameter is not None:
+            intensities_calc = parameters[0] * i_calc0 / jnp.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0)
+        elif extinction == 'secondary':
+            i_calc0 = jnp.abs(structure_factors)**2             
+            intensities_calc = parameters[0] * i_calc0 / (1 + parameters[extinction_parameter] * i_calc0)
+            #restraint_addition = 0
+  
+        if refine_flack:
             structure_factors2 = calc_f(
                 xyz=xyz,
                 uij=uij,
@@ -740,26 +858,21 @@ def calc_lsq_factory(cell_mat_m,
                 symm_mats_vecs=symm_mats_vecs,
                 fjs=fjs
             )
-            if extinction_parameter is None:
+            if extinction == 'none':
                 intensities_calc2 = parameters[0] * jnp.abs(structure_factors2)**2
                 #restraint_addition = 0
-            else:
+            elif extinction == 'shelxl':
                 i_calc02 = jnp.abs(structure_factors2)**2
-                if wavelength is None:
-                    # Secondary exctinction, as shelxl needs a wavelength                
-                    intensities_calc2 = parameters[0] * i_calc02 / (1 + parameters[extinction_parameter] * i_calc02)
-                    #restraint_addition = 0
-                else:
-                    intensities_calc2 = parameters[0] * i_calc02 / jnp.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc02)
-                    #restraint_addition = 1.0 / 0.1 * parameters[extinction_parameter]**2
+                intensities_calc2 = parameters[0] * i_calc02 / jnp.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc02)
+            elif extinction == 'secondary':
+                i_calc02 = jnp.abs(structure_factors2)**2             
+                intensities_calc2 = parameters[0] * i_calc02 / (1 + parameters[extinction_parameter] * i_calc02)
+                #restraint_addition = 0
             lsq = jnp.sum(weights * (intensities_obs - parameters[flack_parameter] * intensities_calc2 - (1 - parameters[flack_parameter]) * intensities_calc)**2) 
         else:
             lsq = jnp.sum(weights * (intensities_obs - intensities_calc)**2) 
         return lsq * (1 + resolve_restraints(xyz, uij, restraint_instr_ind, cell_mat_m) / (len(intensities_obs) - len(parameters)))
-
-
     return jax.jit(function)
-
 
 def calc_var_cor_mat(cell_mat_m,
                      symm_mats_vecs,
@@ -767,26 +880,52 @@ def calc_var_cor_mat(cell_mat_m,
                      construction_instructions,
                      intensities_obs,
                      weights,
-                     parameters, fjs,
+                     parameters,
+                     fjs,
                      fjs_core,
-                     flack_parameter,
-                     core_parameter,
-                     extinction_parameter,
-                     wavelength):
-    construct_values_j = jax.jit(construct_values, static_argnums=(1))
+                     refinement_dict):
+                     #flack_parameter,
+                     #core_parameter,
+                     #extinction_parameter,
+                     #waveleng    
     cell_mat_f = jnp.linalg.inv(cell_mat_m).T
-    if wavelength is not None:
-        # This means a shelxl style extinction correction as that is currently the only reason to pass a wavelength
+    additional_parameters = 0
+    if refinement_dict.get('flack', False):
+        refine_flack = True
+        flack_parameter = additional_parameters + 1
+        additional_parameters += 1
+    core = refinement_dict.get('core', 'constant')
+    if  core == 'scale':
+        core_parameter = additional_parameters + 1
+        additional_parameters += 1
+    extinction = refinement_dict.get('extinction', 'none')
+    if  extinction == 'shelxl':
+        assert 'wavelength' in refinement_dict, 'Wavelength needs to be defined in refinement_dict for shelxl extinction'
+        extinction_parameter = additional_parameters + 1
+        wavelength = refinement_dict['wavelength']
+        additional_parameters += 1
         sintheta = jnp.linalg.norm(jnp.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 * wavelength
         sintwotheta = 2 * sintheta * jnp.sqrt(1 - sintheta**2)
         extinction_factors = 0.001 * wavelength**3 / sintwotheta
+    elif extinction == 'secondary':
+        extinction_parameter = additional_parameters + 1
+        additional_parameters += 1
+    elif extinction == 'none':
+        pass
+    else:
+        raise NotImplementedError('Extinction method not implemented in var_cov_mat_func')
+    construct_values_j = jax.jit(construct_values, static_argnums=(1))
+
     def function(parameters, fjs, index):
         xyz, uij, cijk, dijkl, occupancies = construct_values_j(parameters, construction_instructions, cell_mat_m)
-        if fjs_core is not None:
-            if core_parameter is not None:
-                fjs = parameters[core_parameter] * fjs + fjs_core[None, :, :]
-            else:
-                fjs = fjs + fjs_core[None, :, :]
+        if core == 'scale':
+            fjs = parameters[core_parameter] * fjs + fjs_core[None, :, :]
+        elif core == 'constant':
+            fjs = fjs + fjs_core[None, :, :]
+        elif core == 'combine':
+            pass
+        else:
+            raise NotImplementedError('core description not implemented in lsq_factory')
 
         structure_factors = calc_f(
             xyz=xyz,
@@ -799,16 +938,18 @@ def calc_var_cor_mat(cell_mat_m,
             symm_mats_vecs=symm_mats_vecs,
             fjs=fjs[:, :, index, None]
         )
-        if extinction_parameter is None:
+        if extinction == 'none':
             intensities_calc = parameters[0] * jnp.abs(structure_factors)**2
-        else:
+            #restraint_addition = 0
+        elif extinction == 'shelxl':
             i_calc0 = jnp.abs(structure_factors)**2
-            if wavelength is None:
-                # Secondary exctinction, as shelxl needs a wavelength                
-                intensities_calc = parameters[0] * i_calc0 / (1 + parameters[extinction_parameter] * i_calc0)
-            else:
-                intensities_calc = parameters[0] * i_calc0 / jnp.sqrt(1 + parameters[extinction_parameter] * extinction_factors[index] * i_calc0)
-        if flack_parameter is not None:
+            intensities_calc = parameters[0] * i_calc0 / jnp.sqrt(1 + parameters[extinction_parameter] * extinction_factors[index] * i_calc0)
+        elif extinction == 'secondary':
+            i_calc0 = jnp.abs(structure_factors)**2             
+            intensities_calc = parameters[0] * i_calc0 / (1 + parameters[extinction_parameter] * i_calc0)
+            #restraint_addition = 0
+            
+        if refine_flack:
             structure_factors2 = calc_f(
                 xyz=xyz,
                 uij=uij,
@@ -820,15 +961,16 @@ def calc_var_cor_mat(cell_mat_m,
                 symm_mats_vecs=symm_mats_vecs,
                 fjs=fjs[:, :, index, None]
             )
-            if extinction_parameter is None:
+            if extinction == 'none':
                 intensities_calc2 = parameters[0] * jnp.abs(structure_factors2)**2
-            else:
+                #restraint_addition = 0
+            elif extinction == 'shelxl':
                 i_calc02 = jnp.abs(structure_factors2)**2
-                if wavelength is None:
-                    # Secondary exctinction, as shelxl needs a wavelength                
-                    intensities_calc2 = parameters[0] * i_calc02 / (1 + parameters[extinction_parameter] * i_calc02)
-                else:
-                    intensities_calc2 = parameters[0] * i_calc02 / jnp.sqrt(1 + parameters[extinction_parameter] * extinction_factors[index] * i_calc02)
+                intensities_calc2 = parameters[0] * i_calc02 / jnp.sqrt(1 + parameters[extinction_parameter] * extinction_factors[index] * i_calc02)
+            elif extinction == 'secondary':
+                i_calc02 = jnp.abs(structure_factors2)**2             
+                intensities_calc2 = parameters[0] * i_calc02 / (1 + parameters[extinction_parameter] * i_calc02)
+                #restraint_addition = 0
             return parameters[flack_parameter] * intensities_calc2[0] - (1 - parameters[flack_parameter]) * intensities_calc[0]
         else:
             return intensities_calc[0]
@@ -846,7 +988,18 @@ def calc_var_cor_mat(cell_mat_m,
 
     return chi_sq * jnp.linalg.inv(collect)
 
-def har(cell, symm_mats_vecs, hkl, construction_instructions, parameters, f0j_source='gpaw', reload_step=1, options_dict={}, refinement_dict={}, restraints=[]):
+def har(
+    cell,
+    symm_mats_vecs, 
+    hkl, 
+    construction_instructions, 
+    parameters, 
+    f0j_source='gpaw', 
+    reload_step=1, 
+    options_dict={}, 
+    refinement_dict={}, 
+    restraints=[]
+):
     """
     Basic Hirshfeld atom refinement routine. Will calculate the electron density on a grid spanning the unit cell
     First will refine the scaling factor. Afterwards all other parameters defined by the parameters, 
@@ -903,11 +1056,11 @@ def har(cell, symm_mats_vecs, hkl, construction_instructions, parameters, f0j_so
             else:
                 f0j_core = jnp.array(calculate_f0j_core(cell_mat_m, type_symbols, constructed_xyz, index_vec_h, symm_mats_vecs))
             f0j_core += f_dash[:, None]
-        elif refinement_dict['core'] == 'fft':
+        elif refinement_dict['core'] == 'combine':
             core_parameter = None
             f0j_core = None
         else:
-            raise ValueError('Choose either scale, constant or fft for core description')
+            raise ValueError('Choose either scale, constant or combine for core description')
     else:
         core_parameter = None
         f0j_core = None

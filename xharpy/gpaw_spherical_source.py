@@ -15,7 +15,7 @@ from scipy.special import spherical_jn
 import gpaw
 import warnings
 import importlib.resources as pkg_resources
-from .xharpy import expand_symm_unique
+from .core import expand_symm_unique
 from .grid.atomgrid import AtomGrid
 from .grid.onedgrid import HortonLinear
 from .grid.rtransform import PowerRTransform

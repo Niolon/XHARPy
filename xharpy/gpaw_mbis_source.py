@@ -24,7 +24,7 @@ from scipy.interpolate import interp1d
 from scipy.integrate import simps
 import gpaw
 import warnings
-from .xharpy import expand_symm_unique
+from .core import expand_symm_unique
 
 from numpy.testing import assert_allclose
 from scipy.interpolate import CubicSpline

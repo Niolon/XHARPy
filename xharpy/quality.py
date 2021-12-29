@@ -1,4 +1,4 @@
-from .xharpy import calc_f, construct_values
+from .core import calc_f, construct_values
 from .conversion import calc_sin_theta_ov_lambda, cell_constants_to_M, calc_sin_theta_ov_lambda
 import numpy as np
 import warnings

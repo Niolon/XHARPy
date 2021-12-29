@@ -8,7 +8,7 @@ from ase.spacegroup import crystal
 from scipy.interpolate import interp1d
 from scipy.integrate import simps
 #import gpaw
-from .xharpy import expand_symm_unique
+from .core import expand_symm_unique
 
 
 step1_script = """from ase.spacegroup import crystal

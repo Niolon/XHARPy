@@ -7,7 +7,7 @@ import re
 import warnings
 from io import StringIO
 import textwrap
-from .xharpy import (ConstrainedValues, cell_constants_to_M, distance_with_esd, construct_esds, construct_values, 
+from .core import (ConstrainedValues, cell_constants_to_M, distance_with_esd, construct_esds, construct_values, 
                      u_iso_with_esd, angle_with_esd, calc_f)
 from .quality import calculate_quality_indicators
 

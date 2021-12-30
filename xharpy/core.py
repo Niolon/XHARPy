@@ -387,7 +387,7 @@ def create_construction_instructions(
         jnp.ndarray: starting values for the parameters
     """    
     essential_columns = ['label', 'type_symbol', 'occupancy', 'fract_x', 'fract_y',
-                         'fract_z', 'type_scat_dispersion_real', 'type_scat_dispersion_imag'
+                         'fract_z', 'type_scat_dispersion_real', 'type_scat_dispersion_imag',
                          'adp_type']
     missing_columns = [c for c in essential_columns if c not in atom_table.columns]
     if len(missing_columns) > 0:
@@ -778,7 +778,7 @@ def calc_lsq_factory(
     construction_instructions: List[AtomInstructions],
     fjs_core: jnp.ndarray,
     refinement_dict: Dict[str, Any],
-    wavelength: Optional(float),
+    wavelength: Optional[float],
     restraint_instr_ind: List[Any]=[]
 ) -> Callable:
     """Creates calc_lsq functions that can be used with jax.jit and jax.grad. This way we can 
@@ -809,7 +809,8 @@ def calc_lsq_factory(
     """
     cell_mat_f = jnp.linalg.inv(cell_mat_m).T
     additional_parameters = 0
-    if refinement_dict.get('flack', False):
+    refine_flack = refinement_dict.get('flack', False)
+    if refine_flack:
         refine_flack = True
         flack_parameter = additional_parameters + 1
         additional_parameters += 1
@@ -907,7 +908,7 @@ def calc_var_cor_mat(
     parameters: jnp.ndarray,
     fjs: jnp.ndarray,
     refinement_dict: Dict[str, Any],
-    wavelength: Optional(float) = None
+    wavelength: Optional[float] = None
 ) -> jnp.ndarray:
     """Calculates the variance-covariance matrix for a given set of parameters
     At the moment is pretty slow, as it is not parallelised over reflections
@@ -938,17 +939,19 @@ def calc_var_cor_mat(
     """    
     cell_mat_f = jnp.linalg.inv(cell_mat_m).T
     additional_parameters = 0
-    if refinement_dict.get('flack', False):
-        refine_flack = True
+    refine_flack = refinement_dict.get('flack', False)
+    if refine_flack:
         flack_parameter = additional_parameters + 1
         additional_parameters += 1
+    
     core = refinement_dict.get('core', 'constant')
     if  core == 'scale':
         core_parameter = additional_parameters + 1
         additional_parameters += 1
+
     extinction = refinement_dict.get('extinction', 'none')
     if  extinction == 'shelxl':
-        assert 'wavelength' is not None, 'Wavelength needs to be defined in refinement_dict for shelxl extinction'
+        assert wavelength is not None, 'Wavelength needs to be defined in refinement_dict for shelxl extinction'
         extinction_parameter = additional_parameters + 1
         additional_parameters += 1
         sintheta = jnp.linalg.norm(jnp.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 * wavelength
@@ -1051,7 +1054,7 @@ def refine(
     hkl: pd.DataFrame, 
     construction_instructions: List[AtomInstructions], 
     parameters: jnp.ndarray, 
-    wavelength: Optional(float) = None,
+    wavelength: Optional[float] = None,
     refinement_dict: dict = {},
     computation_dict: dict = {} 
 )-> Tuple[jnp.ndarray, jnp.ndarray, Dict[str, Any]]:
@@ -1089,6 +1092,7 @@ def refine(
                                and 'scale' which will refine a scaling parameter for the core density which might
                                for systematic deviations due to a coarse valence density grid (untested!)
                                Default: 'constant'
+                extinction:    
                 max_dist_diff: If the difference in atomic position is under this value in 
                                Angstroems, no new structure factors will be calculated
                                Default: 1e-6
@@ -1146,7 +1150,6 @@ def refine(
     restraints = refinement_dict.get('restraints', [])
     if len(restraints) > 0:
         warnings.warn('Restraints are still highly experimental, The current implementation did not reproduce SHELXL results. So do not use them for research right now!')
-
     core = refinement_dict.get('core', 'constant')
     if f0j_source in ('iam') and core != 'combine':
         warnings.warn('core description is not possible with this f0j source')
@@ -1157,8 +1160,8 @@ def refine(
         else:
             f0j_core = jnp.array(calculate_f0j_core(cell_mat_m, type_symbols, constructed_xyz, index_vec_h, symm_mats_vecs))
         f0j_core += f_dash[:, None]
-    elif refinement_dict['core'] == 'combine':
-        pass
+    elif core == 'combine':
+        f0j_core = None
     else:
         raise NotImplementedError('Choose either scale, constant or combine for core description')
 

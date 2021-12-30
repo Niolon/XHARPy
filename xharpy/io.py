@@ -1,6 +1,7 @@
 from collections import OrderedDict
 import pandas as pd
 import numpy as np
+from typing import Dict, Union, Tuple
 import jax.numpy as jnp
 import jax
 import re
@@ -12,7 +13,11 @@ from .core import (ConstrainedValues, cell_constants_to_M, distance_with_esd, co
 from .quality import calculate_quality_indicators
 
 
-def ciflike_to_dict(filename, return_descr=None, resolve_std=True):
+def ciflike_to_dict(
+    filename,
+    return_descr=None,
+    resolve_std=True
+):
     """
     Takes the filename of a ciflike file such as the cif format itself or fco files
     and returns the content as an ordered dictionary.

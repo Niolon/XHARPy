@@ -1,11 +1,11 @@
 from ase.units import C
-from jax._src.numpy.lax_numpy import deg2rad
+from jax._src.numpy.lax_numpy import deg2rad, ndarray
 from jax.config import config
 from jax.core import Value
 config.update('jax_enable_x64', True)
 
 import datetime
-from typing import Callable, List, Set, Dict, Tuple, Optional, Union, Any
+from typing import Callable, List, Dict, Tuple, Optional, Union, Any
 import jax.numpy as jnp
 import pandas as pd
 from collections import namedtuple
@@ -28,8 +28,10 @@ AtomInstructions = namedtuple('AtomInstructions', [
     'dispersion_imag', # dispersion correction f''
     'xyz', # fractional coordinates
     'uij', # uij parameters U11, U22, U33, U23, U13, U12
-    'cijk', # Gram Charlier 3rd Order C111, C222, C333, C112, C122, C113, C133, C223, C233, C123,
-    'dijkl', # Gram Charlier 4th Order D1111, D2222, D3333, D1112, D1222, D1113, D1333, D2223, D2333, D1122, D1133, D2233, D1123, D1223, D1233
+    'cijk', # Gram Charlier 3rd Order C111, C222, C333, C112, C122, C113, C133,
+            # C223, C233, C123,
+    'dijkl', # Gram Charlier 4th Order D1111, D2222, D3333, D1112, D1222, D1113,
+             # D1333, D2223, D2333, D1122, D1133, D2233, D1123, D1223, D1233
     'occupancy' # the occupancy
 ], defaults= [None, None, None, None, None, None, None, None])
 
@@ -43,7 +45,8 @@ RefinedParameter = namedtuple('RefinedParameter', [
 
 FixedParameter = namedtuple('FixedParameter', [
     'value',         # fixed value of the parameter 
-    'special_position' # stems from an atom on a special position, makes a difference for output of occupancy
+    'special_position' # stems from an atom on a special position, makes a
+                       # difference for output of occupancy
 ], defaults=[1.0, False])
 
 MultiIndexParameter = namedtuple('MultiIndexParameter', [
@@ -60,7 +63,8 @@ UEquivCalculated = namedtuple('UEquivCalculated', [
 ])
 
 UIso = namedtuple('Uiso',[
-    'uiso'          # Parameter for Uiso can either be a fixed parameter or a refined Parameter
+    'uiso'          # Parameter for Uiso can either be a fixed parameter
+                    # or a refined Parameter
 ], defaults=[0.1])
 
 SingleTrigonalCalculated = namedtuple('SingleTrigonalCalculated',[
@@ -72,7 +76,8 @@ SingleTrigonalCalculated = namedtuple('SingleTrigonalCalculated',[
 
 TorsionCalculated = namedtuple('TorsionCalculated', [
     'bound_atom_index',   # index of  atom the derived atom is bound_to
-    'angle_atom_index',   # index of atom spanning the given angle with bound atom
+    'angle_atom_index',   # index of atom spanning the given angle with
+                          # bound atom
     'torsion_atom_index', # index of atom giving the torsion angle
     'distance',           # interatom dpositionsistance
     'angle',              # interatom angle
@@ -82,32 +87,38 @@ TorsionCalculated = namedtuple('TorsionCalculated', [
 ### Objects for Use by the User
 
 ConstrainedValues = namedtuple('ConstrainedValues', [
-    'variable_indexes', # 0-x (positive): variable index; -1 means 0 -> not refined
-    'multiplicators', # For higher symmetries mathematical conditions can include multiplicators
-    'added_value', # Values that are added
-    'special_position' # stems from an atom on a special position, makes a difference for output of occupancy
+    'variable_indexes', # 0-x (positive): variable index; -1 means 0 
+                        # -> not refined
+    'multiplicators',   # For higher symmetries mathematical conditions can
+                        # include multiplicators
+    'added_value',      # Values that are added
+    'special_position'  # stems from an atom on a special position,
+                        # makes a difference for output of occupancy
 ], defaults=[[], [], [], False])
 
 UEquivConstraint = namedtuple('UEquivConstraint', [
     'bound_atom', # Name of the bound atom
-    'multiplicator' # Multiplicator for UEquiv Constraint (Usually nonterminal: 1.2, terminal 1.5)
+    'multiplicator' # Multiplicator for UEquiv Constraint
+                    # (Usually nonterminal: 1.2, terminal 1.5)
 ])
 
 TrigonalPositionConstraint = namedtuple('TrigonalPositionConstraint', [
-    'bound_atom_name', # name of bound atom
+    'bound_atom_name',  # name of bound atom
     'plane_atom1_name', # first bonding partner of bound atom
     'plane_atom2_name', # second bonding partner of bound atom
-    'distance' # interatomic distance
+    'distance'          # interatomic distance
 ])
 
 TorsionPositionConstraint = namedtuple('TorsionPositionConstraint', [
     'bound_atom_name',   # index of  atom the derived atom is bound_to
     'angle_atom_name',   # index of atom spanning the given angle with bound atom
     'torsion_atom_name', # index of atom giving the torsion angle
-    'distance',           # interatom distance
-    'angle',              # interatom angle
-    'torsion_angle_add',  # interatom torsion angle addition. Use e.g 120° for second sp3 atom,
-    'refine'              # If True torsion angle will be refined otherwise it will be fixed to torsion_angle_add
+    'distance',          # interatom distance
+    'angle',             # interatom angle
+    'torsion_angle_add', # interatom torsion angle addition.
+                         # Use e.g 120° for second sp3 atom,
+    'refine'             # If True torsion angle will be refined otherwise it 
+                         #will be fixed to torsion_angle_add
 ])
 
 
@@ -118,29 +129,46 @@ def expand_symm_unique(
         symm_mats_vec: Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]],
         skip_symm: Dict[str, List[int]] = {},
         magmoms: Optional[npt.NDArray[np.float64]] = None
-    ) -> Tuple[npt.NDArray[np.float64], List[str], npt.NDArray[np.float64], Optional[npt.NDArray[np.float64]]]:
-    """Expand the type_symbols and coordinates for one complete unit cell. Atoms on special positions
-    appear only once. For disorder on a special position use skip_symm.
+    ) -> Tuple[npt.NDArray[np.float64], List[str],
+               npt.NDArray[np.float64], Optional[npt.NDArray[np.float64]]]:
+    """Expand the type_symbols and coordinates for one complete unit cell.
+    Atoms on special positions appear only once. For disorder on a special
+    position use skip_symm.
 
-    Args:
-        type_symbols (List[str]): Element symbols of the atoms in the asymmetric unit
-        coordinates (npt.NDArray[np.float64]):  (N, 3) array of fractional atomic coordinates
-        cell_mat_m (npt.NDArray[np.float64]): Matrix with cell vectors as column vectors, (Angstroem)
-        symm_mats_vec (Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]): (K, 3, 3) array of symmetry 
-            matrices and (K, 3) array of translation vectors for all symmetry elements in the unit cell
-        skip_symm (Dict[str, List[int]], optional): Symmetry elements with indexes given the list(s) in the 
-        dictionary values with not be applied to the respective atoms with the atom names given in the key(s).
-        Indexes need to be identical to the ones in symm_mats_vec. Defaults to {}.
-        magmoms (Optional[npt.NDArray[np.float64]], optional): [description]. Defaults to None.
 
-    Returns:
-        npt.NDArray[np.float64]: (M, 3) array of unique atom positions within the
-            unit cell
-        List[str]: List of length M with element symbols for the unique atom positions within the unit cell
-        npt.NDArray[np.float64]: (K, N) matrix to with indexes mapping the unique atom positions
-            back to the individual symmetry elements and atom positions in the asymmetric unit
-        Optional[npt.NDArray[np.float64]], optional): numpy array containing magnetic moments for
-           symmetry generated atoms
+    Parameters
+    ----------
+    type_symbols : List[str]
+        Element symbols of the atoms in the asymmetric unit
+    coordinates : npt.NDArray[np.float64]
+        (N, 3) array of fractional atomic coordinates
+    cell_mat_m : npt.NDArray[np.float64]
+        Matrix with cell vectors as column vectors, (Angstroem)
+    symm_mats_vec : Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]
+        (K, 3, 3) array of symmetry matrices and (K, 3) array of translation
+        vectors for all symmetry elements in the unit cell
+    skip_symm : Dict[str, List[int]], optional
+        Symmetry elements with indexes given the list(s) in the dictionary
+        values with not be applied to the respective atoms with the atom names
+        given in the key(s). Indexes need to be identical to the ones in 
+        symm_mats_vec., by default {}
+    magmoms : Optional[npt.NDArray[np.float64]], optional
+        Magnetic Moments. The enforced symmetry might not be correcz, by default
+        None
+
+    Returns
+    -------
+    symm_positions: npt.NDArray[np.float64]
+        a (M, 3) array of all unique atom positions within the unit cell
+    symm_symbols: List[str]
+        ist of length M with element symbols for the unique atom positions
+        within the unit cell
+    reverse_indexes: npt.NDArray[np.float64]
+        a (K, N) array with indexes mapping the unique atom positions back to 
+        the individual symmetry elements and atom positions in the asymmetric 
+        unit
+    symm_magmoms: Optional[npt.NDArray[np.float64]]]
+        magnetic moments for symmetry generated atoms. Undertested!
     """
     symm_mats_r, symm_vecs_t = symm_mats_vec
     pos_frac0 = coordinates % 1
@@ -158,11 +186,16 @@ def expand_symm_unique(
             use_indexes = [i for i in range(symm_mats_r.shape[0]) if i not in skip_symm[atom_index]]
         else:
             use_indexes = list(range(symm_mats_r.shape[0]))
-        symm_positions = (np.einsum('kxy, y -> kx', symm_mats_r[use_indexes, :, :], pos0) + symm_vecs_t[use_indexes, :]) % 1
-        _, unique_indexes, inv_indexes_at = np.unique(np.round(np.einsum('xy, zy -> zx', cell_mat_m, symm_positions), 3),
-                                                      axis=0,
-                                                      return_index=True,
-                                                      return_inverse=True)
+        symm_positions = (np.einsum(
+            'kxy, y -> kx',
+             symm_mats_r[use_indexes, :, :], pos0) + symm_vecs_t[use_indexes, :]
+        ) % 1
+        _, unique_indexes, inv_indexes_at = np.unique(
+            np.round(np.einsum('xy, zy -> zx', cell_mat_m, symm_positions), 3),
+            axis=0,
+            return_index=True,
+            return_inverse=True
+        )
         un_positions = np.concatenate((un_positions, symm_positions[unique_indexes]))
         type_symbols_symm += [type_symbol] * unique_indexes.shape[0]
         if magmoms is not None:
@@ -186,36 +219,50 @@ def calc_f(
     symm_mats_vecs: Tuple[jnp.ndarray, jnp.ndarray],
     fjs: jnp.ndarray
 ) -> jnp.ndarray :
-    """Given a set of parameters, calculate the structure factors for all given reflections
+    """Given a set of parameters, calculate the structure factors for all given
+    reflections
 
-    Args:
-        xyz (jnp.ndarray): (N,3) array of fractional coordinates for the atoms in the 
-            asymmetric unit
-        uij (jnp.ndarray): (N, 6) array of anisotropic displacement parameters 
-            (isotropic parameters have to be transformed to anitropic parameters).
-            Parameters need to be in convention as used e.g. Shelxl or the cif as U.
-            Order: U11, U22, U33, U23, U13, U12
-        cijk (jnp.ndarray): (N, 10) array of hird-order Gram-Charlier parameters as defined
-            in Inter. Tables of Cryst. B (2010): Eq 1.2.12.7. Order: C111, C222, C333,
-            C112, C122, C113, C133, C223, C233, C123
-        dijkl (jnp.ndarray): (N, 15) array of fourth-order Gram-Charlier parameters as defined
-            in Inter. Tables of Cryst. B (2010): Eq 1.2.12.7. Order: D1111, D2222, D3333,
-            D1112, D1222, D1113, D_1333, D2223, D2333, D1122, D1133, D2233, D1123, D1223,
-            D1233
-        occupancies (jnp.ndarray): (N) array of atomic occupancies. Atoms on special positions
-            need to have an occupancy of 1/multiplicity
-        index_vec_h (jnp.ndarray): (H, 3) array of Miller indicees of observed reflections
-        cell_mat_f (jnp.ndarray): (3, 3) array with the reciprocal lattice vectors as
-            row vectors
-        symm_mats_vecs (Tuple[jnp.ndarray, jnp.ndarray]): (K, 3, 3) array of symmetry 
-            matrices and (K, 3) array of translation vectors for all symmetry elements in the unit cell
-        fjs (jnp.ndarray): (K, N, H) array of atomic form factors for all reflections and symmetry
-            generated atoms within the unit cells. Atoms on special positions are present multiple
-            times and have the atomic form factor of the full atom.
+    Parameters
+    ----------
+    xyz : jnp.ndarray
+        (N,3) array of fractional coordinates for the atoms in the asymmetric 
+        unit
+    uij : jnp.ndarray
+        (N, 6) array of anisotropic displacement parameters (isotropic
+        parameters have to be transformed to anitropic parameters). Parameters
+        need to be in convention as used e.g. Shelxl or the cif as U.
+        Order: U11, U22, U33, U23, U13, U12
+    cijk : jnp.ndarray
+        (N, 10) array of hird-order Gram-Charlier parameters as defined
+        in Inter. Tables of Cryst. B (2010): Eq 1.2.12.7. Order: C111, C222, 
+        C333, C112, C122, C113, C133, C223, C233, C123
+    dijkl : jnp.ndarray
+        (N, 15) array of fourth-order Gram-Charlier parameters as defined
+        in Inter. Tables of Cryst. B (2010): Eq 1.2.12.7. Order: D1111, D2222,
+        D3333, D1112, D1222, D1113, D_1333, D2223, D2333, D1122, D1133, D2233,
+        D1123, D1223, D1233
+    occupancies : jnp.ndarray
+        (N) array of atomic occupancies. Atoms on special positions need to have
+        an occupancy of 1/multiplicity
+    index_vec_h : jnp.ndarray
+        (H, 3) array of Miller indicees of observed reflections
+    cell_mat_f : jnp.ndarray
+        (3, 3) array with the reciprocal lattice vectors (1/Angstroem) as row
+        vectors
+    symm_mats_vecs : Tuple[jnp.ndarray, jnp.ndarray]
+        (K, 3, 3) array of symmetry matrices and (K, 3) array of translation
+        vectors for all symmetry elements in the unit cell
+    fjs : jnp.ndarray
+        (K, N, H) array of atomic form factors for all reflections and symmetry
+        generated atoms within the unit cells. Atoms on special positions are 
+        present multiple times and have the atomic form factor of the full atom.
 
-    Returns:
-        jnp.ndarray: (H)-sized array with complex structure factors for each reflection
-    """    
+    Returns
+    -------
+    structure_factors: jnp.ndarray
+        (H)-sized array with complex structure factors for each reflection
+    """
+
     #einsum indexes: k: n_symm, z: n_atom, h[description]: n_hkl
     lengths_star = jnp.linalg.norm(cell_mat_f, axis=0)
     symm_mats_r, symm_vecs_t = symm_mats_vecs
@@ -265,19 +312,28 @@ def calc_f(
 
 
 def resolve_instruction(parameters: jnp.ndarray, instruction: Parameter) -> jnp.ndarray:
-    """Resolve a construction instruction to build the corresponding numerical value
+    """Resolve a construction instruction to build the corresponding numerical
+    value
 
-    Args:
-        parameters (jnp.ndarray): (P) array of parameters used for the refinement
-        instruction (Any): Instruction of one of the known instruction type namedtuples to generate
-           the numerical value from the parameters and/or the values in the instruction
+    Parameters
+    ----------
+    parameters : jnp.ndarray
+        (P) array of parameters used for the refinement
+    instruction : Parameter
+        Instruction of one of the known instruction type namedtuples to generate
+        the numerical value from the parameters and/or the values in the
+        instruction
 
-    Raises:
-        NotImplementedError: Type of instruction is currently not one of the known namedtuple types
+    Returns
+    -------
+    jnp.ndarray
+        a jax.numpy array of size 0 that contains the calculated value
 
-    Returns:
-        jnp.ndarray: a jax.numpy array of size 0 that contains the calculated value
-    """    
+    Raises
+    ------
+    NotImplementedError
+        Type of instruction is currently not one of the known namedtuple types
+    """  
     if type(instruction).__name__ == 'RefinedParameter':
         return_value = instruction.multiplicator * parameters[instruction.par_index] + instruction.added_value
     elif type(instruction).__name__ == 'FixedParameter':
@@ -297,18 +353,27 @@ def constrained_values_to_instruction(
     constraint: ConstrainedValues,
     current_index: int
 ) -> Parameter:
-    """Convert the given constraint instruction to the internal parameter representation for the
-    construction instructions.
+    """Convert the given constraint instruction to the internal parameter 
+    representation for the construction instructions.
 
-    Args:
-        par_index (int): par_index as given in the ConstrainedValues
-        mult (float): multiplicator 
-        add (float): added_value
-        constraint (ConstrainedValues): source_constraint
-        current_index (int): current index for assigning parameters.
+    Parameters
+    ----------
+    par_index : int
+        par_index as given in the ConstrainedValues
+    mult : float
+        multiplicator given in ConstrainedValues
+    add : float
+        added_value given in ConstrainedValues
+    constraint : ConstrainedValues
+        Constraint that is the source of the parameter constraint
+    current_index : int
+        current index for assigning parameters.
 
-    Returns:
-        Parameter: the appropriate RefinedParameter, MultiParameter or FixedParameter object
+    Returns
+    -------
+    instruction: Parameter
+        the appropriate RefinedParameter, MultiParameter or FixedParameter
+        object
     """
     if isinstance(par_index, (tuple, list, np.ndarray)):
         assert len(par_index) == len(mult), 'par_index and mult have different lengths'
@@ -327,14 +392,7 @@ def constrained_values_to_instruction(
         return FixedParameter(value=float(add), special_position=constraint.special_position)
 
 def is_multientry(entry: Any) -> bool:
-    """Check if argument is a multientry
-
-    Args:
-        entry (Any): entry to be check
-
-    Returns:
-        bool: True if it is a multientry (list, tuple or ndarray)
-    """    
+    """Check if argument is a multientry"""    
     if isinstance(entry, (list, tuple)):
         return True
     elif isinstance(entry, (jnp.ndarray, np.ndarray)) and len(entry.shape) != 0:
@@ -342,7 +400,6 @@ def is_multientry(entry: Any) -> bool:
     else: 
         return False
 
-# construct the instructions for building the atomic parameters back from the linear parameter matrix
 def create_construction_instructions(
     atom_table: pd.DataFrame,
     constraint_dict: Dict[str, Dict[str, ConstrainedValues]], 
@@ -353,39 +410,55 @@ def create_construction_instructions(
     exti0: float = 1e-6, 
     refinement_dict: Dict[str, Any] = {}
 ) -> Tuple[List[AtomInstructions], jnp.ndarray]:
-    """Creates the list of atomic instructions that are used during the refinement to reconstruct the 
-    atomic parameters from the parameter list.
+    """Creates the list of atomic instructions that are used during the
+    refinement to reconstruct the atomic parameters from the parameter list.
 
-    Args:
-        atom_table (pd.DataFrame): pandas DataFrame that contains the atomic information. Columns 
-            are named like their counterparts in the cif file but without the common start for
-            each table (e.g. atom_site_fract_x -> fract_x). The easiest way to generate an 
-            atom_table is with the cif2data function
-        constraint_dict (Dict[str, Dict[str, ConstrainedValues]]): outer key is the atom label
-            possible inner keys are: xyz, uij, cijk, dijkl and occ. The value of the inner 
-            dict needs to be one of the possible Constraint sources 
-        cell (Optional[jnp.ndarray], optional): jnp.array containing the cell parameters. Only
-            necessary to calculate starting values for refined torsion angles of placed hydrogen 
-            atoms. Defaults to None.
-        atoms_for_gc3 (List[str], optional): List of atoms for which Gram-Charlier parameters. 
-            of third order are to be refined. Defaults to [].
-        atoms_for_gc4 (List[str], optional): List of atoms for which Gram-Charlier parameters. 
-            of fourth order are to be refined. Defaults to [].
-        scaling0 (float, optional): Starting value for the overall scaling factor. Defaults to 1.0.
-        exti0 (float, optional): Starting value for the extinction correction parameter. Is only used
-            if extinction is actually refined. Defaults to 1e-6.
-        refinement_dict (Dict[str, Any], optional): Dictionary that contains options for the refinement.
-            Defaults to {}.
+    Parameters
+    ----------
+    atom_table : pd.DataFrame
+        pandas DataFrame that contains the atomic information. Columns are named
+        like their counterparts in the cif file but without the common start for
+        each table (e.g. atom_site_fract_x -> fract_x). The easiest way to
+        generate an atom_table is with the cif2data function
+    constraint_dict : Dict[str, Dict[str, ConstrainedValues]]
+        outer key is the atom label. possible inner keys are: xyz, uij, cijk,
+        dijkl and occ. The value of the inner dict needs to be one of the
+        possible Constraint sources 
+    cell : Optional[jnp.ndarray], optional
+        jnp.array containing the cell parameters. Only necessary to calculate
+        starting values for refined torsion angles of placed hydrogen atoms,
+        by default None
+    atoms_for_gc3 : List[str], optional
+        List of atoms for which Gram-Charlier parametersof third order are to be
+        refined, by default []
+    atoms_for_gc4 : List[str], optional
+        List of atoms for which Gram-Charlier parameters of fourth order are to
+        be refined, by default []
+    scaling0 : float, optional
+        Starting value for the overall scaling factor, by default 1.0
+    exti0 : float, optional
+        Starting value for the extinction correction parameter. Is only used
+        if extinction is actually refined, by default 1e-6
+    refinement_dict : Dict[str, Any], optional
+        Dictionary that contains options for the refinement, by default {}
 
-    Raises:
-        ValueError: Found one or more missing essential columns in atom_table
-        NotImplementedError: Constraint Type is not implemented
-        NotImplementedError: Uij-type is not implemented
+    Returns
+    -------
+    construction_instructions: List[AtomInstructions]
+        list of AtomInstructions used in the refinement.
+    parameters0: jnp.ndarray: 
+        starting values for the parameters
 
-    Returns:
-        List[AtomInstructions]: list of AtomInstructions used in the refinement.
-        jnp.ndarray: starting values for the parameters
-    """    
+    Raises
+    ------
+    ValueError
+        Found one or more missing essential columns in atom_table
+    NotImplementedError
+        Constraint Type is not implemented
+    NotImplementedError
+        Uij-type is not implemented
+    """
+  
     essential_columns = ['label', 'type_symbol', 'occupancy', 'fract_x', 'fract_y',
                          'fract_z', 'type_scat_dispersion_real', 'type_scat_dispersion_imag',
                          'adp_type']
@@ -620,31 +693,43 @@ def construct_values(
     construction_instructions: List[AtomInstructions],
     cell_mat_m: jnp.ndarray
 ) -> Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray]:
-    """Reconstruct xyz, adp-parameters and occupancies from the given construction instructions. Allows for the
-    Flexible usage of combinations of fixed parameters and parameters that are refined, as well as constraints
+    """Reconstruct xyz, adp-parameters, Gram-Charlier parameters and occupancies
+    from the given construction instructions. Allows for the flexible usage of
+    combinations of fixed parameters and parameters that are refined, as well as
+    constraints
 
-    Args:
-        parameters (jnp.ndarray): parameters used during the refinement.
-        construction_instructions (List[AtomInstructions]): List of instructions for reconstructing the atomic
-            parameters
-        cell_mat_m (jnp.ndarray): (3, 3) array with the cell vectors as row vectors, used for Uiso calculation.
+    Parameters
+    ----------
+    parameters : jnp.ndarray
+        parameters used during the refinement
+    construction_instructions : List[AtomInstructions]
+        List of instructions for reconstructing the atomic parameters
+    cell_mat_m : jnp.ndarray
+        (3, 3) array with the cell vectors as row vectors, used for Uiso
+        calculation.
 
-    Returns:
-        jnp.ndarray: (N,3) array of fractional coordinates for the atoms in the 
-            asymmetric unit
-        jnp.ndarray: (N, 6) array of anisotropic displacement parameters 
-            (isotropic parameters are transformed to anitropic parameters).
-            Parameters need to be in convention as used e.g. Shelxl or the cif as U.
-            Order: U11, U22, U33, U23, U13, U12
-        jnp.ndarray: (N, 10) array of hird-order Gram-Charlier parameters as defined
-            in Inter. Tables of Cryst. B (2010): Eq 1.2.12.7. Order: C111, C222, C333,
-            C112, C122, C113, C133, C223, C233, C123
-        np.ndarray: (N, 15) array of fourth-order Gram-Charlier parameters as defined
-            in Inter. Tables of Cryst. B (2010): Eq 1.2.12.7. Order: D1111, D2222, D3333,
-            D1112, D1222, D1113, D_1333, D2223, D2333, D1122, D1133, D2233, D1123, D1223,
-            D1233
-        jnp.ndarray: (N) array of atomic occupancies. Atoms on special positions
-            have an occupancy of 1/multiplicity
+    Returns
+    -------
+    xyz: jnp.ndarray
+        (N,3) array of fractional coordinates for the atoms in the asymmetric
+        unit
+    uij: jnp.ndarray
+        (N, 6) array of anisotropic displacement parameters (isotropic
+        parameters are transformed to anitropic parameters). Parameters are in
+        the convention as used e.g. Shelxl or the cif as U. Order: U11, U22,
+        U33, U23, U13, U12
+    cijk: jnp.ndarray
+        (N, 10) array of third-order Gram-Charlier parameters as defined in 
+        Inter. Tables of Cryst. B (2010): Eq 1.2.12.7. Order: C111, C222, C333,
+        C112, C122, C113, C133, C223, C233, C123
+    dijkl: jnp.ndarray
+        (N, 15) array of fourth-order Gram-Charlier parameters as defined in 
+        Inter. Tables of Cryst. B (2010): Eq 1.2.12.7. Order: D1111, D2222,
+        D3333, D1112, D1222, D1113, D_1333, D2223, D2333, D1122, D1133, D2233,
+        D1123, D1223, D1233    
+    occupancies: jnp.ndarray
+        (N) array of atomic occupancies. Atoms on special positions have an
+        occupancy of 1/multiplicity
     """
     cell_mat_f = jnp.linalg.inv(cell_mat_m).T
     lengths_star = jnp.linalg.norm(cell_mat_f, axis=0)
@@ -716,19 +801,27 @@ def resolve_instruction_esd(
     var_cov_mat: jnp.ndarray,
     instruction: Parameter
 ) -> float:
-    """Calculates the estimated standard deviation (esd) for a value calculated from a parameter
+    """Calculates the estimated standard deviation (esd) for a value calculated 
+    from a parameter
 
-    Args:
-        var_cov_mat (jnp.ndarray): (P, P) array containing the variances and covariances, 
-            where P is the number of refined parameters.
-        instruction (Parameter): one parameter instruction, as used for generating atomic
-            parameters (and in this case esds) from the refined parameters
+    Parameters
+    ----------
+    var_cov_mat : jnp.ndarray
+        (P, P) array containing the variances and covariances, where P is the
+        number of refined parameters.
+    instruction : Parameter
+        one parameter instruction, as used for generating atomic parameters
+        (and in this case esds) from the refined parameters
 
-    Raises:
-        NotImplementedError: Unknown type of Parameter used
+    Returns
+    -------
+    esd: float
+        estimated standart deviation as float or np.nan if parameter has no esd
 
-    Returns:
-        float: esd as float or np.nan if parameter has no esd
+    Raises
+    ------
+    NotImplementedError
+        Unknown type of Parameter used
     """
     if type(instruction).__name__ == 'RefinedParameter':
         return_value = instruction.multiplicator * np.sqrt(var_cov_mat[instruction.par_index, instruction.par_index])
@@ -742,7 +835,36 @@ def resolve_instruction_esd(
         raise NotImplementedError('Unknown type of parameters')
     return return_value
 
-def construct_esds(var_cov_mat, construction_instructions):
+def construct_esds(
+    var_cov_mat: jnp.ndarray,
+    construction_instructions: List[AtomInstructions]
+) -> Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray]:
+    """Calculate the estimated standard deviations for the calculated values
+    Will currently not resolve constraints, but might in the future.
+
+    Parameters
+    ----------
+    var_cov_mat : jnp.ndarray
+        (P, P) array containing the variances and covariances, where P is the
+        number of refined parameters.
+    construction_instructions : List[AtomInstructions]
+        List of instructions for reconstructing the atomic parameters
+
+    Returns
+    -------
+    xyz_esd: jnp.ndarray
+        (N, 3) array containing floats for valid and np.nan for fractional 
+        positions where there are no estimated deviations. N is the number
+        of atoms in the asymmetric unit
+    uij_esd: jnp.ndarray
+        (N, 6) array of esds of anisotropic displacement parameters
+    cijkl_esd: jnp.ndarray
+        (N, 10) array of esds of third-order Gram-Charlier parameters
+    dijkl_esd: jnp.ndarray
+        (N, 15) array of esds of third-order Gram-Charlier parameters
+    occ_esd: jnp.ndarray
+        (N) array of esds of occupacions
+    """
     # TODO Build analogous to the distance calculation function to get esds for all non-primitive calculations
     xyz = jnp.array(
         [[resolve_instruction_esd(var_cov_mat, inner_instruction) for inner_instruction in instruction.xyz]
@@ -781,31 +903,48 @@ def calc_lsq_factory(
     wavelength: Optional[float],
     restraint_instr_ind: List[Any]=[]
 ) -> Callable:
-    """Creates calc_lsq functions that can be used with jax.jit and jax.grad. This way we can 
-    accound for the very different needs of structures, while keeping the code down the line relatively simple.
+    """Creates calc_lsq functions that can be used with jax.jit and jax.grad.
+    This way we can account for the very different needs of structures, while
+    keeping the code down the line relatively simple.
 
-    Args:
-        cell_mat_m (jnp.ndarray): (3, 3) array with the cell vectors as row vectors 
-        symm_mats_vecs (Tuple[jnp.ndarray, jnp.ndarray]): (K, 3, 3) array of symmetry 
-            matrices and (K, 3) array of translation vectors for all symmetry elements in the unit cell
-        index_vec_h (jnp.ndarray): (H, 3) array of Miller indicees of observed reflections
-        intensities_obs (jnp.ndarray): (H) array of observed reflection intensities
-        weights (jnp.ndarray): (H) array of weights for the individual reflections
-        construction_instructions (List[AtomInstructions]): List of instructions for reconstructing the atomic
-            parameters
-        fjs_core (jnp.ndarray): (N, H) array of atomic core form factors calculated seperatey
-        refinement_dict (Dict[str, Any]): Dictionary that contains options for the refinement.
-        wavelength (float, optional): wavelength of radiation used for measurement in Angstroem
-        restraint_instr_ind (List[Any], optional): List of internal restraint options. Is still
-            very early in development, probably buggy and should not be used for research at the moment. Defaults to [].
+    Parameters
+    ----------
+    cell_mat_m : jnp.ndarray
+        (3, 3) array with the cell vectors as row vectors (Angstroem)
+    symm_mats_vecs : Tuple[jnp.ndarray, jnp.ndarray]
+        (K, 3, 3) array of symmetry  matrices and (K, 3) array of translation
+        vectors for all symmetry elements in the unit cell
+    index_vec_h : jnp.ndarray
+        (H, 3) array of Miller indicees of observed reflections
+    intensities_obs : jnp.ndarray
+        (H) array of observed reflection intensities
+    weights : jnp.ndarray
+        (H) array of weights for the individual reflections
+    construction_instructions : List[AtomInstructions]
+        List of instructions for reconstructing the atomic parameters
+    fjs_core : jnp.ndarray
+        (N, H) array of atomic core form factors calculated separately
+    refinement_dict : Dict[str, Any]
+        Dictionary that contains options for the refinement.
+    wavelength : Optional[float]
+        wavelength of radiation used for measurement in Angstroem
+    restraint_instr_ind : List[Any], optional
+        List of internal restraint options. Is still very early in development,
+        probably buggy and should not be used for research at the moment, by 
+        default []
 
-    Raises:
-        NotImplementedError: Extinction method not implemented
-        NotImplementedError: Core treatment method not implemented
+    Returns
+    -------
+    calc_lsq: Callable
+        function that return the sum of least squares for a given set of 
+        parameters and atomic form factors
 
-    Returns:
-        Callable: function that return the sum of least squares for a given set of parameters
-           and (if selected non-core) atomic form factors.
+    Raises
+    ------
+    NotImplementedError
+        Extinction method not implemented
+    NotImplementedError
+        Core treatment method not implemented
     """
     cell_mat_f = jnp.linalg.inv(cell_mat_m).T
     additional_parameters = 0
@@ -913,30 +1052,47 @@ def calc_var_cor_mat(
     """Calculates the variance-covariance matrix for a given set of parameters
     At the moment is pretty slow, as it is not parallelised over reflections
 
-    Args:
-        cell_mat_m (jnp.ndarray): (3, 3) array with the cell vectors as row vectors 
-        symm_mats_vecs (Tuple[jnp.ndarray, jnp.ndarray]): (K, 3, 3) array of symmetry 
-            matrices and (K, 3) array of translation vectors for all symmetry elements in the unit cell
-        index_vec_h (jnp.ndarray): (H, 3) array of Miller indicees of observed reflections
-        intensities_obs (jnp.ndarray): (H) array of observed reflection intensities
-        weights (jnp.ndarray): (H) array of weights for the individual reflections
-        construction_instructions (List[AtomInstructions]): List of instructions for reconstructing the atomic
-            parameters
-        fjs_core (jnp.ndarray): (N, H) array of atomic core form factors calculated seperatey
-        parameters (jnp.ndarray): (P) array with the refined parameters
-        fjs (jnp.ndarray): (K, N, H) array of atomic form factors for all reflections and symmetry
-            generated atoms within the unit cells. Atoms on special positions are present multiple
-            times and have the atomic form factor of the full atom.
-        refinement_dict (Dict[str, Any]): Dictionary that contains options for the refinement.
-        wavelength (float, optional): wavelength of radiation used for measurement in Angstroem
+    Parameters
+    ----------
+    cell_mat_m : jnp.ndarray
+        (3, 3) array with the cell vectors as row vectors (Angstroem)
+    symm_mats_vecs : Tuple[jnp.ndarray, jnp.ndarray]
+        (K, 3, 3) array of symmetry matrices and (K, 3) array of translation 
+        vectors for all symmetry elements in the unit cell
+    index_vec_h : jnp.ndarray
+        (H, 3) array of Miller indicees of observed reflections
+    intensities_obs : jnp.ndarray
+        (H) array of observed reflection intensities
+    weights : jnp.ndarray
+        (H) array of weights for the individual reflections
+    construction_instructions : List[AtomInstructions]
+        List of instructions for reconstructing the atomic parameters
+    fjs_core : jnp.ndarray
+        (N, H) array of atomic core form factors calculated separately
+    parameters : jnp.ndarray
+        (P) array with the refined parameters
+    fjs : jnp.ndarray
+        (K, N, H) array of atomic form factors for all reflections and symmetry
+        generated atoms within the unit cells. Atoms on special positions are
+        present multiple times and have the atomic form factor of the full atom.
+    refinement_dict : Dict[str, Any]
+        Dictionary that contains options for the refinement.
+    wavelength : Optional[float], optional
+        wavelength of radiation used for measurement in Angstroem, by default
+        None
 
-    Raises:
-        NotImplementedError: Extinction method not implemented
-        NotImplementedError: Core treatment not implemented
+    Returns
+    -------
+    var_cov_mat: jnp.ndarray
+        (P, P) array containing the variance-covariance matrix
 
-    Returns:
-        jnp.ndarray: (P, P) array containing the variance-covariance matrix
-    """    
+    Raises
+    ------
+    NotImplementedError
+        Extinction method not implemented
+    NotImplementedError
+        Core treatment not implemented
+    """   
     cell_mat_f = jnp.linalg.inv(cell_mat_m).T
     additional_parameters = 0
     refine_flack = refinement_dict.get('flack', False)
@@ -1058,62 +1214,95 @@ def refine(
     refinement_dict: dict = {},
     computation_dict: dict = {} 
 )-> Tuple[jnp.ndarray, jnp.ndarray, Dict[str, Any]]:
-    """Refinement routine. The routine will refine for the given intensities against wR2(F^2).
+    """Refinement routine. The routine will refine for the given intensities
+    against wR2(F^2).
 
-    Args:
-        cell (jnp.ndarray): array with the lattice coordinates (Angstroem, Degree)
-        symm_mats_vecs (Tuple[jnp.ndarray, jnp.ndarray]): (K, 3, 3) array of symmetry 
-            matrices and (K, 3) array of translation vectors for all symmetry elements in the unit cell
-        hkl (pd.DataFrame): pandas DataFrame containing the reflection data. Needs to have
-            at least five columns: h, k, l, intensity, weight. Alternatively weight can be 
-            substituted by esd_int. If no weight column is available the weights will be calculated as
-            1/est_int**2. Additional columns will be ignored
-        construction_instructions (List[AtomInstructions]): List of instructions for reconstructing the atomic
-            parameters from the list of refined parameters
-        parameters (jnp.ndarray): Starting values for the list of parameters
-        wavelength (float): Measurement wavelength in Angstroem. Currently only used for Shelxl style 
-           extinction correction. Can be omitted otherwise.
-        refinement_dict (dict, optional): Dictionary with refinement options. Defaults to {}.
-           Available options are:
-                f0j_source:    Source of the atomic form factors. 
-                               The computation_dict will be passed on to this method
-                               Tested options: 'gpaw', 'iam', 'gpaw_mpi'
-                               Some limitations: 'gpaw_spherical'
-                               Still untested: 'gpaw_lcorr', 'gpaw_mbis', 'qe'
-                               See the individual files in f0j_sources for more information
-                               Default: 'gpaw'
-                reload_step:   Starting with this step the computation will try to reuse the density
-                               if this is implemented in the source.
-                               Default: 1
-                core:          If this is implemented will integrate the frozen core density on a spherical 
-                               grid and only use the valence density for the updated atomic form factos
-                               options are 'combine', which will not treat the core density separately,
-                               'constant' which will integrate and add the core density without scaling parameter
-                               and 'scale' which will refine a scaling parameter for the core density which might
-                               for systematic deviations due to a coarse valence density grid (untested!)
-                               Default: 'constant'
-                extinction:    
-                max_dist_diff: If the difference in atomic position is under this value in 
-                               Angstroems, no new structure factors will be calculated
-                               Default: 1e-6
-                max_iter:      Maximum of refinement cycles if convergence not reached
-                               Default: 100
-                min_iter:      Minimum refinement cycles. The refinement will stop if the wR2 increases if the 
-                               current cycle is higher than min_iter
-                restraints:    Not fully implemented. Do not use at the moment.
+    Parameters
+    ----------
+    cell : jnp.ndarray
+        array with the lattice constants (Angstroem, Degree)
+    symm_mats_vecs : Tuple[jnp.ndarray, jnp.ndarray]
+        (K, 3, 3) array of symmetry matrices and (K, 3) array of translation
+        vectors for all symmetry elements in the unit cell
+    hkl : pd.DataFrame
+        pandas DataFrame containing the reflection data. Needs to have at least
+        five columns: h, k, l, intensity, weight. Alternatively weight can be 
+        substituted by esd_int. If no weight column is available the weights
+        will be calculated as 1/est_int**2. Additional columns will be ignored
+    construction_instructions : List[AtomInstructions]
+        List of instructions for reconstructing the atomic parameters from the
+        list of refined parameters
+    parameters : jnp.ndarray
+        Starting values for the list of parameters
+    wavelength : Optional[float], optional
+        Measurement wavelength in Angstroem. Currently only used for Shelxl 
+        style extinction correction. Can be omitted otherwise, by default None
+    refinement_dict : dict, optional
+        Dictionary with refinement options, by default {}
+        Available options are:
+            f0j_source: 
+                Source of the atomic form factors. The computation_dict 
+                will be passed on to this method. See the individual files in
+                f0j_sources for more information, by default 'gpaw'
+                Tested options: 'gpaw', 'iam', 'gpaw_mpi'
+                Some limitations: 'gpaw_spherical'
+                Still untested: 'gpaw_lcorr', 'gpaw_mbis', 'qe'
+            reload_step:   
+                Starting with this step the computation will try to reuse the 
+                density, if this is implemented in the source, by default 1
+            core:
+                If this is implemented in a f0j_source, it will integrate the 
+                frozen core density on a spherical grid and only use the valence
+                density for the updated atomic form factos options are 
+                'combine', which will not treat the core density separately,
+                'constant' which will integrate and add the core density without
+                scaling parameter and 'scale' which will refine a scaling 
+                parameter for the core density which might for systematic
+                deviations due to a coarse valence density grid (untested!)
+                By default 'constant'
+            extinction:
+                Use an extinction correction. Options: 'none' -> no extinction
+                correction, 'shelxl' use the (empirical) formula used by SHELXL 
+                to correct to correct for extinction, 'secondary' see Giacovazzo
+                et al. 'Fundmentals of Crystallography' (1992) p.97, by default
+                'none'
+            max_dist_diff:
+                If the max difference in atomic positions is under this value in 
+                Angstroems, no new structure factors will be calculated, by
+                default 1e-6
+            max_iter:
+                  Maximum of refinement cycles if convergence not reached, by 
+                  default: 100
+            min_iter:
+                  Minimum refinement cycles. The refinement will stop if the
+                  wR2 increases if the current cycle is higher than min_iter,
+                  by default 10
+            restraints:
+                Not fully implemented. Do not use at the moment, by default []
 
+    computation_dict : dict, optional
+        Dict with options that are passed on to the f0j_source. See the 
+        individual calc_f0j functions for a more detailed description, by 
+        default {}
 
-        computation_dict (dict, optional): Dict with options that are passed on to the f0j_source. See the 
-            individual calc_f0j functions for a more detailed description.
-            Defaults to {}.
+    Returns
+    -------
+    parameters: jnp.ndarray
+        final refined parameters.
+    var_cov_mat: jnp.ndarray,
+        variance covariance matrix of the final refinement step
+    information: Dict[str, Any]
+        Dictionary with additional information, some of this is needed for 
+        cif output
 
-    Raises:
-        NotImplementedError: f0j_source not implemented
-        NotImplementedError: Unknown core description
-        NotImplementedError: Second point where the core description could be missing
-
-    Returns:
-        Tuple[jnp.ndarray, jnp.ndarray, Dict[str, Any]]: [description]
+    Raises
+    ------
+    NotImplementedError
+        f0j_source not implemented
+    NotImplementedError
+        Unknown core description
+    NotImplementedError
+        Second point where the core description could be missing
     """
     start = datetime.datetime.now()
     print('Started refinement at ', start)
@@ -1330,7 +1519,51 @@ def refine(
     return parameters, var_cov_mat, additional_information
 
 
-def distance_with_esd(atom1_name, atom2_name, construction_instructions, parameters, var_cov_mat, cell_par, cell_std, crystal_system):
+def distance_with_esd(
+    atom1_name: str,
+    atom2_name: str,
+    construction_instructions: List[AtomInstructions],
+    parameters: jnp.ndarray,
+    var_cov_mat: jnp.ndarray,
+    cell_par: jnp.ndarray,
+    cell_std: jnp.ndarray,
+    crystal_system: str
+)-> Tuple[float, float]:
+    """Calculates the distance value of a given atom pair and its estimated
+    standart deviation
+
+    Parameters
+    ----------
+    atom1_name : str
+        Label of the first atom
+    atom2_name : str
+        label of the second atom
+    construction_instructions : List[AtomInstructions]
+        List of atomic instruction for reconstruction of the parameters. 
+        Needs to be the same, that was used for refinement.
+    parameters : jnp.ndarray
+        (P) sized array of refined parameters
+    var_cov_mat : jnp.ndarray
+        (P, P) sized array of the variance-covariance matrix
+    cell_par : jnp.ndarray
+        (6) sized array of cell parameters in degrees and Angstroem. Depending
+        on the given crystal system only the first of equivalent values might
+        be used. If the angle has to be 90° the angle values will be ignored
+    cell_std : jnp.ndarray
+        (6) sized array of the estimated standard deviation of cell parameters
+        Only certain values might be used, see cell_par
+    crystal_system : str
+        Crystal system of the evaluated structure. Possible values are: 
+        'triclinic', 'monoclinic' 'orthorhombic', 'tetragonal', 'hexagonal',
+        'trigonal' and 'cubic'. Is considered for the esd calculation.
+
+    Returns
+    -------
+    distance: float
+        Calculated distance between the two atoms
+    distance_esd: float
+        Estimated standard deviation of the calculated distance
+    """
     names = [instr.name for instr in construction_instructions]
     index1 = names.index(atom1_name)
     index2 = names.index(atom2_name)
@@ -1351,7 +1584,48 @@ def distance_with_esd(atom1_name, atom2_name, construction_instructions, paramet
     return distance, esd[0, 0]
 
 
-def u_iso_with_esd(atom_name, construction_instructions, parameters, var_cov_mat, cell_par, cell_std, crystal_system):
+def u_iso_with_esd(
+    atom_name: str,
+    construction_instructions: List[AtomInstructions],
+    parameters: jnp.ndarray,
+    var_cov_mat: jnp.ndarray,
+    cell_par: jnp.ndarray,
+    cell_std: jnp.ndarray,
+    crystal_system: str
+)-> Tuple[float, float]:
+    """Calculate the Uequiv value from anisotropic displacement parameters for
+    a given atom.
+
+    Parameters
+    ----------
+    atom_name : str
+        Label of the atom
+    construction_instructions : List[AtomInstructions]
+        List of atomic instruction for reconstruction of the parameters. 
+        Needs to be the same, that was used for refinement.
+    parameters : jnp.ndarray
+        (P) sized array of refined parameters
+    var_cov_mat : jnp.ndarray
+        (P, P) sized array of the variance-covariance matrix
+    cell_par : jnp.ndarray
+        (6) sized array of cell parameters in degrees and Angstroem. Depending
+        on the given crystal system only the first of equivalent values might
+        be used. If the angle has to be 90° the angle values will be ignored
+    cell_std : jnp.ndarray
+        (6) sized array of the estimated standard deviation of cell parameters
+        Only certain values might be used, see cell_par
+    crystal_system : str
+        Crystal system of the evaluated structure. Possible values are: 
+        'triclinic', 'monoclinic' 'orthorhombic', 'tetragonal', 'hexagonal',
+        'trigonal' and 'cubic'. Is considered for the esd calculation.
+
+    Returns
+    -------
+    u_equiv: float
+        Calculated U(equiv) value
+    u_equiv_esd, float
+        Estimated standard deviation of the U(equiv) value
+    """
     names = [instr.name for instr in construction_instructions]
     atom_index = names.index(atom_name)
     def u_iso_func(parameters, cell_par):
@@ -1366,7 +1640,54 @@ def u_iso_with_esd(atom_name, construction_instructions, parameters, var_cov_mat
     return u_iso, esd[0, 0]
 
 
-def angle_with_esd(atom1_name, atom2_name, atom3_name, construction_instructions, parameters, var_cov_mat, cell_par, cell_std, crystal_system):
+def angle_with_esd(
+    atom1_name: str,
+    atom2_name: str,
+    atom3_name: str, 
+    construction_instructions: List[AtomInstructions],
+    parameters: jnp.ndarray,
+    var_cov_mat: jnp.ndarray,
+    cell_par: jnp.ndarray,
+    cell_std: jnp.ndarray,
+    crystal_system: str
+)-> Tuple[float, float]:
+    """Calculates the angle with its estimated standard deviation spanned by
+    atom1-atom2-atom3
+
+    Parameters
+    ----------
+    atom1_name : str
+        Label of the first outer atom of the angle
+    atom2_name : str
+        Label of the central atom of the angle
+    atom3_name : str
+        Label of the second outer atom of the angle
+    construction_instructions : List[AtomInstructions]
+        List of atomic instruction for reconstruction of the parameters. 
+        Needs to be the same, that was used for refinement.
+    parameters : jnp.ndarray
+        (P) sized array of refined parameters
+    var_cov_mat : jnp.ndarray
+        (P, P) sized array of the variance-covariance matrix
+    cell_par : jnp.ndarray
+        (6) sized array of cell parameters in degrees and Angstroem. Depending
+        on the given crystal system only the first of equivalent values might
+        be used. If the angle has to be 90° the angle values will be ignored
+    cell_std : jnp.ndarray
+        (6) sized array of the estimated standard deviation of cell parameters
+        Only certain values might be used, see cell_par
+    crystal_system : str
+        Crystal system of the evaluated structure. Possible values are: 
+        'triclinic', 'monoclinic' 'orthorhombic', 'tetragonal', 'hexagonal',
+        'trigonal' and 'cubic'. Is considered for the esd calculation.
+
+    Returns
+    -------
+    angle: float
+        calculated angle between the three atoms
+    angle_esd: float
+        estimated standard deviation for the calculated angle
+    """
     names = [instr.name for instr in construction_instructions]
     index1 = names.index(atom1_name)
     index2 = names.index(atom2_name)
@@ -1384,6 +1705,7 @@ def angle_with_esd(atom1_name, atom2_name, atom3_name, construction_instructions
 
     jac1, jac2 = jax.grad(angle_func, [0, 1])(parameters, cell_par)
 
-    esd = jnp.sqrt(jac1[None, :] @ var_cov_mat @ jac1[None, :].T + jac2[None,:] @ jnp.diag(cell_std**2) @ jac2[None,:].T)
+    esd = (jnp.sqrt(jac1[None, :] @ var_cov_mat @ jac1[None, :].T 
+           + jac2[None,:] @ jnp.diag(cell_std**2) @ jac2[None,:].T))
     return angle, esd[0, 0]
 

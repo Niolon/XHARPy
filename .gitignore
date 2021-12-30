@@ -4,3 +4,5 @@ cubetools.py
 *.py[cod]
 
 *.gpw
+**/build
+**/.vscode

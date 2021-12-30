@@ -1,7 +1,7 @@
 import sys
 import os
 import argparse
-from .core import har, create_construction_instructions
+from .core import refine, create_construction_instructions
 from .io import cif2data, lst2constraint_dict, write_cif, write_fcf, shelxl_hkl_to_pd
 
 
@@ -110,6 +110,8 @@ def cli(**kwargs):
 
     computation_dict['kpts'] = {'size': tuple(kpoints), 'gamma': True}
 
+    refinement_dict = {'core': 'constant', 'extinction': extinction}
+
     if 'mpi_cores' not in kwargs:
         mpi_string = input_with_default(
             'Give the number of cores used for the MPI calculation (1 for no MPI, auto for letting GPAW select, experimental!)',
@@ -118,12 +120,12 @@ def cli(**kwargs):
     else:
         mpi_string = kwargs['mpi_cores'][0]
     if mpi_string.strip() == 'auto':
-        calc_source = 'gpaw_mpi'
+        refinement_dict['f0j_source'] = 'gpaw_mpi'
     elif mpi_string.strip() == '1':
-        calc_source = 'gpaw'
+        refinement_dict['f0j_source'] = 'gpaw'
     else:
         computation_dict['mpicores'] = int(mpi_string)
-        calc_source = 'gpaw_mpi'
+        refinement_dict['f0j_source'] = 'gpaw_mpi'
 
     if 'output_folder' not in kwargs:
         output_folder = input_with_default(
@@ -136,7 +138,6 @@ def cli(**kwargs):
     if not os.path.exists(output_folder):
         os.mkdir(output_folder)
 
-    refinement_dict = {'core': 'constant', 'extinction': extinction, 'wavelength': wavelength}
     
     construction_instructions, parameters = create_construction_instructions(
         atom_table,
@@ -144,15 +145,13 @@ def cli(**kwargs):
         refinement_dict=refinement_dict
     )
 
-    parameters, var_cov_mat, information = har(
+    parameters, var_cov_mat, information = refine(
         cell,
         symm_mats_vecs,
         hkl,
         construction_instructions,
         parameters,
         computation_dict=computation_dict,
-        f0j_source=calc_source,
-        reload_step=1,
         refinement_dict=refinement_dict
     )
 

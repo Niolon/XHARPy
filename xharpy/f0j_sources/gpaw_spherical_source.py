@@ -56,8 +56,6 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
     else:
         magmoms = None
 
-    #assert not (not average_symmequiv and not do_not_move)
-    #assert not (not average_symmequiv and not do_not_move)
     symm_positions, symm_symbols, f0j_indexes, magmoms_symm = expand_symm_unique(element_symbols,
                                                                                  np.array(positions),
                                                                                  np.array(cell_mat_m),
@@ -102,7 +100,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
 
     print('  calculated density with energy', e1)
 
-    with pkg_resources.open_binary('xharpylib.rho', 'spherical_rho.pic') as fo:
+    with pkg_resources.open_binary('xharpy.rho', 'spherical_rho.pic') as fo:
         atomic_dict = pickle.load(fo)
         
     spline_dict = {}
@@ -127,7 +125,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
         'insane':    'tv-13.7-8.txt'
     }
 
-    with pkg_resources.open_text('xharpylib.horton2-grids', grid_to_file[grid_name]) as fo:
+    with pkg_resources.open_text('xharpy.horton2-grids', grid_to_file[grid_name]) as fo:
         lines = [line.strip() for line in fo.readlines() if len(line.strip()) > 1 and line[0] != '#']
     grid_dict = {}
     for line1, line2, line3 in zip(lines[::3], lines[1::3], lines[2::3]):

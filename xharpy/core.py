@@ -932,7 +932,7 @@ def calc_var_cor_mat(
 
     Raises:
         NotImplementedError: Extinction method not implemented
-        NotImplementedError: Core treadment not implemented
+        NotImplementedError: Core treatment not implemented
 
     Returns:
         jnp.ndarray: (P, P) array containing the variance-covariance matrix

@@ -170,7 +170,7 @@ def cli(**kwargs):
         hkl=hkl,
         shift_ov_su=information['shift_ov_su'],
         computation_dict=computation_dict,
-        refine_dict=refinement_dict,
+        refinement_dict=refinement_dict,
         cell=cell,
         cell_esd=cell_esd
     )
@@ -178,7 +178,7 @@ def cli(**kwargs):
     write_fcf(
         filename=os.path.join(output_folder, 'xharpy.fcf'),
         hkl=hkl,
-        refine_dict=refinement_dict,
+        refinement_dict=refinement_dict,
         parameters=parameters,
         symm_strings=symm_strings,
         construction_instructions=construction_instructions,

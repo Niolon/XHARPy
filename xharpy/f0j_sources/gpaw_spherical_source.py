@@ -293,3 +293,24 @@ def calculate_f0j_core(cell_mat_m, element_symbols, positions, index_vec_h, symm
                 f0j[start_index:end_index] = f_core_from_spline(nc, g_ks[start_index:end_index] * Bohr, k=19)
             f0j_core[name] = f0j
     return np.array([f0j_core[symbol] for symbol in element_symbols])
+
+
+def generate_cif_output(computation_dict):
+    strings = []
+    for key, val in computation_dict.items():
+        if type(val) is dict:
+            strings.append(f'      {key}:')
+            for key2, val2 in val.items():
+                strings.append(f'         {key2}: {val2}')
+        else:
+            strings.append(f'      {key}: {val}')
+    value_strings = '\n'.join(strings)
+    addition = f"""  - Refinement was done using structure factors
+    derived from theoretically calculated atomic densities
+  - Density calculation was done with ASE/GPAW using the
+    following settings
+{value_strings}
+  - Afterwards density was interpolated on a spherical grid from the horton
+    package
+  - Atomic form factors were calculated using discrete fourier transform"""
+    return addition

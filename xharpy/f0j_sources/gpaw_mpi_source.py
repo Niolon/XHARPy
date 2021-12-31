@@ -495,18 +495,21 @@ def calculate_f0j_core(cell_mat_m, element_symbols, positions, index_vec_h, symm
     return f0j_core
 
 def generate_cif_output(computation_dict):
+    strings = []
+    for key, val in computation_dict.items():
+        if type(val) is dict:
+            strings.append(f'      {key}:')
+            for key2, val2 in val.items():
+                strings.append(f'         {key2}: {val2}')
+        else:
+            strings.append(f'      {key}: {val}')
+    value_strings = '\n'.join(strings)
     addition = f"""  - Refinement was done using structure factors
-    derived from Hirshfeld densities
+    derived from theoretically calculated atomic densities
   - Density calculation was done with ASE/GPAW using the
     following settings
-      xc: {computation_dict['xc']}
-      h: {computation_dict['h']}
-      grid_mult: {computation_dict['gridinterpolation']}
-      density_conv: {computation_dict['convergence']['density']}
-      kpts: ({computation_dict['kpts']['size'][0]},{computation_dict['kpts']['size'][1]},{computation_dict['kpts']['size'][2]})
+{value_strings}
   - Afterwards density was interpolated on a rectangular grid and partitioned
     according to the Hirshfeld scheme, using GPAWs build-in routines.
-  - Atomic form factors were calculated from the densities using FFT from the
-    numpy package"""
-
+  - Atomic form factors were calculated using FFT from the numpy package"""
     return addition

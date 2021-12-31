@@ -1548,7 +1548,7 @@ def create_extinction_entries(
 
 
 def generate_core_refinement_string(refinement_dict, parameters, var_cov_mat):
-    core = refinement_dict.get('core', 'constant')
+    core = get_value_or_default('core', refinement_dict)
     if core == 'combine':
         return """  - Core density was not treated separately from the valence density"""
     elif core == 'constant':
@@ -1586,37 +1586,46 @@ def write_cif(
     Parameters
     ----------
     output_cif_path : str
-        [description]
+        path where the new cif file is output
     cif_dataset : Union[str, int]
-        [description]
+        name of dataset in cif file
     shelx_cif_path : str
-        [description]
+        Path to the shelx cif used for the refinement. For the time being is
+        used to copy some values, where the calculation is not implemented yet
     shelx_dataset : Union[str, int]
-        [description]
+        dataset within the shelx cif file
     cell : jnp.ndarray
-        [description]
+        array with the lattice constants (Angstroem, Degree)
     cell_esd : jnp.ndarray
-        [description]
+        array with the estimated standard deviation of the lattice constants
+        (Angstroem, Degree)
     symm_mats_vecs : Tuple[jnp.ndarray, jnp.ndarray]
-        [description]
+        (K, 3, 3) array of symmetry matrices and (K, 3) array of translation
+        vectors for all symmetry elements in the unit cell
     hkl : pd.DataFrame
-        [description]
+        pandas DataFrame containing the reflection data. Needs to have at least
+        five columns: h, k, l, intensity, esd_int, Additional columns will be
+        ignored
     construction_instructions : List[AtomInstructions]
-        [description]
+        List of instructions for reconstructing the atomic parameters from the
+        list of refined parameters
     parameters : jnp.ndarray
-        [description]
+        final refined parameters
     var_cov_mat : jnp.ndarray
         [description]
     refinement_dict : Dict[str, Any]
-        [description]
+        Dictionary with refinement options. For detailed options see refinement 
+        function in core
     computation_dict : Dict[str, Any]
-        [description]
+        Dict with options of the to the f0j_source.
     information : Dict[str, Any]
-        [description]
+        Dictionary with additional information, obtained from the refinement.
+        the atomic form factors will be read from this dict.
     source_cif_path : str, optional
-        [description], by default None
+        Additional cif that will be searched for crystal and measurement
+        information. If not given the shelx cif will be tried instead
     source_dataset : Union[str, int], optional
-        [description], by default None
+        Dataset to use in the source_cif
     """
     versionmajor = 0
     versionminor = 1
@@ -1637,7 +1646,9 @@ def write_cif(
     esd_int = hkl['esd_int'].values
     cell_mat_m = cell_constants_to_M(*cell)
     cell_mat_f = np.linalg.inv(cell_mat_m).T
-    ishar = refinement_dict['f0j_source'] != 'iam'
+    f0j_source = get_value_or_default('f0j_source', refinement_dict)
+
+    ishar = f0j_source != 'iam'
     constructed_xyz, constructed_uij, constructed_cijk, constructed_dijkl, constructed_occupancies = construct_values(parameters, construction_instructions, cell_mat_m)
 
     structure_factors = np.array(calc_f(
@@ -1651,20 +1662,23 @@ def write_cif(
         symm_mats_vecs=symm_mats_vecs,
         fjs=information['fjs_anom']
     ))
-    f0j_source = get_value_or_default('f0j_source', refinement_dict)
     if f0j_source == 'iam':
-        from f0j_sources.iam_source import generate_cif_output
+        from .f0j_sources.iam_source import generate_cif_output
     elif f0j_source == 'gpaw':
-        from f0j_sources.gpaw_source import generate_cif_output
+        from .f0j_sources.gpaw_source import generate_cif_output
     elif f0j_source == 'gpaw_mbis':
-        from f0j_sources.gpaw_mbis_source import generate_cif_output
+        from .f0j_sources.gpaw_mbis_source import generate_cif_output
+    elif f0j_source == 'gpaw_mpi':
+        from .f0j_sources.gpaw_mpi_source import generate_cif_output
+    elif f0j_source == 'gpaw_spherical':
+        from f0j_sources.gpaw_spherical_source import generate_cif_output
     else:
         raise NotImplementedError('This f0j source has not implemented "generate_cif_output" method')
 
 
-    refinement_string = """ - Structure optimisation was done using derivatives
-   calculated with the python package JAX and
-   BFGS minimisation in scipy.optimize.minimize"""
+    refinement_string = """  - Structure optimisation was done using derivatives
+    calculated with the python package JAX and
+    BFGS minimisation in scipy.optimize.minimize"""
 
     refinement_string += '\n' + generate_core_refinement_string(
        refinement_dict,
@@ -1718,15 +1732,15 @@ def write_cif(
         add_from_cif('space_group_name_H-M_alt', shelx_cif),
         add_from_cif('space_group_name_Hall', shelx_cif),
         cif2space_group_table_string(shelx_cif),
-        add_from_cif('cell_length_a', shelx_cif, std=True),
-        add_from_cif('cell_length_b', shelx_cif, std=True),
-        add_from_cif('cell_length_c', shelx_cif, std=True),
-        add_from_cif('cell_angle_alpha', shelx_cif, std=True),
-        add_from_cif('cell_angle_beta', shelx_cif, std=True),
-        add_from_cif('cell_angle_gamma', shelx_cif, std=True),
-        add_from_cif('cell_volume', shelx_cif, std=True),
+        add_from_cif('cell_length_a', shelx_cif, esd=True),
+        add_from_cif('cell_length_b', shelx_cif, esd=True),
+        add_from_cif('cell_length_c', shelx_cif, esd=True),
+        add_from_cif('cell_angle_alpha', shelx_cif, esd=True),
+        add_from_cif('cell_angle_beta', shelx_cif, esd=True),
+        add_from_cif('cell_angle_gamma', shelx_cif, esd=True),
+        add_from_cif('cell_volume', shelx_cif, esd=True),
         add_from_cif('cell_formula_units_Z', shelx_cif),
-        add_from_cif('cell_measurement_temperature', source_cif, std=True),
+        add_from_cif('cell_measurement_temperature', source_cif, esd=True),
         add_from_cif('cell_measurement_reflns_used', source_cif),
         add_from_cif('cell_measurement_theta_min', source_cif),
         add_from_cif('cell_measurement_theta_max', source_cif),
@@ -1747,7 +1761,7 @@ def write_cif(
         add_from_cif('exptl_absorpt_process_details', source_cif),
         add_from_cif('exptl_absorpt_special_details', source_cif),
         '',
-        add_from_cif('diffrn_ambient_temperature', source_cif, std=True),
+        add_from_cif('diffrn_ambient_temperature', source_cif, esd=True),
         add_from_cif('diffrn_radiation_wavelength', source_cif),
         add_from_cif('diffrn_radiation_type', source_cif),
         add_from_cif('diffrn_source', source_cif),
@@ -1830,3 +1844,41 @@ parameters are assumed to be independent."""),
     ]
     with open(output_cif_path, 'w') as fo:
         fo.write('\n'.join(lines).replace('\n\n\n', '\n\n'))
+
+
+def add_density_entries_from_fcf(
+    cif_path: str,
+    fcf6_path: str,
+):
+    """Adds the density entries to a cif file starting from the fcf6 file.
+    This is necessary because so far the difference density calculation 
+    is not working properly. This introduces a dependency on the rather
+    large cctbx/iotbx library
+
+    Parameters
+    ----------
+    cif_path : str
+        path to the cif-file to be completed
+    fcf6_path : str
+        path to the fcf6 file to be used for the difference electron density
+        calculation
+    """
+    from iotbx import reflection_file_reader
+    reader = reflection_file_reader.cif_reader(fcf6_path)
+    arrays = reader.build_miller_arrays()[next(iter(reader.build_miller_arrays()))]
+    fobs = arrays['_refln_F_squared_meas'].f_sq_as_f()
+    fcalc = arrays['_refln_F_calc']
+    diff = fobs.f_obs_minus_f_calc(1.0, arrays['_refln_F_calc'])
+    diff_map = diff.fft_map()
+    diff_map.apply_volume_scaling()
+    stats = diff_map.statistics()
+    diff_max = f'{stats.max():17.4f}'
+    diff_min = f'{stats.min():17.4f}'
+    diff_sigma = f'{stats.sigma():17.4f}'
+    with open(cif_path, 'r') as fo:
+        content = fo.read()
+    content = re.sub(r'(?<=_refine_diff_density_max)\s+([\d\.\-]+)', diff_max, content)
+    content = re.sub(r'(?<=_refine_diff_density_min)\s+([\d\.\-]+)', diff_min, content)
+    content = re.sub(r'(?<=_refine_diff_density_rms)\s+([\d\.\-]+)', diff_sigma, content)
+    with open(cif_path, 'w') as fo:
+        fo.write(content)

@@ -2,8 +2,26 @@
 import jax.numpy as jnp
 
 
-def ucif2ucart(cell_mat_m, u_mats):
-    # see R. W. Grosse-Kunstleve and P. D. Adams J. Appl. Cryst 2002, p.478 eq. 3a + 4a
+def ucif2ucart(cell_mat_m: jnp.ndarray, u_mats: jnp.ndarray) -> jnp.ndarray:
+    """Calculate anistropic displacement matrices in the cartesian convention
+    from the displacement matrices in the cif convention
+    see: R. W. Grosse-Kunstleve and P. D. Adams J. Appl. Cryst 2002, p.478
+    eq. 3a + 4a
+
+    Parameters
+    ----------
+    cell_mat_m : jnp.ndarray
+        (3,3) array containing the cell vectors as row vectors
+    u_mats : jnp.ndarray
+        (N, 3, 3) array containing the anisotropic displacement matrices in
+        cif format
+
+    Returns
+    -------
+    u_cart: jnp.ndarray
+        (N, 3, 3) array of the matrices in cartesian convention
+    """
+    # 
     cell_mat_f = jnp.linalg.inv(cell_mat_m).T
     cell_mat_n = jnp.eye(3) * jnp.linalg.norm(cell_mat_f, axis=1)
 
@@ -11,12 +29,43 @@ def ucif2ucart(cell_mat_m, u_mats):
     return jnp.einsum('ab, zbc, cd -> zad', cell_mat_m, u_star, cell_mat_m.T)
 
 
-def cell_constants_to_M(a, b, c, alpha, beta, gamma, crystal_system='triclinic'):
-    """
-    Generates a matrix with the three lattice vectors as lines
-    unit of length will be as given by the cell constants
-    """
+def cell_constants_to_M(
+    a: float,
+    b: float,
+    c: float,
+    alpha: float,
+    beta: float,
+    gamma: float,
+    crystal_system: str = 'triclinic'
+):
+    """Generates a matrix with the three lattice vectors as row vectors
 
+    Parameters
+    ----------
+    a : float
+        cell constant a in Angstroem
+    b : float
+        cell constant b in Angstroem
+    c : float
+        cell constant c in Angstroem
+    alpha : float
+        cell angle alpha in degree
+    beta : float
+        cell angle beta in degree
+    gamma : float
+        cell angle gamma in degree
+    crystal_system : str, optional
+        Crystal system of the evaluated structure. Possible values are: 
+        'triclinic', 'monoclinic' 'orthorhombic', 'tetragonal', 'hexagonal',
+        'trigonal' and 'cubic'. Does not make a difference for the calculation
+        of the matrix, but does make a difference for the derivatives to the
+        cell parameters
+
+    Returns
+    -------
+    cell_mat_m: jnp.ndarray
+        (3, 3) array containing the cell vectors as row vectors
+    """
     if crystal_system == 'monoclinic':
         alpha = 90.0
         gamma = 90.0
@@ -67,5 +116,24 @@ def cell_constants_to_M(a, b, c, alpha, beta, gamma, crystal_system='triclinic')
     return M.T
 
 
-def calc_sin_theta_ov_lambda(cell_mat_f, index_vec_h):
+def calc_sin_theta_ov_lambda(
+    cell_mat_f: jnp.ndarray,
+    index_vec_h: jnp.ndarray
+) -> jnp.ndarray:
+    """Calculate the resolution in sin(theta)/lambda for the given set of miller
+    indicees
+
+    Parameters
+    ----------
+    cell_mat_f : jnp.ndarray
+        (3, 3) array containing the reciprocal lattice vectors
+    index_vec_h : jnp.ndarray
+        (H, 3) array of Miller indicees of reflections
+
+
+    Returns
+    -------
+    sin_theta_ov_lambda: jnp.ndarray
+        (H) array containing the calculated values
+    """
     return jnp.linalg.norm(jnp.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 

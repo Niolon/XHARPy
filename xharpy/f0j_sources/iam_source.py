@@ -652,3 +652,8 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
 
 def calculate_f0j_core(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs):
     raise NotImplementedError('Separate core calculation is non-sensical in IAM Mode')
+
+def generate_cif_output(computation_dict):
+    addition = f"""  - Refinement was done using structure factors
+    as usual for an IAM refinement"""
+    return addition

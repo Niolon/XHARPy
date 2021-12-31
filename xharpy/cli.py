@@ -36,7 +36,7 @@ def cli(**kwargs):
     if '.' not in cif_index and cif_index.isdecimal():
         cif_index = int(cif_index)
 
-    atom_table, cell, cell_std, symm_mats_vecs, symm_strings, wavelength = cif2data(cif_name, cif_index)
+    atom_table, cell, cell_esd, symm_mats_vecs, symm_strings, wavelength = cif2data(cif_name, cif_index)
 
     if 'lst_name' not in kwargs:
         lst_name = input_with_default(
@@ -172,7 +172,7 @@ def cli(**kwargs):
         computation_dict=computation_dict,
         refine_dict=refinement_dict,
         cell=cell,
-        cell_std=cell_std
+        cell_esd=cell_esd
     )
 
     write_fcf(

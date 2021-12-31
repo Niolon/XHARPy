@@ -889,3 +889,17 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
 
 def calculate_f0j_core(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs):
     raise NotImplementedError('Core partitioning is not implemented in MBIS')
+
+
+def generate_cif_output(computation_dict):
+    addition = f"""  - Refinement was done using structure factors
+    derived from MBIS densities calculated with the denspart package.
+  - Density calculation was done with ASE/GPAW using the
+    following settings
+      xc: {computation_dict['xc']}
+      h: {computation_dict['h']}
+      grid_mult: {computation_dict['gridinterpolation']}
+      density_conv: {computation_dict['convergence']['density']}
+      kpts: ({computation_dict['kpts']['size'][0]},{computation_dict['kpts']['size'][1]},{computation_dict['kpts']['size'][2]})"""
+
+    return addition

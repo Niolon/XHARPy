@@ -121,6 +121,71 @@ TorsionPositionConstraint = namedtuple('TorsionPositionConstraint', [
                          #will be fixed to torsion_angle_add
 ])
 
+def get_value_or_default(
+    parameter_name: str,
+    refinement_dict: Dict[str, Any]
+) -> Any:
+    """Central function for storing the default values of the refinement_dict
+    values. Always getting the default from here, means assumptions about
+    defaults will be the same throughout the library.
+
+    Parameters
+    ----------
+    parameter_name : str
+        Parameter that will be looked up
+    refinement_dict : Dict[str, Any]
+        Dict with parameters for the refinement.
+
+    Returns
+    -------
+    return_value: Any
+        If the value is present in the refinement_dict, the value will be 
+        returned from there. Otherwise the value from the defaults dictionary 
+        will be returned
+    """
+    defaults = {
+        'f0j_source': 'gpaw',
+        'reload_step': 1,
+        'core': 'constant',
+        'extinction': 'none',
+        'max_dist_recalc': 1e-6,
+        'max_iter': 100,
+        'min_iter': 10,
+        'restraints': [],
+        'flack': False
+    }
+    return refinement_dict.get(parameter_name, defaults[parameter_name])
+
+
+def get_parameter_index(
+    parameter_name: str, 
+    refinement_dict: Dict[str, Any]
+) -> Union[int, None]:
+    """Return the index of the parameter for the given refinement dict
+
+    Parameters
+    ----------
+    parameter_name : str
+        Name of the parameter, which is to be looked up
+    refinement_dict : Dict[str, Any]
+        Dict with parameters for the refinement.
+
+    Returns
+    -------
+    index: Union[int, None]
+        Integer with the index of the parameter in the parameter array if the
+        value is actually refined. None if value is not refined.
+    """
+    order = [
+        ('overall scaling', True),
+        ('flack', get_value_or_default('flack', refinement_dict)),
+        ('core', get_value_or_default('core', refinement_dict) == 'scale'),
+        ('extinction', get_value_or_default('extinction', refinement_dict) != 'none')
+    ]
+    index = [name for name, _ in order].index(parameter_name)
+    if not order[index][1]:
+        return None
+    return sum([int(val) for _, val in order][:index])
 
 def expand_symm_unique(
         type_symbols: List[str],
@@ -473,18 +538,18 @@ def create_construction_instructions(
     parameters = jnp.full(10000, jnp.nan)
     current_index = 1
     parameters = jax.ops.index_update(parameters, jax.ops.index[0], scaling0)
-    if 'flack' in refinement_dict:
-        if refinement_dict['flack']:
-            parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], 0.0)
-            current_index += 1
-    if 'core' in refinement_dict:
-        if refinement_dict['core'] == 'scale':
-            parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], 1.0)
-            current_index += 1
-    if 'extinction' in refinement_dict:
-        if refinement_dict['extinction'] != 'none':
-            parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], exti0)
-            current_index += 1            
+    flack_index = get_parameter_index('flack', refinement_dict)
+    if flack_index is not None:
+        parameters = jax.ops.index_update(parameters, jax.ops.index[flack_index], 0.0)
+        current_index += 1
+    core_index = get_parameter_index('core', refinement_dict)
+    if core_index is not None:
+        parameters = jax.ops.index_update(parameters, jax.ops.index[core_index], 1.0)
+        current_index += 1
+    extinction_index = get_parameter_index('extinction', refinement_dict)
+    if extinction_index is not None:
+        parameters = jax.ops.index_update(parameters, jax.ops.index[extinction_index], exti0)
+        current_index += 1            
     construction_instructions = []
     known_torsion_indexes = {}
     if cell is None:
@@ -553,7 +618,7 @@ def create_construction_instructions(
                     angle_atom_index=angle_index,
                     torsion_atom_index=torsion_index,
                     distance=FixedParameter(value=float(constraint.distance)),
-                    angle=FixedParameter(value=float(constraint.angle)),
+                    angle=FixedParameter(value=np.deg2rad(float(constraint.angle))),
                     torsion_angle=torsion_parameter
                 )
             elif type(constraint).__name__ == 'ConstrainedValues':
@@ -605,9 +670,15 @@ def create_construction_instructions(
                 adp_instructions = tuple(RefinedParameter(par_index=int(array_index), multiplicator=1.0) for array_index in range(current_index, current_index + 6))
                 current_index += 6
         elif atom['adp_type'] == 'Uiso':
-            adp_instructions = UIso(uiso=RefinedParameter(par_index=int(current_index), multiplicator=1.0))
-            parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], float(atom['U_iso_or_equiv']))
-            current_index += 1
+            if atom['label'] in constraint_dict.keys() and 'uij' in constraint_dict[atom['label']].keys():
+                constraint = constraint_dict[atom['label']]['uij']
+                if type(constraint).__name__ == 'UEquivConstraint':
+                        bound_index = names.index(constraint.bound_atom)
+                        adp_instructions = UEquivCalculated(atom_index=bound_index, multiplicator=constraint.multiplicator)
+            else:
+                adp_instructions = UIso(uiso=RefinedParameter(par_index=int(current_index), multiplicator=1.0))
+                parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], float(atom['U_iso_or_equiv']))
+                current_index += 1
         else:
             raise NotImplementedError('Unknown ADP type in cif. Please use the Uiso or Uani convention')
 
@@ -784,7 +855,7 @@ def construct_values(
         if type(instruction.uij).__name__ == 'UEquivCalculated':
             uij_parent = uij[instruction.uij.atom_index, jnp.array([[0, 5, 4], [5, 1, 3], [4, 3, 2]])]
             u_cart = ucif2ucart(cell_mat_m, uij_parent[None,:, :])
-            uiso = jnp.trace(u_cart) / 3
+            uiso = jnp.trace(u_cart[0]) / 3
             uij = jax.ops.index_update(uij, jax.ops.index[index, :3], jnp.array([uiso, uiso, uiso]))
             uij = jax.ops.index_update(uij, jax.ops.index[index, 3], uiso * jnp.sum(cell_mat_f[:, 1] * cell_mat_f[:, 2]) / lengths_star[1] / lengths_star[2])
             uij = jax.ops.index_update(uij, jax.ops.index[index, 4], uiso * jnp.sum(cell_mat_f[:, 0] * cell_mat_f[:, 2]) / lengths_star[0] / lengths_star[2])
@@ -942,36 +1013,20 @@ def calc_lsq_factory(
     Raises
     ------
     NotImplementedError
-        Extinction method not implemented
-    NotImplementedError
         Core treatment method not implemented
     """
     cell_mat_f = jnp.linalg.inv(cell_mat_m).T
-    additional_parameters = 0
-    refine_flack = refinement_dict.get('flack', False)
-    if refine_flack:
-        refine_flack = True
-        flack_parameter = additional_parameters + 1
-        additional_parameters += 1
-    core = refinement_dict.get('core', 'constant')
-    if  core == 'scale':
-        core_parameter = additional_parameters + 1
-        additional_parameters += 1
-    extinction = refinement_dict.get('extinction', 'none')
-    if  extinction == 'shelxl':
+    flack_parameter = get_parameter_index('flack', refinement_dict)
+    core = get_value_or_default('core', refinement_dict)
+    core_parameter = get_parameter_index('core', refinement_dict)
+ 
+    extinction = get_value_or_default('extinction', refinement_dict)
+    extinction_parameter = get_parameter_index('extinction', refinement_dict)
+    if extinction == 'shelxl':
         assert wavelength is not None, 'Wavelength needs to be defined in refinement_dict for shelxl extinction'
-        extinction_parameter = additional_parameters + 1
-        additional_parameters += 1
         sintheta = jnp.linalg.norm(jnp.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 * wavelength
         sintwotheta = 2 * sintheta * jnp.sqrt(1 - sintheta**2)
         extinction_factors = 0.001 * wavelength**3 / sintwotheta
-    elif extinction == 'secondary':
-        extinction_parameter = additional_parameters + 1
-        additional_parameters += 1
-    elif extinction == 'none':
-        pass
-    else:
-        raise NotImplementedError('Extinction method not implemented in lsq_factory')
     
     construct_values_j = jax.jit(construct_values, static_argnums=(1))
 
@@ -1008,7 +1063,7 @@ def calc_lsq_factory(
             intensities_calc = parameters[0] * i_calc0 / (1 + parameters[extinction_parameter] * i_calc0)
             #restraint_addition = 0
   
-        if refine_flack:
+        if flack_parameter is not None:
             structure_factors2 = calc_f(
                 xyz=xyz,
                 uij=uij,
@@ -1094,32 +1149,18 @@ def calc_var_cor_mat(
         Core treatment not implemented
     """   
     cell_mat_f = jnp.linalg.inv(cell_mat_m).T
-    additional_parameters = 0
-    refine_flack = refinement_dict.get('flack', False)
-    if refine_flack:
-        flack_parameter = additional_parameters + 1
-        additional_parameters += 1
-    
-    core = refinement_dict.get('core', 'constant')
-    if  core == 'scale':
-        core_parameter = additional_parameters + 1
-        additional_parameters += 1
-
-    extinction = refinement_dict.get('extinction', 'none')
-    if  extinction == 'shelxl':
+    flack_parameter = get_parameter_index('flack', refinement_dict)
+    core = get_value_or_default('core', refinement_dict)
+    core_parameter = get_parameter_index('core', refinement_dict)
+ 
+    extinction = get_value_or_default('extinction', refinement_dict)
+    extinction_parameter = get_parameter_index('extinction', refinement_dict)
+    if extinction == 'shelxl':
         assert wavelength is not None, 'Wavelength needs to be defined in refinement_dict for shelxl extinction'
-        extinction_parameter = additional_parameters + 1
-        additional_parameters += 1
         sintheta = jnp.linalg.norm(jnp.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 * wavelength
         sintwotheta = 2 * sintheta * jnp.sqrt(1 - sintheta**2)
         extinction_factors = 0.001 * wavelength**3 / sintwotheta
-    elif extinction == 'secondary':
-        extinction_parameter = additional_parameters + 1
-        additional_parameters += 1
-    elif extinction == 'none':
-        pass
-    else:
-        raise NotImplementedError('Extinction method not implemented in var_cov_mat_func')
+    
     construct_values_j = jax.jit(construct_values, static_argnums=(1))
 
     def function(parameters, fjs, index):
@@ -1155,7 +1196,7 @@ def calc_var_cor_mat(
             intensities_calc = parameters[0] * i_calc0 / (1 + parameters[extinction_parameter] * i_calc0)
             #restraint_addition = 0
             
-        if refine_flack:
+        if flack_parameter is not None:
             structure_factors2 = calc_f(
                 xyz=xyz,
                 uij=uij,
@@ -1266,7 +1307,10 @@ def refine(
                 to correct to correct for extinction, 'secondary' see Giacovazzo
                 et al. 'Fundmentals of Crystallography' (1992) p.97, by default
                 'none'
-            max_dist_diff:
+            flack:
+                Refinement of the flack parameter. Free lunch ist currently not
+                implemented, by default False
+            max_dist_recalc:
                 If the max difference in atomic positions is under this value in 
                 Angstroems, no new structure factors will be calculated, by
                 default 1e-6
@@ -1316,7 +1360,7 @@ def refine(
     dispersion_real = jnp.array([atom.dispersion_real for atom in construction_instructions])
     dispersion_imag = jnp.array([atom.dispersion_imag for atom in construction_instructions])
     f_dash = dispersion_real + 1j * dispersion_imag
-    f0j_source = refinement_dict.get('f0j_source', 'gpaw')
+    f0j_source = get_value_or_default('f0j_source', refinement_dict)
     if f0j_source == 'gpaw':
         from .f0j_sources.gpaw_source import calc_f0j, calculate_f0j_core
     elif f0j_source == 'iam':
@@ -1334,12 +1378,12 @@ def refine(
     else:
         raise NotImplementedError('Unknown type of f0j_source')
 
-    reload_step = refinement_dict.get('reload_step', 1)
+    reload_step = get_value_or_default('reload_step', refinement_dict)
 
-    restraints = refinement_dict.get('restraints', [])
+    restraints = get_value_or_default('restraints', refinement_dict)
     if len(restraints) > 0:
         warnings.warn('Restraints are still highly experimental, The current implementation did not reproduce SHELXL results. So do not use them for research right now!')
-    core = refinement_dict.get('core', 'constant')
+    core = get_value_or_default('core', refinement_dict)
     if f0j_source in ('iam') and core != 'combine':
         warnings.warn('core description is not possible with this f0j source')
     if core in ('scale', 'constant'):
@@ -1354,11 +1398,11 @@ def refine(
     else:
         raise NotImplementedError('Choose either scale, constant or combine for core description')
 
-    max_distance_diff = refinement_dict.get('max_distance_recalc', 1e-6)
+    max_distance_diff = get_value_or_default('max_dist_recalc', refinement_dict)
 
-    max_iter = refinement_dict.get('max_iter', 100)
+    max_iter = get_value_or_default('max_iter', refinement_dict)
 
-    min_iter = refinement_dict.get('min_iter', 10)
+    min_iter = get_value_or_default('min_iter', refinement_dict)
 
     if 'weight' not in hkl.columns:
         hkl['weight'] = 1 / hkl['esd_int']**2
@@ -1497,10 +1541,7 @@ def refine(
         fjs_all = fjs + f0j_core[None, :, :]
     elif core == 'scale':
         # only flack and scaling factor can be before core parameter
-        if refinement_dict.get('flack', False):
-            core_parameter = 2
-        else:
-            core_parameter = 1
+        core_parameter = get_parameter_index('core', refinement_dict)
         fjs_all = parameters[core_parameter] * fjs + f0j_core[None, :, :]
     elif core == 'combine':
         fjs_all = fjs
@@ -1526,8 +1567,10 @@ def distance_with_esd(
     parameters: jnp.ndarray,
     var_cov_mat: jnp.ndarray,
     cell_par: jnp.ndarray,
-    cell_std: jnp.ndarray,
-    crystal_system: str
+    cell_esd: jnp.ndarray,
+    crystal_system: str,
+    symm_mat2: jnp.ndarray = jnp.eye(3),
+    symm_vec2: jnp.ndarray = np.zeros(3)
 )-> Tuple[float, float]:
     """Calculates the distance value of a given atom pair and its estimated
     standart deviation
@@ -1549,14 +1592,19 @@ def distance_with_esd(
         (6) sized array of cell parameters in degrees and Angstroem. Depending
         on the given crystal system only the first of equivalent values might
         be used. If the angle has to be 90° the angle values will be ignored
-    cell_std : jnp.ndarray
+    cell_esd : jnp.ndarray
         (6) sized array of the estimated standard deviation of cell parameters
         Only certain values might be used, see cell_par
     crystal_system : str
         Crystal system of the evaluated structure. Possible values are: 
         'triclinic', 'monoclinic' 'orthorhombic', 'tetragonal', 'hexagonal',
         'trigonal' and 'cubic'. Is considered for the esd calculation.
-
+    symm_mat2: jnp.ndarray, optional
+        (3, 3) symmetry matrix to convert the coordinate of atom2, defaults to 
+        jnp.eye(3)
+    symm_vec2: jnp.ndarray, optional
+        size (3) array containing the translation vector for atom2,
+        defaults to jnp.zeros(3)
     Returns
     -------
     distance: float
@@ -1572,7 +1620,7 @@ def distance_with_esd(
         cell_mat_m = cell_constants_to_M(*cell_par, crystal_system)
         constructed_xyz, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
         coord1 = constructed_xyz[index1]
-        coord2 = constructed_xyz[index2]
+        coord2 = symm_mat2 @ constructed_xyz[index2] + symm_vec2
 
         return jnp.linalg.norm(cell_mat_m @ (coord1 - coord2))
     
@@ -1580,7 +1628,7 @@ def distance_with_esd(
 
     jac1, jac2 = jax.grad(distance_func, [0, 1])(parameters, cell_par)
 
-    esd = jnp.sqrt(jac1[None, :] @ var_cov_mat @ jac1[None, :].T + jac2[None,:] @ jnp.diag(cell_std**2) @ jac2[None,:].T)
+    esd = jnp.sqrt(jac1[None, :] @ var_cov_mat @ jac1[None, :].T + jac2[None,:] @ jnp.diag(cell_esd**2) @ jac2[None,:].T)
     return distance, esd[0, 0]
 
 
@@ -1590,7 +1638,7 @@ def u_iso_with_esd(
     parameters: jnp.ndarray,
     var_cov_mat: jnp.ndarray,
     cell_par: jnp.ndarray,
-    cell_std: jnp.ndarray,
+    cell_esd: jnp.ndarray,
     crystal_system: str
 )-> Tuple[float, float]:
     """Calculate the Uequiv value from anisotropic displacement parameters for
@@ -1611,7 +1659,7 @@ def u_iso_with_esd(
         (6) sized array of cell parameters in degrees and Angstroem. Depending
         on the given crystal system only the first of equivalent values might
         be used. If the angle has to be 90° the angle values will be ignored
-    cell_std : jnp.ndarray
+    cell_esd : jnp.ndarray
         (6) sized array of the estimated standard deviation of cell parameters
         Only certain values might be used, see cell_par
     crystal_system : str
@@ -1636,7 +1684,7 @@ def u_iso_with_esd(
         return jnp.trace(ucart[0]) / 3
     u_iso = u_iso_func(parameters, cell_par)
     jac1, jac2 = jax.grad(u_iso_func, [0, 1])(parameters, cell_par)
-    esd = jnp.sqrt(jac1[None, :] @ var_cov_mat @ jac1[None, :].T + jac2[None,:] @ jnp.diag(cell_std**2) @ jac2[None,:].T)
+    esd = jnp.sqrt(jac1[None, :] @ var_cov_mat @ jac1[None, :].T + jac2[None,:] @ jnp.diag(cell_esd**2) @ jac2[None,:].T)
     return u_iso, esd[0, 0]
 
 
@@ -1648,8 +1696,12 @@ def angle_with_esd(
     parameters: jnp.ndarray,
     var_cov_mat: jnp.ndarray,
     cell_par: jnp.ndarray,
-    cell_std: jnp.ndarray,
-    crystal_system: str
+    cell_esd: jnp.ndarray,
+    crystal_system: str,
+    symm_mat2: jnp.ndarray = jnp.eye(3),
+    symm_vec2: jnp.ndarray = np.zeros(3),
+    symm_mat3: jnp.ndarray = jnp.eye(3),
+    symm_vec3: jnp.ndarray = np.zeros(3)
 )-> Tuple[float, float]:
     """Calculates the angle with its estimated standard deviation spanned by
     atom1-atom2-atom3
@@ -1673,13 +1725,25 @@ def angle_with_esd(
         (6) sized array of cell parameters in degrees and Angstroem. Depending
         on the given crystal system only the first of equivalent values might
         be used. If the angle has to be 90° the angle values will be ignored
-    cell_std : jnp.ndarray
+    cell_esd : jnp.ndarray
         (6) sized array of the estimated standard deviation of cell parameters
         Only certain values might be used, see cell_par
     crystal_system : str
         Crystal system of the evaluated structure. Possible values are: 
         'triclinic', 'monoclinic' 'orthorhombic', 'tetragonal', 'hexagonal',
         'trigonal' and 'cubic'. Is considered for the esd calculation.
+    symm_mat2: jnp.ndarray, optional
+        (3, 3) symmetry matrix to convert the coordinate of atom2, defaults to 
+        jnp.eye(3)
+    symm_vec2: jnp.ndarray, optional
+        size (3) array containing the translation vector for atom2,
+        defaults to jnp.zeros(3)
+    symm_mat3: jnp.ndarray, optional
+        (3, 3) symmetry matrix to convert the coordinate of atom3, defaults to 
+        jnp.eye(3)
+    symm_vec3: jnp.ndarray, optional
+        size (3) array containing the translation vector for atom3,
+        defaults to jnp.zeros(3)
 
     Returns
     -------
@@ -1696,8 +1760,11 @@ def angle_with_esd(
     def angle_func(parameters, cell_par):
         cell_mat_m = cell_constants_to_M(*cell_par, crystal_system)
         constructed_xyz, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
-        vec1 = cell_mat_m @ (constructed_xyz[index1] - constructed_xyz[index2])
-        vec2 = cell_mat_m @ (constructed_xyz[index3] - constructed_xyz[index2])
+        xyz1 = constructed_xyz[index1]
+        xyz2 = symm_mat2 @ constructed_xyz[index2] + symm_vec2
+        xyz3 = symm_mat3 @ constructed_xyz[index3] + symm_vec3
+        vec1 = cell_mat_m @ (xyz1 - xyz2)
+        vec2 = cell_mat_m @ (xyz3 - xyz2)
 
         return jnp.rad2deg(jnp.arccos((vec1 / jnp.linalg.norm(vec1)) @ (vec2 / jnp.linalg.norm(vec2))))
     
@@ -1706,6 +1773,6 @@ def angle_with_esd(
     jac1, jac2 = jax.grad(angle_func, [0, 1])(parameters, cell_par)
 
     esd = (jnp.sqrt(jac1[None, :] @ var_cov_mat @ jac1[None, :].T 
-           + jac2[None,:] @ jnp.diag(cell_std**2) @ jac2[None,:].T))
+           + jac2[None,:] @ jnp.diag(cell_esd**2) @ jac2[None,:].T))
     return angle, esd[0, 0]
 

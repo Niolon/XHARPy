@@ -109,7 +109,7 @@ def calc_s12(mat_u1, mat_u2):
 def calculate_agreement(har_path, har_key, fcf_path,  neut_path, neut_key, rename_dict={}, adp_conversions=[]):
     cell_keys = ['cell_length_a', 'cell_length_b', 'cell_length_c', 'cell_angle_alpha', 'cell_angle_beta', 'cell_angle_gamma']
     uij_keys = ['U_11', 'U_22', 'U_33', 'U_23', 'U_13','U_12']
-    uij_std_keys = [label + '_std' for label in uij_keys]
+    uij_esd_keys = [label + '_esd' for label in uij_keys]
     collect = {}
     
     cif_neut = ciflike_to_dict(neut_path)[neut_key]
@@ -139,7 +139,7 @@ def calculate_agreement(har_path, har_key, fcf_path,  neut_path, neut_key, renam
     bond_pairs = [(el1, el2) for el1, el2 in zip(h_bond_table_neut['atom_site_label_1'],
                                                  h_bond_table_neut['atom_site_label_2'])]
     cell_neut = np.array([cif_neut[key] for key in cell_keys])
-    cell_neut_std = np.array([cif_neut.get(key + '_std', 0.0) for key in cell_keys])
+    cell_neut_esd = np.array([cif_neut.get(key + '_esd', 0.0) for key in cell_keys])
     h_indexes_neut = [list(uij_table_neut['label'].values).index(atom) for atom in hydrogen_atoms]
     non_h_indexes_neut = [list(uij_table_neut['label'].values).index(atom) for atom in non_hydrogen_atoms]
     try:
@@ -168,18 +168,18 @@ def calculate_agreement(har_path, har_key, fcf_path,  neut_path, neut_key, renam
     h_bond_table = h_bond_table.append(bond_table[bond_table['atom_site_label_2'].isin(hydrogen_atoms)])
 
     cell = np.array([cif[key] for key in cell_keys])
-    cell_std = np.array([cif.get(key + '_std', 0.0) for key in cell_keys])
+    cell_esd = np.array([cif.get(key + '_esd', 0.0) for key in cell_keys])
     h_indexes = [list(uij_table['label'].values).index(atom) for atom in hydrogen_atoms]
     non_h_indexes = [list(uij_table['label'].values).index(atom) for atom in non_hydrogen_atoms]
     uij = jnp.array(uij_table.loc[non_h_indexes, uij_keys].values)
-    uij_std = jnp.array(uij_table.loc[non_h_indexes, uij_std_keys].values)
+    uij_esd = jnp.array(uij_table.loc[non_h_indexes, uij_esd_keys].values)
     uij_neut_start = jnp.array(uij_table_neut.loc[non_h_indexes_neut, uij_keys].values)
-    uij_neut_std = jnp.array(uij_table_neut.loc[non_h_indexes_neut, uij_std_keys].values)
+    uij_neut_esd = jnp.array(uij_table_neut.loc[non_h_indexes_neut, uij_esd_keys].values)
 
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        weights = np.array(1 / (uij_neut_std**2 + uij_std**2))
+        weights = np.array(1 / (uij_neut_esd**2 + uij_esd**2))
     weights = np.nan_to_num(weights, 0)
     weights[weights > 1e30] = 0
     corr_func, corr_func_nosc, start = func_start[lattice.lower()]
@@ -199,9 +199,9 @@ def calculate_agreement(har_path, har_key, fcf_path,  neut_path, neut_key, renam
     merged_bonds = pd.merge(h_bond_table, h_bond_table_neut, on=['atom_site_label_1', 'atom_site_label_2'], suffixes=['_har', '_neut'])
     
     distances_har = merged_bonds['distance_har'].values
-    distances_har_esd = merged_bonds['distance_std_har'].values
+    distances_har_esd = merged_bonds['distance_esd_har'].values
     distances_neut = merged_bonds['distance_neut'].values
-    distances_neut_esd = merged_bonds['distance_std_neut'].values
+    distances_neut_esd = merged_bonds['distance_esd_neut'].values
 
     collect['<Delta r>'] = np.mean(distances_har - distances_neut)
     collect['ssd(<Delta r>)'] = np.std(distances_har - distances_neut)
@@ -218,11 +218,11 @@ def calculate_agreement(har_path, har_key, fcf_path,  neut_path, neut_key, renam
     uij_merged = pd.merge(uij_merged, uij_table_neut, on='label', suffixes=['_har', '_neut_nosc'])
     uij_qdel = uij_table_neut.copy()
     uij_qdel[uij_keys] = corr_func(parameters, uij_qdel[uij_keys].values)
-    uij_qdel.columns = [uij_qdel.columns[0]] + [name + '_neut_qdel' for name in uij_keys] + [name + '_std_neut_qdel' for name in uij_keys]
+    uij_qdel.columns = [uij_qdel.columns[0]] + [name + '_neut_qdel' for name in uij_keys] + [name + '_esd_neut_qdel' for name in uij_keys]
     uij_merged = pd.merge(uij_merged, uij_qdel, on='label', suffixes=[None, '_neut_qdel'])
     uij_onlydel = uij_table_neut.copy()
     uij_onlydel[uij_keys] = corr_func_nosc(parameters_nosc, uij_onlydel[uij_keys].values)
-    uij_onlydel.columns = [uij_onlydel.columns[0]] + [name + '_neut_onlydel' for name in uij_keys] + [name + '_std_neut_onlydel' for name in uij_keys]
+    uij_onlydel.columns = [uij_onlydel.columns[0]] + [name + '_neut_onlydel' for name in uij_keys] + [name + '_esd_neut_onlydel' for name in uij_keys]
     uij_merged = pd.merge(uij_merged, uij_onlydel, on='label', suffixes=[None, '_neut_onlydel'])
     assert len(uij_merged) == len(uij_table_neut)
     uij_merged_h = uij_merged[uij_merged['type_symbol'] == 'H']
@@ -267,7 +267,7 @@ def calculate_agreement(har_path, har_key, fcf_path,  neut_path, neut_key, renam
 
         uij_neut = uij_merged.loc[:, [key + '_neut_' + suffix for key in uij_keys]].values
 
-        uij_neut_esd = uij_merged[[name + '_std_neut_' + suffix for name in uij_keys]].values
+        uij_neut_esd = uij_merged[[name + '_esd_neut_' + suffix for name in uij_keys]].values
         
         uij_merged[[f'{suffix}: Delta {u}' for u in ['U11', 'U22', 'U33', 'U23', 'U13', 'U12']]] = uij_har - uij_neut
         with warnings.catch_warnings():
@@ -285,10 +285,10 @@ def calculate_agreement(har_path, har_key, fcf_path,  neut_path, neut_key, renam
             
         compare_suffix = '_neut_' + suffix
         uij_har = uij_merged_h[[name + '_har' for name in uij_keys]].values
-        uij_har_esd = uij_merged_h[[name + '_std_har' for name in uij_keys]].values
+        uij_har_esd = uij_merged_h[[name + '_esd_har' for name in uij_keys]].values
 
         uij_neut = uij_merged_h[[name + compare_suffix for name in uij_keys]].values
-        uij_neut_esd = uij_merged_h[[name + '_std' + compare_suffix for name in uij_keys]].values
+        uij_neut_esd = uij_merged_h[[name + '_esd' + compare_suffix for name in uij_keys]].values
 
         har_uij_mat = (uij_har[:, [[0, 5, 4], [5, 1, 3], [4, 3, 2]]]).astype(np.float64)
         har_uij_cart = ucif2ucart(cell_mat_m, har_uij_mat)

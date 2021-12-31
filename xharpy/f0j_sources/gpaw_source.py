@@ -394,3 +394,20 @@ def calculate_f0j_core(cell_mat_m, element_symbols, positions, index_vec_h, symm
                 f0j[start_index:end_index] = f_core_from_spline(nc, g_ks[start_index:end_index] * Bohr, k=19)
             f0j_core[name] = f0j
     return np.array([f0j_core[symbol] for symbol in element_symbols])
+
+
+def generate_cif_output(computation_dict):
+    addition = f"""  - Refinement was done using structure factors
+    derived from Hirshfeld densities
+  - Density calculation was done with ASE/GPAW using the
+    following settings
+      xc: {computation_dict['xc']}
+      h: {computation_dict['h']}
+      grid_mult: {computation_dict['gridinterpolation']}
+      density_conv: {computation_dict['convergence']['density']}
+      kpts: ({computation_dict['kpts']['size'][0]},{computation_dict['kpts']['size'][1]},{computation_dict['kpts']['size'][2]})
+  - Afterwards density was interpolated on a rectangular grid and partitioned
+    according to the Hirshfeld scheme, using GPAWs build-in routines.
+  - Atomic form factors were calculated using FFT from the numpy package"""
+
+    return addition

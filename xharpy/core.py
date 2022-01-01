@@ -84,6 +84,14 @@ TorsionCalculated = namedtuple('TorsionCalculated', [
     'torsion_angle'       # interatom torsion angle
 ])
 
+TetrahedralCalculated= namedtuple('TetrahedralCalculated', [
+    'bound_atom_index',        # index of bound atom 
+    'tetrahedron_atom1_index', # index of first atom forming the tetrahedron
+    'tetrahedron_atom2_index', # index of second atom forming the tetrahedron
+    'tetrahedron_atom3_index', # index of third atom forming the tetrahedron
+    'distance'                 # interatomic distance
+])
+
 ### Objects for Use by the User
 
 ConstrainedValues = namedtuple('ConstrainedValues', [
@@ -107,6 +115,14 @@ TrigonalPositionConstraint = namedtuple('TrigonalPositionConstraint', [
     'plane_atom1_name', # first bonding partner of bound atom
     'plane_atom2_name', # second bonding partner of bound atom
     'distance'          # interatomic distance
+])
+
+TetrahedralPositionConstraint = namedtuple('TetrahedralPositionConstraint', [
+    'bound_atom_name',        # name of bound atom 
+    'tetrahedron_atom1_name', # name of first atom forming the tetrahedron
+    'tetrahedron_atom2_name', # name of second atom forming the tetrahedron
+    'tetrahedron_atom3_name', # name of third atom forming the tetrahedron
+    'distance'                # interatomic distance
 ])
 
 TorsionPositionConstraint = namedtuple('TorsionPositionConstraint', [
@@ -569,6 +585,18 @@ def create_construction_instructions(
                                                             plane_atom1_index=plane_atom1_index,
                                                             plane_atom2_index=plane_atom2_index,
                                                             distance=constraint.distance)
+            elif type(constraint).__name__ == 'TetrahedralPositionConstraint':
+                bound_index = names.index(constraint.bound_atom_name)
+                tet1_index = names.index(constraint.tetrahedron_atom1_name)
+                tet2_index = names.index(constraint.tetrahedron_atom2_name)
+                tet3_index = names.index(constraint.tetrahedron_atom3_name)
+                xyz_instructions = TetrahedralCalculated(
+                    bound_atom_index=bound_index,
+                    tetrahedron_atom1_index=tet1_index,
+                    tetrahedron_atom2_index=tet2_index,
+                    tetrahedron_atom3_index=tet3_index,
+                    distance = constraint.distance
+                )
             elif type(constraint).__name__ == 'TorsionPositionConstraint':
                 bound_index = names.index(constraint.bound_atom_name)
                 angle_index = names.index(constraint.angle_atom_name)
@@ -844,13 +872,23 @@ def construct_values(
             rotation_mat_m = jnp.array([vec_bc_norm, jnp.cross(vec_n, vec_bc_norm), vec_n]).T
             xyz = jax.ops.index_update(xyz, jax.ops.index[index], cell_mat_f @ (rotation_mat_m @ vec_d2 + bound_xyz))
 
-        if type(instruction.xyz).__name__ == 'SingleTrigonalCalculated':
+        elif type(instruction.xyz).__name__ == 'SingleTrigonalCalculated':
             bound_xyz = xyz[instruction.xyz.bound_atom_index]
             plane1_xyz = xyz[instruction.xyz.plane_atom1_index]
             plane2_xyz = xyz[instruction.xyz.plane_atom2_index]
             addition = 2 * bound_xyz - plane1_xyz - plane2_xyz
-            xyz = jax.ops.index_update(xyz, jax.ops.index[index], bound_xyz + addition / jnp.linalg.norm(cell_mat_m @ addition) * instruction.xyz.distance)
+            direction = addition / jnp.linalg.norm(cell_mat_m @ addition)
+            xyz = jax.ops.index_update(xyz, jax.ops.index[index], bound_xyz + direction * instruction.xyz.distance)
         
+        elif type(instruction.xyz).__name__ == 'TetrahedralCalculated':
+            bound_xyz = xyz[instruction.xyz.bound_atom_index]
+            tetrahedron_atom1_xyz = xyz[instruction.xyz.tetrahedron_atom1_index]
+            tetrahedron_atom2_xyz = xyz[instruction.xyz.tetrahedron_atom2_index]
+            tetrahedron_atom3_xyz = xyz[instruction.xyz.tetrahedron_atom3_index]
+            addition = 3 * bound_xyz - tetrahedron_atom1_xyz - tetrahedron_atom2_xyz - tetrahedron_atom3_xyz
+            direction = (addition) / jnp.linalg.norm(cell_mat_m @ (addition))
+            xyz = jax.ops.index_update(xyz, jax.ops.index[index], bound_xyz + direction * instruction.xyz.distance)
+
         # constrained displacements
         if type(instruction.uij).__name__ == 'UEquivCalculated':
             uij_parent = uij[instruction.uij.atom_index, jnp.array([[0, 5, 4], [5, 1, 3], [4, 3, 2]])]

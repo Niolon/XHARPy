@@ -1671,7 +1671,7 @@ def write_cif(
     elif f0j_source == 'gpaw_mpi':
         from .f0j_sources.gpaw_mpi_source import generate_cif_output
     elif f0j_source == 'gpaw_spherical':
-        from f0j_sources.gpaw_spherical_source import generate_cif_output
+        from .f0j_sources.gpaw_spherical_source import generate_cif_output
     else:
         raise NotImplementedError('This f0j source has not implemented "generate_cif_output" method')
 

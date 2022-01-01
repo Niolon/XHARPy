@@ -20,7 +20,11 @@ function. No explicit gradients are needed.
    :maxdepth: 2
    :caption: Contents:
 
-
+   installation
+   commandline
+   modules
+   xharpy 
+   xharpy.f0j_sources
 
 Indices and tables
 ==================

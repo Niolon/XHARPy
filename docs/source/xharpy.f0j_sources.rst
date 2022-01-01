@@ -1,6 +1,15 @@
 xharpy.f0j\_sources package
 ===========================
 
+
+Module contents
+---------------
+
+.. automodule:: xharpy.f0j_sources
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Subpackages
 -----------
 
@@ -76,10 +85,3 @@ xharpy.f0j\_sources.real\_spher\_harm module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
-
-.. automodule:: xharpy.f0j_sources
-   :members:
-   :undoc-members:
-   :show-inheritance:

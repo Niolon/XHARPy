@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-from ase.units import C
-from jax._src.numpy.lax_numpy import deg2rad, ndarray
 from jax.config import config
 from jax.core import Value
 config.update('jax_enable_x64', True)

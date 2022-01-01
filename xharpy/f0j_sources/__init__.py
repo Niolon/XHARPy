@@ -21,7 +21,7 @@ generate_cif_output
 Development
 -----------
 If you want to write your own new way of calculating atomic form factors you
-can write a new module within this folder.
+can write a new module within the f0j_sources folder.
 
 In addition to the the implementation of the three functions they need to be
 added to the core.refine function and to the io.write_cif functions with the

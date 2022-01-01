@@ -21,7 +21,6 @@ from .grid.onedgrid import HortonLinear
 from .grid.rtransform import PowerRTransform
 from .grid.utils import get_cov_radii
 from .real_spher_harm import ylm_func_dict
-from . import rho
 
 
 def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs, computation_dict=None, restart=None, save='gpaw.gpw', explicit_core=True):
@@ -100,7 +99,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
 
     print('  calculated density with energy', e1)
 
-    with pkg_resources.open_binary('xharpy.rho', 'spherical_rho.pic') as fo:
+    with pkg_resources.open_binary('xharpy.f0j_sources.rho', 'spherical_rho.pic') as fo:
         atomic_dict = pickle.load(fo)
         
     spline_dict = {}
@@ -125,7 +124,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
         'insane':    'tv-13.7-8.txt'
     }
 
-    with pkg_resources.open_text('xharpy.horton2-grids', grid_to_file[grid_name]) as fo:
+    with pkg_resources.open_text('xharpy.f0j_sources.horton2-grids', grid_to_file[grid_name]) as fo:
         lines = [line.strip() for line in fo.readlines() if len(line.strip()) > 1 and line[0] != '#']
     grid_dict = {}
     for line1, line2, line3 in zip(lines[::3], lines[1::3], lines[2::3]):

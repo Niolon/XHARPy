@@ -212,6 +212,6 @@ def _load_grid_filename(degree: int, size: int):
     tuple(np.ndarray(N,), np.ndarray(N,)), the coordinates and weights of grid.
     """
     filename = f"lebedev_{degree}_{size}.npz"
-    with path("xharpylib.grid.data.lebedev", filename) as npz_file:
+    with path("xharpy.f0j_sources.grid.data.lebedev", filename) as npz_file:
         data = np.load(npz_file)
     return data["points"], data["weights"]

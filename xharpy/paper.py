@@ -347,7 +347,7 @@ def calculate_agreement(har_path, har_key, fcf_path,  neut_path, neut_key, renam
         'xc',
         'dataset',
         'atom_site_label_2',
-         'atom_site_label_1'
+        'atom_site_label_1'
     ]
     for column in uij_merged.columns:
         if column not in text_columns:

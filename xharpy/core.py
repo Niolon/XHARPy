@@ -189,13 +189,13 @@ def get_parameter_index(
 
 def expand_symm_unique(
         type_symbols: List[str],
-        coordinates: npt.NDArray[np.float64],
-        cell_mat_m: npt.NDArray[np.float64],
-        symm_mats_vec: Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]],
+        coordinates: np.ndarray,
+        cell_mat_m: np.ndarray,
+        symm_mats_vec: Tuple[np.ndarray, np.ndarray],
         skip_symm: Dict[str, List[int]] = {},
-        magmoms: Optional[npt.NDArray[np.float64]] = None
-    ) -> Tuple[npt.NDArray[np.float64], List[str],
-               npt.NDArray[np.float64], Optional[npt.NDArray[np.float64]]]:
+        magmoms: Optional[np.ndarray] = None
+    ) -> Tuple[np.ndarray, List[str],
+               np.ndarray, Optional[np.ndarray]]:
     """Expand the type_symbols and coordinates for one complete unit cell.
     Atoms on special positions appear only once. For disorder on a special
     position use skip_symm.

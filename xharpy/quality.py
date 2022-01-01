@@ -1,12 +1,58 @@
-from .core import calc_f, construct_values
+from .core import AtomInstructions, calc_f, construct_values, get_value_or_default, get_parameter_index
+import pandas as pd
+from typing import Tuple, List, Dict, Any, Union
 from .conversion import calc_sin_theta_ov_lambda, cell_constants_to_M, calc_sin_theta_ov_lambda
 import numpy as np
 import warnings
 
 
-def calculate_quality_indicators(construction_instructions, parameters, fjs, cell_mat_m, symm_mats_vecs, index_vec_h, intensities, esd_int):
-    cell_mat_m = np.array(cell_mat_m)
-    fjs = np.array(fjs)
+def calculate_quality_indicators(
+    cell: np.ndarray,
+    symm_mats_vecs: Tuple[np.ndarray, np.ndarray],
+    hkl: pd.DataFrame,
+    construction_instructions: List[AtomInstructions],
+    parameters: np.ndarray,
+    wavelength: float,
+    refinement_dict: Dict[str, Any],
+    information: Dict[str, Any]
+) -> Dict[str, float]:
+    """[summary]
+
+    Parameters
+    ----------
+    cell : np.ndarray
+        array with the lattice constants (Angstroem, Degree)
+    symm_mats_vecs : Tuple[np.ndarray, np.ndarray]
+        (K, 3, 3) array of symmetry matrices and (K, 3) array of translation
+        vectors for all symmetry elements in the unit cell
+    hkl : pd.DataFrame
+        pandas DataFrame containing the reflection data. Needs to have at least
+        five columns: h, k, l, intensity, esd_int, Additional columns will be
+        ignored
+    construction_instructions : List[AtomInstructions]
+        List of instructions for reconstructing the atomic parameters from the
+        list of refined parameters
+    parameters : np.ndarray
+        final refined parameters
+    wavelength: float
+        Measurement wavelength in Angstroem
+    refinement_dict : Dict[str, Any]
+        Dictionary with refinement options
+    information : Dict[str, Any]
+        Dictionary with additional information, obtained from the refinement.
+        the atomic form factors will be read from this dict.
+
+    Returns
+    -------
+    quality_dict : Dict[str, float]
+        Dictionary with different quality indicators.
+    """
+    cell_mat_m = np.array(cell_constants_to_M(*cell))
+
+    index_vec_h = hkl[['h', 'k', 'l']].values
+    intensities = hkl['intensity'].values
+    esd_int = hkl['esd_int'].values
+    fjs = np.array(information['fjs_anom'])
     cell_mat_f = np.linalg.inv(cell_mat_m).T
     xyz, uij, cijk, dijkl, occupancies = construct_values(parameters, construction_instructions, cell_mat_m)
 
@@ -21,6 +67,30 @@ def calculate_quality_indicators(construction_instructions, parameters, fjs, cel
         symm_mats_vecs=symm_mats_vecs,
         fjs=fjs
     ))
+
+    extinction = get_value_or_default('extinction', refinement_dict)
+
+    if extinction == 'none':
+        hkl['intensity'] = np.array(intensities / parameters[0])
+        hkl['esd_int'] = np.array(esd_int / parameters[0])
+    elif extinction == 'secondary':
+        extinction_parameter = get_parameter_index('extinction', refinement_dict)
+        i_calc0 = np.abs(structure_factors)**2
+        hkl['intensity'] = np.array(intensities / parameters[0] * (1 + parameters[extinction_parameter] * i_calc0))
+        hkl['esd_int'] = np.array(esd_int / parameters[0] * (1 + parameters[extinction_parameter] * i_calc0))
+    elif extinction == 'shelxl':
+        extinction_parameter = get_parameter_index('extinction', refinement_dict)
+        i_calc0 = np.abs(structure_factors)**2
+        sintheta = np.linalg.norm(np.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 * wavelength
+        sintwotheta = 2 * sintheta * np.sqrt(1 - sintheta**2)
+        extinction_factors = 0.001 * wavelength**3 / sintwotheta
+        hkl['intensity'] = np.array(intensities / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0))
+        hkl['esd_int'] = np.array(esd_int / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0))
+    else:
+        raise NotImplementedError('Extinction correction method is not implemted in fcf routine')
+
+    intensities = hkl['intensity'].values
+    esd_int = hkl['esd_int'].values
 
     f_obs = np.sign(intensities) * np.sqrt(np.abs(intensities))
     f_obs_safe = np.array(f_obs)
@@ -44,7 +114,12 @@ def calculate_quality_indicators(construction_instructions, parameters, fjs, cel
     }
 
 
-def calculate_drk(df, bins=21, equal_sized_bins=False, cell_mat_m=None):
+def calculate_drk(
+    df: pd.DataFrame,
+    bins=21,
+    equal_sized_bins=False,
+    cell=None
+):
     df = df.copy()
     df = df.rename({
         'refln_index_h': 'h',
@@ -60,7 +135,8 @@ def calculate_drk(df, bins=21, equal_sized_bins=False, cell_mat_m=None):
     if 'intensity_calc' not in df.columns:
         df['intensity_calc'] = np.abs(df['f_calc'])**2
     if 'sint/lambda' not in df.columns:
-        assert cell_mat_m is not None, 'You either need to give cell_mat_m or sint/lambda in the df'
+        assert cell is not None, 'You either need to give cell or sint/lambda in the df'
+        cell_mat_m = cell_constants_to_M(*cell)
         cell_mat_f = np.linalg.inv(cell_mat_m)
         df['sint/lambda'] = np.array(calc_sin_theta_ov_lambda(cell_mat_f, df[['h', 'k', 'l']].values))
     if equal_sized_bins:
@@ -69,7 +145,6 @@ def calculate_drk(df, bins=21, equal_sized_bins=False, cell_mat_m=None):
         except (TypeError, ValueError):
             assert not isinstance(bins, str)
             raise TypeError('bins has to be an integer number ')
-        sort = df.sort_values('sint/lambda')
         splits = np.array_split(df.sort_values('sint/lambda'), bins)
         mean_res = [np.mean(split['sint/lambda']) for split in splits]
         drk = [np.sum(split['intensity']) / np.sum(split['intensity_calc']) for split in splits]

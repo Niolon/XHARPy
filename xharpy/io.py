@@ -1697,14 +1697,14 @@ def write_cif(
         ])
 
     quality_dict = calculate_quality_indicators(
+        cell,
+        symm_mats_vecs,
+        hkl,
         construction_instructions,
         parameters,
-        information['fjs_anom'],
-        cell_mat_m,
-        symm_mats_vecs,
-        index_vec_h,
-        intensity,
-        esd_int
+        source_cif['diffrn_radiation_wavelength'],
+        refinement_dict,
+        information,
     )
 
     bond_table = next(loop for loop in shelx_cif['loops'] if 'geom_bond_distance' in loop.columns)

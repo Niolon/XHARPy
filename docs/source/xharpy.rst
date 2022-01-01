@@ -36,14 +36,6 @@ xharpy.core module
    :undoc-members:
    :show-inheritance:
 
-xharpy.cubetools module
------------------------
-
-.. automodule:: xharpy.cubetools
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 xharpy.io module
 ----------------
 
@@ -64,14 +56,6 @@ xharpy.quality module
 ---------------------
 
 .. automodule:: xharpy.quality
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-xharpy.real\_spher\_harm module
--------------------------------
-
-.. automodule:: xharpy.real_spher_harm
    :members:
    :undoc-members:
    :show-inheritance:

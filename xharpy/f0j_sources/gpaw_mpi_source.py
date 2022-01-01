@@ -3,6 +3,7 @@ import numpy as np
 import subprocess
 import os
 import pickle
+import warnings
 from ase.spacegroup import crystal
 
 from scipy.interpolate import interp1d
@@ -305,7 +306,7 @@ with open('core_values.pic', 'rb') as fo:
 atoms = crystal(symbols=value_dict['symm_symbols'],
                 basis=value_dict['symm_positions'] % 1,
                 cell=value_dict['cell_mat_m'].T)
-calc = gpaw.GPAW(setups='paw', txt=None)
+calc = gpaw.GPAW(**value_dict['computation_dict'])
 atoms.set_calculator(calc)
 calc.initialize(atoms)
 cell_inv = np.linalg.inv(atoms.cell.T).T
@@ -389,7 +390,6 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
         del(computation_dict['mpicores'])
     else:
         ncores = None
-    
 
     #assert not (not average_symmequiv and not do_not_move)
     symm_positions, symm_symbols, f0j_indexes, magmoms_symm = expand_symm_unique(element_symbols,
@@ -463,7 +463,25 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
 
     return f0j
 
-def calculate_f0j_core(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs):
+def calc_f0j_core(
+    cell_mat_m,
+    element_symbols,
+    positions,
+    index_vec_h,
+    symm_mats_vecs,
+    computation_dict
+):
+    computation_dict = computation_dict.copy()
+    non_gpaw_keys = [
+        'gridinterpolation',
+        'average_symmequiv',
+        'skip_symm',
+        'magmoms'
+    ]
+    for key in non_gpaw_keys:
+        if key in computation_dict:
+            del computation_dict[key]
+
     symm_positions, symm_symbols, *_ = expand_symm_unique(element_symbols,
                                                           positions,
                                                           cell_mat_m,
@@ -474,7 +492,8 @@ def calculate_f0j_core(cell_mat_m, element_symbols, positions, index_vec_h, symm
         'symm_positions': symm_positions,
         'cell_mat_m': cell_mat_m,
         'index_vec_h': index_vec_h,
-        'element_symbols': element_symbols
+        'element_symbols': element_symbols,
+        'computation_dict': computation_dict
     }
 
     with open('core_values.pic', 'wb') as fo:

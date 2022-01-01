@@ -887,7 +887,14 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
 
 
 
-def calculate_f0j_core(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs):
+def calc_f0j_core(
+    cell_mat_m,
+    element_symbols,
+    positions,
+    index_vec_h,
+    symm_mats_vecs,
+    computation_dict
+):
     raise NotImplementedError('Core partitioning is not implemented in MBIS')
 
 

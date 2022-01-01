@@ -402,7 +402,25 @@ def f_core_from_spline(spline, g_k, k=13):
     return simps(int_me, x=r) * y00_factor
 
 
-def calculate_f0j_core(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs):
+def calc_f0j_core(
+    cell_mat_m,
+    element_symbols,
+    positions,
+    index_vec_h,
+    symm_mats_vecs,
+    computation_dict
+):
+    computation_dict = computation_dict.copy()
+    non_gpaw_keys = [
+        'gridinterpolation',
+        'average_symmequiv',
+        'skip_symm',
+        'magmoms'
+    ]
+    for key in non_gpaw_keys:
+        if key in computation_dict:
+            del computation_dict[key]
+
     symm_positions, symm_symbols, *_ = expand_symm_unique(element_symbols,
                                                           positions,
                                                           cell_mat_m,
@@ -410,7 +428,7 @@ def calculate_f0j_core(cell_mat_m, element_symbols, positions, index_vec_h, symm
     atoms = crystal(symbols=symm_symbols,
                     basis=symm_positions % 1,
                     cell=cell_mat_m.T)
-    calc = gpaw.GPAW(setups='paw', txt=None)
+    calc = gpaw.GPAW(**computation_dict)
     atoms.set_calculator(calc)
     calc.initialize(atoms)
     cell_inv = np.linalg.inv(atoms.cell.T).T

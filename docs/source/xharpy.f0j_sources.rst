@@ -1,6 +1,14 @@
 xharpy.f0j\_sources package
 ===========================
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   xharpy.f0j_sources.rho
+
 Submodules
 ----------
 
@@ -56,6 +64,14 @@ xharpy.f0j\_sources.qe\_source module
 -------------------------------------
 
 .. automodule:: xharpy.f0j_sources.qe_source
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+xharpy.f0j\_sources.real\_spher\_harm module
+--------------------------------------------
+
+.. automodule:: xharpy.f0j_sources.real_spher_harm
    :members:
    :undoc-members:
    :show-inheritance:

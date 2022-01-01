@@ -242,9 +242,9 @@ def symm_to_matrix_vector(instruction: str) -> Tuple[jnp.ndarray, jnp.ndarray]:
     Returns
     -------
     symm_matrix: jnp.ndarray, 
-        (3, 3) array containing the symmetry matrix for the symmetry element
+      size (3, 3) array containing the symmetry matrix for the symmetry element
     symm_vector: jnp.ndarray
-        (3) array containing the translation vector for the symmetry element
+      size (3) array containing the translation vector for the symmetry element
     """    
     instruction_strings = [val.replace(' ', '').upper() for val in instruction.split(',')]
     matrix = jnp.zeros((3,3), dtype=np.float64)
@@ -318,7 +318,7 @@ def cif2data(
         array with the estimated standard deviation of the lattice constants
         (Angstroem, Degree)
     symm_mats_vecs: Tuple[jnp.ndarray, jnp.ndarray]
-        (K, 3, 3) array of symmetry matrices and (K, 3) array of translation
+      size (K, 3, 3) array of symmetry matrices and (K, 3) array of translation
         vectors for all symmetry elements in the unit cell
     symm_instructions: List[str]
         List of symmetry instructions from the cif-file. Needed for writing a
@@ -1431,11 +1431,11 @@ def create_fcf4_table(
     Parameters
     ----------
     index_vec_h : jnp.ndarray
-        (H, 3) array of Miller indicees of observed reflections
+      size (H, 3) array of Miller indicees of observed reflections
     structure_factors : jnp.ndarray
-        (H)-sized array with complex structure factors for each reflection
+      size (H)-sized array with complex structure factors for each reflection
     intensity : jnp.ndarray
-        (H) array of observed reflection intensities
+      size (H) array of observed reflection intensities
     esd_int : jnp.ndarray
         Estimated standard deviation of the observed reflection intensites
     scaling : float
@@ -1561,6 +1561,8 @@ def generate_core_refinement_string(refinement_dict, parameters, var_cov_mat):
                                   float(np.sqrt(var_cov_mat[core_parameter, core_parameter])))
         return f"""  - Frozen core density was integrated separately on a spherical grid
   - An overall core scaling factor was refined to {core_str}"""
+    else:
+        raise NotImplementedError('Core treatment is not implemented in generate_core_refinement_string')
 
 def write_cif(
     output_cif_path: str,
@@ -1600,7 +1602,7 @@ def write_cif(
         array with the estimated standard deviation of the lattice constants
         (Angstroem, Degree)
     symm_mats_vecs : Tuple[jnp.ndarray, jnp.ndarray]
-        (K, 3, 3) array of symmetry matrices and (K, 3) array of translation
+      size (K, 3, 3) array of symmetry matrices and (K, 3) array of translation
         vectors for all symmetry elements in the unit cell
     hkl : pd.DataFrame
         pandas DataFrame containing the reflection data. Needs to have at least

@@ -11,15 +11,15 @@ def ucif2ucart(cell_mat_m: jnp.ndarray, u_mats: jnp.ndarray) -> jnp.ndarray:
     Parameters
     ----------
     cell_mat_m : jnp.ndarray
-        (3,3) array containing the cell vectors as row vectors
+        size (3,3) array containing the cell vectors as row vectors
     u_mats : jnp.ndarray
-        (N, 3, 3) array containing the anisotropic displacement matrices in
+        size (N, 3, 3) array containing the anisotropic displacement matrices in
         cif format
 
     Returns
     -------
     u_cart: jnp.ndarray
-        (N, 3, 3) array of the matrices in cartesian convention
+        size (N, 3, 3) array of the matrices in cartesian convention
     """
     # 
     cell_mat_f = jnp.linalg.inv(cell_mat_m).T
@@ -64,7 +64,7 @@ def cell_constants_to_M(
     Returns
     -------
     cell_mat_m: jnp.ndarray
-        (3, 3) array containing the cell vectors as row vectors
+        size (3, 3) array containing the cell vectors as row vectors
     """
     if crystal_system == 'monoclinic':
         alpha = 90.0
@@ -126,14 +126,14 @@ def calc_sin_theta_ov_lambda(
     Parameters
     ----------
     cell_mat_f : jnp.ndarray
-        (3, 3) array containing the reciprocal lattice vectors
+        size (3, 3) array containing the reciprocal lattice vectors
     index_vec_h : jnp.ndarray
-        (H, 3) array of Miller indicees of reflections
+        size (H, 3) array of Miller indicees of reflections
 
 
     Returns
     -------
     sin_theta_ov_lambda: jnp.ndarray
-        (H) array containing the calculated values
+        size (H) array containing the calculated values
     """
     return jnp.linalg.norm(jnp.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 

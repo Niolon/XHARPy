@@ -1,3 +1,9 @@
+"""This module provides the necessary functions for calculating atomic form
+factors using the GPAW library in single-core mode. 
+
+"""
+
+from typing import Any, Dict, List, Tuple
 import numpy as np
 
 from ase.units import Bohr
@@ -199,15 +205,52 @@ class HirshfeldPartitioning:
 
 
 
-def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs, computation_dict=None, restart=None, save='gpaw.gpw', explicit_core=True):
+def calc_f0j(
+    cell_mat_m: np.ndarray,
+    element_symbols: List[str],
+    positions: np.ndarray,
+    index_vec_h: np.ndarray,
+    symm_mats_vecs: Tuple[np.ndarray, np.ndarray],
+    computation_dict: Dict[str, Any],
+    restart: str = None,
+    save: str = 'gpaw.gpw',
+    explicit_core: bool = True
+)-> np.ndarray:
+    """Calculate the atomic form factor or atomic valence form factors using 
+    GPAW. 
+
+    Parameters
+    ----------
+    cell_mat_m : np.ndarray
+        [description]
+    element_symbols : List[str]
+        [description]
+    positions : np.ndarray
+        [description]
+    index_vec_h : np.ndarray
+        [description]
+    symm_mats_vecs : Tuple[np.ndarray, np.ndarray]
+        [description]
+    computation_dict : Dict[str, Any]
+        [description]
+    restart : str, optional
+        [description], by default None
+    save : str, optional
+        [description], by default 'gpaw.gpw'
+    explicit_core : bool, optional
+        [description], by default True
+
+    Returns
+    -------
+    np.ndarray
+        [description]
+    """
+
     """
     Calculate the aspherical atomic form factors from a density grid in the python package gpaw
     for each reciprocal lattice vector present in index_vec_h.
     """
-    if computation_dict is None:
-        computation_dict = {'xc': 'PBE', 'txt': 'gpaw.txt', 'h': 0.15, 'setups': 'paw'}
-    else:
-        computation_dict = computation_dict.copy()
+    computation_dict = computation_dict.copy()
     if 'gridinterpolation' in computation_dict:
         gridinterpolation = computation_dict['gridinterpolation']
         #print(f'gridinterpolation set to {gridinterpolation}')
@@ -262,7 +305,8 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
             print('  failed to load the density from previous calculation. Starting from scratch')
             atoms = crystal(symbols=symm_symbols,
                             basis=symm_positions % 1,
-                            cell=cell_mat_m.T)
+                            cell=cell_mat_m.T,
+                            magmoms=magmoms_symm)
             calc = gpaw.GPAW(**computation_dict)
             atoms.set_calculator(calc)
             e1 = atoms.get_potential_energy()
@@ -346,7 +390,25 @@ def f_core_from_spline(spline, g_k, k=13):
     return simps(int_me, x=r) * y00_factor
 
 
-def calculate_f0j_core(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs):
+def calc_f0j_core(
+    cell_mat_m,
+    element_symbols,
+    positions,
+    index_vec_h,
+    symm_mats_vecs,
+    computation_dict
+):
+    computation_dict = computation_dict.copy()
+    non_gpaw_keys = [
+        'gridinterpolation',
+        'average_symmequiv',
+        'skip_symm',
+        'magmoms'
+    ]
+    for key in non_gpaw_keys:
+        if key in computation_dict:
+            del computation_dict[key]
+
     symm_positions, symm_symbols, *_ = expand_symm_unique(element_symbols,
                                                           positions,
                                                           cell_mat_m,
@@ -354,7 +416,7 @@ def calculate_f0j_core(cell_mat_m, element_symbols, positions, index_vec_h, symm
     atoms = crystal(symbols=symm_symbols,
                     basis=symm_positions % 1,
                     cell=cell_mat_m.T)
-    calc = gpaw.GPAW(setups='paw', txt=None)
+    calc = gpaw.GPAW(**computation_dict)
     atoms.set_calculator(calc)
     calc.initialize(atoms)
     cell_inv = np.linalg.inv(atoms.cell.T).T

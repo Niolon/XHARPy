@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+
+
 from ase.units import C
 from jax._src.numpy.lax_numpy import deg2rad, ndarray
 from jax.config import config
@@ -222,12 +225,12 @@ def expand_symm_unique(
     type_symbols : List[str]
         Element symbols of the atoms in the asymmetric unit
     coordinates : npt.NDArray[np.float64]
-        (N, 3) array of fractional atomic coordinates
+        size (N, 3) array of fractional atomic coordinates
     cell_mat_m : npt.NDArray[np.float64]
         Matrix with cell vectors as column vectors, (Angstroem)
     symm_mats_vec : Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]
-        (K, 3, 3) array of symmetry matrices and (K, 3) array of translation
-        vectors for all symmetry elements in the unit cell
+        size (K, 3, 3) array of symmetry matrices and size (K, 3) array
+        of translation vectors for all symmetry elements in the unit cell
     skip_symm : Dict[str, List[int]], optional
         Symmetry elements with indexes given the list(s) in the dictionary
         values with not be applied to the respective atoms with the atom names
@@ -240,12 +243,12 @@ def expand_symm_unique(
     Returns
     -------
     symm_positions: npt.NDArray[np.float64]
-        a (M, 3) array of all unique atom positions within the unit cell
+        size (M, 3) array of all unique atom positions within the unit cell
     symm_symbols: List[str]
         ist of length M with element symbols for the unique atom positions
         within the unit cell
     reverse_indexes: npt.NDArray[np.float64]
-        a (K, N) array with indexes mapping the unique atom positions back to 
+        size (K, N) array with indexes mapping the unique atom positions back to 
         the individual symmetry elements and atom positions in the asymmetric 
         unit
     symm_magmoms: Optional[npt.NDArray[np.float64]]]
@@ -306,42 +309,42 @@ def calc_f(
     Parameters
     ----------
     xyz : jnp.ndarray
-        (N,3) array of fractional coordinates for the atoms in the asymmetric 
+        size (N,3) array of fractional coordinates for the atoms in the asymmetric 
         unit
     uij : jnp.ndarray
-        (N, 6) array of anisotropic displacement parameters (isotropic
+        size (N, 6) array of anisotropic displacement parameters (isotropic
         parameters have to be transformed to anitropic parameters). Parameters
         need to be in convention as used e.g. Shelxl or the cif as U.
         Order: U11, U22, U33, U23, U13, U12
     cijk : jnp.ndarray
-        (N, 10) array of hird-order Gram-Charlier parameters as defined
+      size (N, 10) array of hird-order Gram-Charlier parameters as defined
         in Inter. Tables of Cryst. B (2010): Eq 1.2.12.7. Order: C111, C222, 
         C333, C112, C122, C113, C133, C223, C233, C123
     dijkl : jnp.ndarray
-        (N, 15) array of fourth-order Gram-Charlier parameters as defined
+      size (N, 15) array of fourth-order Gram-Charlier parameters as defined
         in Inter. Tables of Cryst. B (2010): Eq 1.2.12.7. Order: D1111, D2222,
         D3333, D1112, D1222, D1113, D_1333, D2223, D2333, D1122, D1133, D2233,
         D1123, D1223, D1233
     occupancies : jnp.ndarray
-        (N) array of atomic occupancies. Atoms on special positions need to have
+      size (N) array of atomic occupancies. Atoms on special positions need to have
         an occupancy of 1/multiplicity
     index_vec_h : jnp.ndarray
-        (H, 3) array of Miller indicees of observed reflections
+      size (H, 3) array of Miller indicees of observed reflections
     cell_mat_f : jnp.ndarray
-        (3, 3) array with the reciprocal lattice vectors (1/Angstroem) as row
+      size (3, 3) array with the reciprocal lattice vectors (1/Angstroem) as row
         vectors
     symm_mats_vecs : Tuple[jnp.ndarray, jnp.ndarray]
-        (K, 3, 3) array of symmetry matrices and (K, 3) array of translation
+      size (K, 3, 3) array of symmetry matrices and (K, 3) array of translation
         vectors for all symmetry elements in the unit cell
     fjs : jnp.ndarray
-        (K, N, H) array of atomic form factors for all reflections and symmetry
+      size (K, N, H) array of atomic form factors for all reflections and symmetry
         generated atoms within the unit cells. Atoms on special positions are 
         present multiple times and have the atomic form factor of the full atom.
 
     Returns
     -------
     structure_factors: jnp.ndarray
-        (H)-sized array with complex structure factors for each reflection
+      size (H)-sized array with complex structure factors for each reflection
     """
 
     #einsum indexes: k: n_symm, z: n_atom, h[description]: n_hkl
@@ -399,7 +402,7 @@ def resolve_instruction(parameters: jnp.ndarray, instruction: Parameter) -> jnp.
     Parameters
     ----------
     parameters : jnp.ndarray
-        (P) array of parameters used for the refinement
+      size (P) array of parameters used for the refinement
     instruction : Parameter
         Instruction of one of the known instruction type namedtuples to generate
         the numerical value from the parameters and/or the values in the
@@ -804,30 +807,30 @@ def construct_values(
     construction_instructions : List[AtomInstructions]
         List of instructions for reconstructing the atomic parameters
     cell_mat_m : jnp.ndarray
-        (3, 3) array with the cell vectors as row vectors, used for Uiso
+      size (3, 3) array with the cell vectors as row vectors, used for Uiso
         calculation.
 
     Returns
     -------
     xyz: jnp.ndarray
-        (N,3) array of fractional coordinates for the atoms in the asymmetric
+      size (N,3) array of fractional coordinates for the atoms in the asymmetric
         unit
     uij: jnp.ndarray
-        (N, 6) array of anisotropic displacement parameters (isotropic
+      size (N, 6) array of anisotropic displacement parameters (isotropic
         parameters are transformed to anitropic parameters). Parameters are in
         the convention as used e.g. Shelxl or the cif as U. Order: U11, U22,
         U33, U23, U13, U12
     cijk: jnp.ndarray
-        (N, 10) array of third-order Gram-Charlier parameters as defined in 
+      size (N, 10) array of third-order Gram-Charlier parameters as defined in 
         Inter. Tables of Cryst. B (2010): Eq 1.2.12.7. Order: C111, C222, C333,
         C112, C122, C113, C133, C223, C233, C123
     dijkl: jnp.ndarray
-        (N, 15) array of fourth-order Gram-Charlier parameters as defined in 
+      size (N, 15) array of fourth-order Gram-Charlier parameters as defined in 
         Inter. Tables of Cryst. B (2010): Eq 1.2.12.7. Order: D1111, D2222,
         D3333, D1112, D1222, D1113, D_1333, D2223, D2333, D1122, D1133, D2233,
         D1123, D1223, D1233    
     occupancies: jnp.ndarray
-        (N) array of atomic occupancies. Atoms on special positions have an
+      size (N) array of atomic occupancies. Atoms on special positions have an
         occupancy of 1/multiplicity
     """
     cell_mat_f = jnp.linalg.inv(cell_mat_m).T
@@ -916,7 +919,7 @@ def resolve_instruction_esd(
     Parameters
     ----------
     var_cov_mat : jnp.ndarray
-        (P, P) array containing the variances and covariances, where P is the
+      size (P, P) array containing the variances and covariances, where P is the
         number of refined parameters.
     instruction : Parameter
         one parameter instruction, as used for generating atomic parameters
@@ -954,7 +957,7 @@ def construct_esds(
     Parameters
     ----------
     var_cov_mat : jnp.ndarray
-        (P, P) array containing the variances and covariances, where P is the
+      size (P, P) array containing the variances and covariances, where P is the
         number of refined parameters.
     construction_instructions : List[AtomInstructions]
         List of instructions for reconstructing the atomic parameters
@@ -962,17 +965,17 @@ def construct_esds(
     Returns
     -------
     xyz_esd: jnp.ndarray
-        (N, 3) array containing floats for valid and np.nan for fractional 
+      size (N, 3) array containing floats for valid and np.nan for fractional 
         positions where there are no estimated deviations. N is the number
         of atoms in the asymmetric unit
     uij_esd: jnp.ndarray
-        (N, 6) array of esds of anisotropic displacement parameters
+      size (N, 6) array of esds of anisotropic displacement parameters
     cijkl_esd: jnp.ndarray
-        (N, 10) array of esds of third-order Gram-Charlier parameters
+      size (N, 10) array of esds of third-order Gram-Charlier parameters
     dijkl_esd: jnp.ndarray
-        (N, 15) array of esds of third-order Gram-Charlier parameters
+      size (N, 15) array of esds of third-order Gram-Charlier parameters
     occ_esd: jnp.ndarray
-        (N) array of esds of occupacions
+      size (N) array of esds of occupacions
     """
     # TODO Build analogous to the distance calculation function to get esds for all non-primitive calculations
     xyz = jnp.array(
@@ -1019,20 +1022,20 @@ def calc_lsq_factory(
     Parameters
     ----------
     cell_mat_m : jnp.ndarray
-        (3, 3) array with the cell vectors as row vectors (Angstroem)
+      size (3, 3) array with the cell vectors as row vectors (Angstroem)
     symm_mats_vecs : Tuple[jnp.ndarray, jnp.ndarray]
-        (K, 3, 3) array of symmetry  matrices and (K, 3) array of translation
+      size (K, 3, 3) array of symmetry  matrices and (K, 3) array of translation
         vectors for all symmetry elements in the unit cell
     index_vec_h : jnp.ndarray
-        (H, 3) array of Miller indicees of observed reflections
+      size (H, 3) array of Miller indicees of observed reflections
     intensities_obs : jnp.ndarray
-        (H) array of observed reflection intensities
+      size (H) array of observed reflection intensities
     weights : jnp.ndarray
-        (H) array of weights for the individual reflections
+      size (H) array of weights for the individual reflections
     construction_instructions : List[AtomInstructions]
         List of instructions for reconstructing the atomic parameters
     fjs_core : jnp.ndarray
-        (N, H) array of atomic core form factors calculated separately
+      size (N, H) array of atomic core form factors calculated separately
     refinement_dict : Dict[str, Any]
         Dictionary that contains options for the refinement.
     wavelength : Optional[float]
@@ -1148,24 +1151,24 @@ def calc_var_cor_mat(
     Parameters
     ----------
     cell_mat_m : jnp.ndarray
-        (3, 3) array with the cell vectors as row vectors (Angstroem)
+      size (3, 3) array with the cell vectors as row vectors (Angstroem)
     symm_mats_vecs : Tuple[jnp.ndarray, jnp.ndarray]
-        (K, 3, 3) array of symmetry matrices and (K, 3) array of translation 
+      size (K, 3, 3) array of symmetry matrices and (K, 3) array of translation 
         vectors for all symmetry elements in the unit cell
     index_vec_h : jnp.ndarray
-        (H, 3) array of Miller indicees of observed reflections
+      size (H, 3) array of Miller indicees of observed reflections
     intensities_obs : jnp.ndarray
-        (H) array of observed reflection intensities
+      size (H) array of observed reflection intensities
     weights : jnp.ndarray
-        (H) array of weights for the individual reflections
+      size (H) array of weights for the individual reflections
     construction_instructions : List[AtomInstructions]
         List of instructions for reconstructing the atomic parameters
     fjs_core : jnp.ndarray
-        (N, H) array of atomic core form factors calculated separately
+      size (N, H) array of atomic core form factors calculated separately
     parameters : jnp.ndarray
-        (P) array with the refined parameters
+      size (P) array with the refined parameters
     fjs : jnp.ndarray
-        (K, N, H) array of atomic form factors for all reflections and symmetry
+      size (K, N, H) array of atomic form factors for all reflections and symmetry
         generated atoms within the unit cells. Atoms on special positions are
         present multiple times and have the atomic form factor of the full atom.
     refinement_dict : Dict[str, Any]
@@ -1177,7 +1180,7 @@ def calc_var_cor_mat(
     Returns
     -------
     var_cov_mat: jnp.ndarray
-        (P, P) array containing the variance-covariance matrix
+      size (P, P) array containing the variance-covariance matrix
 
     Raises
     ------
@@ -1301,7 +1304,7 @@ def refine(
     cell : jnp.ndarray
         array with the lattice constants (Angstroem, Degree)
     symm_mats_vecs : Tuple[jnp.ndarray, jnp.ndarray]
-        (K, 3, 3) array of symmetry matrices and (K, 3) array of translation
+      size (K, 3, 3) array of symmetry matrices and (K, 3) array of translation
         vectors for all symmetry elements in the unit cell
     hkl : pd.DataFrame
         pandas DataFrame containing the reflection data. Needs to have at least
@@ -1400,19 +1403,19 @@ def refine(
     f_dash = dispersion_real + 1j * dispersion_imag
     f0j_source = get_value_or_default('f0j_source', refinement_dict)
     if f0j_source == 'gpaw':
-        from .f0j_sources.gpaw_source import calc_f0j, calculate_f0j_core
+        from .f0j_sources.gpaw_source import calc_f0j, calc_f0j_core
     elif f0j_source == 'iam':
-        from .f0j_sources.iam_source import calc_f0j, calculate_f0j_core
+        from .f0j_sources.iam_source import calc_f0j, calc_f0j_core
     elif f0j_source == 'gpaw_spherical':
-        from .f0j_sources.gpaw_spherical_source import calc_f0j, calculate_f0j_core
+        from .f0j_sources.gpaw_spherical_source import calc_f0j, calc_f0j_core
     elif f0j_source == 'gpaw_lcorr':
-        from .f0j_sources.gpaw_lcorr_source import calc_f0j, calculate_f0j_core
+        from .f0j_sources.gpaw_lcorr_source import calc_f0j, calc_f0j_core
     elif f0j_source == 'gpaw_mbis':
-        from .f0j_sources.gpaw_mbis_source import calc_f0j, calculate_f0j_core
+        from .f0j_sources.gpaw_mbis_source import calc_f0j, calc_f0j_core
     elif f0j_source == 'qe':
-        from .f0j_sources.qe_source import calc_f0j, calculate_f0j_core
+        from .f0j_sources.qe_source import calc_f0j, calc_f0j_core
     elif f0j_source == 'gpaw_mpi':
-        from .f0j_sources.gpaw_mpi_source import calc_f0j, calculate_f0j_core
+        from .f0j_sources.gpaw_mpi_source import calc_f0j, calc_f0j_core
     else:
         raise NotImplementedError('Unknown type of f0j_source')
 
@@ -1426,10 +1429,10 @@ def refine(
         warnings.warn('core description is not possible with this f0j source')
     if core in ('scale', 'constant'):
         if f0j_source == 'qe':
-            f0j_core, computation_dict = calculate_f0j_core(cell_mat_m, type_symbols, index_vec_h, computation_dict)
+            f0j_core, computation_dict = calc_f0j_core(cell_mat_m, type_symbols, index_vec_h, computation_dict)
             f0j_core = jnp.array(f0j_core)
         else:
-            f0j_core = jnp.array(calculate_f0j_core(cell_mat_m, type_symbols, constructed_xyz, index_vec_h, symm_mats_vecs))
+            f0j_core = jnp.array(calc_f0j_core(cell_mat_m, type_symbols, constructed_xyz, index_vec_h, symm_mats_vecs, computation_dict))
         f0j_core += f_dash[:, None]
     elif core == 'combine':
         f0j_core = None
@@ -1623,22 +1626,22 @@ def distance_with_esd(
         List of atomic instruction for reconstruction of the parameters. 
         Needs to be the same, that was used for refinement.
     parameters : jnp.ndarray
-        (P) sized array of refined parameters
+      size (P) array of refined parameters
     var_cov_mat : jnp.ndarray
-        (P, P) sized array of the variance-covariance matrix
+      size (P, P) array of the variance-covariance matrix
     cell_par : jnp.ndarray
-        (6) sized array of cell parameters in degrees and Angstroem. Depending
+      size (6) array of cell parameters in degrees and Angstroem. Depending
         on the given crystal system only the first of equivalent values might
         be used. If the angle has to be 90° the angle values will be ignored
     cell_esd : jnp.ndarray
-        (6) sized array of the estimated standard deviation of cell parameters
+      size (6) array of the estimated standard deviation of cell parameters
         Only certain values might be used, see cell_par
     crystal_system : str
         Crystal system of the evaluated structure. Possible values are: 
         'triclinic', 'monoclinic' 'orthorhombic', 'tetragonal', 'hexagonal',
         'trigonal' and 'cubic'. Is considered for the esd calculation.
     symm_mat2: jnp.ndarray, optional
-        (3, 3) symmetry matrix to convert the coordinate of atom2, defaults to 
+      size (3, 3) symmetry matrix to convert the coordinate of atom2, defaults to 
         jnp.eye(3)
     symm_vec2: jnp.ndarray, optional
         size (3) array containing the translation vector for atom2,
@@ -1690,15 +1693,15 @@ def u_iso_with_esd(
         List of atomic instruction for reconstruction of the parameters. 
         Needs to be the same, that was used for refinement.
     parameters : jnp.ndarray
-        (P) sized array of refined parameters
+      size (P) array of refined parameters
     var_cov_mat : jnp.ndarray
-        (P, P) sized array of the variance-covariance matrix
+      size (P, P) array of the variance-covariance matrix
     cell_par : jnp.ndarray
-        (6) sized array of cell parameters in degrees and Angstroem. Depending
+      size (6) array of cell parameters in degrees and Angstroem. Depending
         on the given crystal system only the first of equivalent values might
         be used. If the angle has to be 90° the angle values will be ignored
     cell_esd : jnp.ndarray
-        (6) sized array of the estimated standard deviation of cell parameters
+      size (6) array of the estimated standard deviation of cell parameters
         Only certain values might be used, see cell_par
     crystal_system : str
         Crystal system of the evaluated structure. Possible values are: 
@@ -1756,28 +1759,28 @@ def angle_with_esd(
         List of atomic instruction for reconstruction of the parameters. 
         Needs to be the same, that was used for refinement.
     parameters : jnp.ndarray
-        (P) sized array of refined parameters
+      size (P) array of refined parameters
     var_cov_mat : jnp.ndarray
-        (P, P) sized array of the variance-covariance matrix
+      size (P, P) array of the variance-covariance matrix
     cell_par : jnp.ndarray
-        (6) sized array of cell parameters in degrees and Angstroem. Depending
+      size (6) array of cell parameters in degrees and Angstroem. Depending
         on the given crystal system only the first of equivalent values might
         be used. If the angle has to be 90° the angle values will be ignored
     cell_esd : jnp.ndarray
-        (6) sized array of the estimated standard deviation of cell parameters
+      size (6) array of the estimated standard deviation of cell parameters
         Only certain values might be used, see cell_par
     crystal_system : str
         Crystal system of the evaluated structure. Possible values are: 
         'triclinic', 'monoclinic' 'orthorhombic', 'tetragonal', 'hexagonal',
         'trigonal' and 'cubic'. Is considered for the esd calculation.
     symm_mat2: jnp.ndarray, optional
-        (3, 3) symmetry matrix to convert the coordinate of atom2, defaults to 
+      size (3, 3) symmetry matrix to convert the coordinate of atom2, defaults to 
         jnp.eye(3)
     symm_vec2: jnp.ndarray, optional
         size (3) array containing the translation vector for atom2,
         defaults to jnp.zeros(3)
     symm_mat3: jnp.ndarray, optional
-        (3, 3) symmetry matrix to convert the coordinate of atom3, defaults to 
+      size (3, 3) symmetry matrix to convert the coordinate of atom3, defaults to 
         jnp.eye(3)
     symm_vec3: jnp.ndarray, optional
         size (3) array containing the translation vector for atom3,

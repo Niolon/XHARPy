@@ -265,7 +265,7 @@ def f_core_from_spline(spline, g_k, k=13):
     return simps(int_me, x=r) * y00_factor
 
 
-def calculate_f0j_core(cell_mat_m, element_symbols, index_vec_h, computation_dict):
+def calc_f0j_core(cell_mat_m, element_symbols, index_vec_h, computation_dict):
     ang_per_bohr = 0.529177210903
     cell_mat_f = np.linalg.inv(cell_mat_m).T
     g_k3 = np.einsum('xy, zy -> zx', cell_mat_f, index_vec_h)

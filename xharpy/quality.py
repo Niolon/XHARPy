@@ -52,7 +52,7 @@ def calculate_quality_indicators(
     index_vec_h = hkl[['h', 'k', 'l']].values
     intensities = hkl['intensity'].values
     esd_int = hkl['esd_int'].values
-    fjs = np.array(information['fjs_anom'])
+    f0j = np.array(information['f0j_anom'])
     cell_mat_f = np.linalg.inv(cell_mat_m).T
     xyz, uij, cijk, dijkl, occupancies = construct_values(parameters, construction_instructions, cell_mat_m)
 
@@ -65,7 +65,7 @@ def calculate_quality_indicators(
         index_vec_h=index_vec_h,
         cell_mat_f=cell_mat_f,
         symm_mats_vecs=symm_mats_vecs,
-        fjs=fjs
+        f0j=f0j
     ))
 
     extinction = get_value_or_default('extinction', refinement_dict)

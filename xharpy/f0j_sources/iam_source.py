@@ -647,8 +647,8 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
     f0j_b = np.array([element_parameters[symbol][1] for symbol in element_symbols])
     f0j_c = np.array([element_parameters[symbol][2] for symbol in element_symbols])
 
-    fjs = np.einsum('k, zi, izh -> kzh', np.ones(n_symm), f0j_a,  np.exp(-1*np.einsum('h, zi -> izh', (vec_S_norm / 2)**2, f0j_b))) + f0j_c[None, :, None]
-    return fjs
+    f0j = np.einsum('k, zi, izh -> kzh', np.ones(n_symm), f0j_a,  np.exp(-1*np.einsum('h, zi -> izh', (vec_S_norm / 2)**2, f0j_b))) + f0j_c[None, :, None]
+    return f0j
 
 def calc_f0j_core(
     cell_mat_m,

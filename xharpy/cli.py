@@ -162,7 +162,7 @@ def cli(**kwargs):
         shelx_descr=cif_index,
         source_cif_name=cif_name,
         source_descr=cif_index,
-        fjs=information['fjs_anom'],
+        f0j=information['f0j_anom'],
         parameters=parameters,
         var_cov_mat=var_cov_mat,
         construction_instructions=construction_instructions,
@@ -182,7 +182,7 @@ def cli(**kwargs):
         parameters=parameters,
         symm_strings=symm_strings,
         construction_instructions=construction_instructions,
-        fjs=information['fjs_anom'],
+        f0j=information['f0j_anom'],
         cell=cell,
         dataset_name='xharpy_refinement',
         fcf_mode=4

@@ -25,6 +25,7 @@ function. No explicit gradients are needed.
    modules
    xharpy 
    xharpy.f0j_sources
+   examples
 
 Indices and tables
 ==================

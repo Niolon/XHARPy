@@ -640,7 +640,7 @@ def write_fcf(
         index_vec_h=index_vec_h,
         cell_mat_f=cell_mat_f,
         symm_mats_vecs=symm_mats_vecs,
-        fjs=information['fjs_anom']
+        f0j=information['f0j_anom']
     ))
 
     extinction = get_value_or_default('extinction', refinement_dict)
@@ -669,8 +669,8 @@ def write_fcf(
         dispersion_imag = jnp.array([atom.dispersion_imag for atom in construction_instructions])
         f_dash = dispersion_real + 1j * dispersion_imag
 
-        #fjs_corr = np.zeros_like(fjs)
-        #fjs_corr += f_dash[None,:,None]
+        #f0j_corr = np.zeros_like(f0j)
+        #f0j_corr += f_dash[None,:,None]
 
 
         #structure_factors_corr = np.array(calc_f(
@@ -682,7 +682,7 @@ def write_fcf(
         #    index_vec_h=index_vec_h,
         #    cell_mat_f=cell_mat_f,
         #    symm_mats_vecs=symm_mats_vecs,
-        #    fjs=fjs_corr
+        #    f0j=f0j_corr
         #))
 
         #f_obs_sq = hkl['intensity'].values.copy()
@@ -700,7 +700,7 @@ def write_fcf(
             index_vec_h=index_vec_h,
             cell_mat_f=cell_mat_f,
             symm_mats_vecs=symm_mats_vecs,
-            fjs=information['fjs_anom'] #- f_dash[None, :, None]
+            f0j=information['f0j_anom'] #- f_dash[None, :, None]
         ))
 
         hkl['abs(f_calc)'] = np.abs(structure_factors)
@@ -1662,7 +1662,7 @@ def write_cif(
         index_vec_h=index_vec_h,
         cell_mat_f=cell_mat_f,
         symm_mats_vecs=symm_mats_vecs,
-        fjs=information['fjs_anom']
+        f0j=information['f0j_anom']
     ))
     if f0j_source == 'iam':
         from .f0j_sources.iam_source import generate_cif_output

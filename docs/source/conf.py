@@ -23,7 +23,7 @@ copyright = '2021, Paul Niklas Ruth'
 author = 'Paul Niklas Ruth'
 
 # The full version, including alpha/beta/rc tags
-release = '0.11'
+release = '0.1.1'
 
 
 # -- General configuration ---------------------------------------------------
@@ -33,7 +33,9 @@ release = '0.11'
 # ones.
 extensions = [
     'sphinx_rtd_theme',
-    'sphinx.ext.napoleon'
+    'sphinx.ext.napoleon',
+    'nbsphinx',
+    'sphinx_gallery.load_style'
 ]
 
 # Add any paths that contain templates here, relative to this directory.

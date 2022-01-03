@@ -299,7 +299,7 @@ def calc_f(
     index_vec_h: jnp.ndarray,
     cell_mat_f: jnp.ndarray,
     symm_mats_vecs: Tuple[jnp.ndarray, jnp.ndarray],
-    fjs: jnp.ndarray
+    f0j: jnp.ndarray
 ) -> jnp.ndarray :
     """Given a set of parameters, calculate the structure factors for all given
     reflections
@@ -315,16 +315,16 @@ def calc_f(
         need to be in convention as used e.g. Shelxl or the cif as U.
         Order: U11, U22, U33, U23, U13, U12
     cijk : jnp.ndarray
-      size (N, 10) array of hird-order Gram-Charlier parameters as defined
+        size (N, 10) array of hird-order Gram-Charlier parameters as defined
         in Inter. Tables of Cryst. B (2010): Eq 1.2.12.7. Order: C111, C222, 
         C333, C112, C122, C113, C133, C223, C233, C123
     dijkl : jnp.ndarray
-      size (N, 15) array of fourth-order Gram-Charlier parameters as defined
+        size (N, 15) array of fourth-order Gram-Charlier parameters as defined
         in Inter. Tables of Cryst. B (2010): Eq 1.2.12.7. Order: D1111, D2222,
         D3333, D1112, D1222, D1113, D_1333, D2223, D2333, D1122, D1133, D2233,
         D1123, D1223, D1233
     occupancies : jnp.ndarray
-      size (N) array of atomic occupancies. Atoms on special positions need to have
+        size (N) array of atomic occupancies. Atoms on special positions need to have
         an occupancy of 1/multiplicity
     index_vec_h : jnp.ndarray
       size (H, 3) array of Miller indicees of observed reflections
@@ -332,10 +332,10 @@ def calc_f(
       size (3, 3) array with the reciprocal lattice vectors (1/Angstroem) as row
         vectors
     symm_mats_vecs : Tuple[jnp.ndarray, jnp.ndarray]
-      size (K, 3, 3) array of symmetry matrices and (K, 3) array of translation
+        size (K, 3, 3) array of symmetry matrices and (K, 3) array of translation
         vectors for all symmetry elements in the unit cell
-    fjs : jnp.ndarray
-      size (K, N, H) array of atomic form factors for all reflections and symmetry
+    f0j : jnp.ndarray
+        size (K, N, H) array of atomic form factors for all reflections and symmetry
         generated atoms within the unit cells. Atoms on special positions are 
         present multiple times and have the atomic form factor of the full atom.
 
@@ -389,7 +389,7 @@ def calc_f(
 
     positions_symm = jnp.einsum('kxy, zy -> kzx', symm_mats_r, xyz) + symm_vecs_t[:, None, :]
     phases = jnp.exp(2j * jnp.pi * jnp.einsum('kzx, hx -> kzh', positions_symm, index_vec_h))
-    structure_factors = jnp.sum(occupancies[None, :] *  jnp.einsum('kzh, kzh, kzh, kzh -> hz', phases, vib_factors, fjs, gc_factor), axis=-1)
+    structure_factors = jnp.sum(occupancies[None, :] *  jnp.einsum('kzh, kzh, kzh, kzh -> hz', phases, vib_factors, f0j, gc_factor), axis=-1)
     return structure_factors
 
 
@@ -1008,7 +1008,7 @@ def calc_lsq_factory(
     intensities_obs: jnp.ndarray,
     weights: jnp.ndarray,
     construction_instructions: List[AtomInstructions],
-    fjs_core: jnp.ndarray,
+    f0j_core: jnp.ndarray,
     refinement_dict: Dict[str, Any],
     wavelength: Optional[float],
     restraint_instr_ind: List[Any]=[]
@@ -1032,7 +1032,7 @@ def calc_lsq_factory(
       size (H) array of weights for the individual reflections
     construction_instructions : List[AtomInstructions]
         List of instructions for reconstructing the atomic parameters
-    fjs_core : jnp.ndarray
+    f0j_core : jnp.ndarray
       size (N, H) array of atomic core form factors calculated separately
     refinement_dict : Dict[str, Any]
         Dictionary that contains options for the refinement.
@@ -1069,12 +1069,12 @@ def calc_lsq_factory(
     
     construct_values_j = jax.jit(construct_values, static_argnums=(1))
 
-    def function(parameters, fjs):
+    def function(parameters, f0j):
         xyz, uij, cijk, dijkl, occupancies = construct_values_j(parameters, construction_instructions, cell_mat_m)
         if core == 'scale':
-            fjs = parameters[core_parameter] * fjs + fjs_core[None, :, :]
+            f0j = parameters[core_parameter] * f0j + f0j_core[None, :, :]
         elif core == 'constant':
-            fjs = fjs + fjs_core[None, :, :]
+            f0j = f0j + f0j_core[None, :, :]
         elif core == 'combine':
             pass
         else:
@@ -1089,7 +1089,7 @@ def calc_lsq_factory(
             index_vec_h=index_vec_h,
             cell_mat_f=cell_mat_f,
             symm_mats_vecs=symm_mats_vecs,
-            fjs=fjs
+            f0j=f0j
         )
         if extinction == 'none':
             intensities_calc = parameters[0] * jnp.abs(structure_factors)**2
@@ -1112,7 +1112,7 @@ def calc_lsq_factory(
                 index_vec_h=-index_vec_h,
                 cell_mat_f=cell_mat_f,
                 symm_mats_vecs=symm_mats_vecs,
-                fjs=fjs
+                f0j=f0j
             )
             if extinction == 'none':
                 intensities_calc2 = parameters[0] * jnp.abs(structure_factors2)**2
@@ -1137,9 +1137,9 @@ def calc_var_cor_mat(
     intensities_obs: jnp.ndarray ,
     weights: jnp.ndarray,
     construction_instructions: List[AtomInstructions],
-    fjs_core: jnp.ndarray,
+    f0j_core: jnp.ndarray,
     parameters: jnp.ndarray,
-    fjs: jnp.ndarray,
+    f0j: jnp.ndarray,
     refinement_dict: Dict[str, Any],
     wavelength: Optional[float] = None
 ) -> jnp.ndarray:
@@ -1161,11 +1161,11 @@ def calc_var_cor_mat(
       size (H) array of weights for the individual reflections
     construction_instructions : List[AtomInstructions]
         List of instructions for reconstructing the atomic parameters
-    fjs_core : jnp.ndarray
+    f0j_core : jnp.ndarray
       size (N, H) array of atomic core form factors calculated separately
     parameters : jnp.ndarray
       size (P) array with the refined parameters
-    fjs : jnp.ndarray
+    f0j : jnp.ndarray
       size (K, N, H) array of atomic form factors for all reflections and symmetry
         generated atoms within the unit cells. Atoms on special positions are
         present multiple times and have the atomic form factor of the full atom.
@@ -1202,12 +1202,12 @@ def calc_var_cor_mat(
     
     construct_values_j = jax.jit(construct_values, static_argnums=(1))
 
-    def function(parameters, fjs, index):
+    def function(parameters, f0j, index):
         xyz, uij, cijk, dijkl, occupancies = construct_values_j(parameters, construction_instructions, cell_mat_m)
         if core == 'scale':
-            fjs = parameters[core_parameter] * fjs + fjs_core[None, :, :]
+            f0j = parameters[core_parameter] * f0j + f0j_core[None, :, :]
         elif core == 'constant':
-            fjs = fjs + fjs_core[None, :, :]
+            f0j = f0j + f0j_core[None, :, :]
         elif core == 'combine':
             pass
         else:
@@ -1222,7 +1222,7 @@ def calc_var_cor_mat(
             index_vec_h=index_vec_h[None, index],
             cell_mat_f=cell_mat_f,
             symm_mats_vecs=symm_mats_vecs,
-            fjs=fjs[:, :, index, None]
+            f0j=f0j[:, :, index, None]
         )
         if extinction == 'none':
             intensities_calc = parameters[0] * jnp.abs(structure_factors)**2
@@ -1245,7 +1245,7 @@ def calc_var_cor_mat(
                 index_vec_h=-index_vec_h[None, index],
                 cell_mat_f=cell_mat_f,
                 symm_mats_vecs=symm_mats_vecs,
-                fjs=fjs[:, :, index, None]
+                f0j=f0j[:, :, index, None]
             )
             if extinction == 'none':
                 intensities_calc2 = parameters[0] * jnp.abs(structure_factors2)**2
@@ -1266,7 +1266,7 @@ def calc_var_cor_mat(
 
     # TODO: Figure out a way to make this more efficient
     for index, weight in enumerate(weights):
-        val = grad_func(parameters, jnp.array(fjs), index)[:, None]
+        val = grad_func(parameters, jnp.array(f0j), index)[:, None]
         collect += weight * (val @ val.T)
 
     lsq_func = calc_lsq_factory(
@@ -1276,11 +1276,11 @@ def calc_var_cor_mat(
         intensities_obs,
         weights,
         construction_instructions,
-        fjs_core,
+        f0j_core,
         refinement_dict,
         wavelength
     )
-    chi_sq = lsq_func(parameters, jnp.array(fjs)) / (index_vec_h.shape[0] - len(parameters))
+    chi_sq = lsq_func(parameters, jnp.array(f0j)) / (index_vec_h.shape[0] - len(parameters))
 
     return chi_sq * jnp.linalg.inv(collect)
 
@@ -1452,7 +1452,7 @@ def refine(
     else:
         restart = None
     if f0j_source == 'gpaw_lcorr':
-        fjs = calc_f0j(cell_mat_m,
+        f0j = calc_f0j(cell_mat_m,
                        type_symbols,
                        constructed_xyz,
                        constructed_uij,
@@ -1463,7 +1463,7 @@ def refine(
                        restart=restart,
                        explicit_core=f0j_core is not None)
     else:
-        fjs = calc_f0j(cell_mat_m,
+        f0j = calc_f0j(cell_mat_m,
                        type_symbols,
                        constructed_xyz,
                        index_vec_h,
@@ -1473,7 +1473,7 @@ def refine(
                        restart=restart,
                        explicit_core=f0j_core is not None)
     if f0j_core is None:
-        fjs += f_dash[None,:,None]
+        f0j += f_dash[None,:,None]
     xyz_density = constructed_xyz
 
     print('  building least squares function')
@@ -1494,7 +1494,7 @@ def refine(
         parameters_new = None
         for index, value in enumerate(x):
             parameters_new = jax.ops.index_update(parameters, jax.ops.index[index], value)
-        return calc_lsq(parameters_new, fjs), grad_calc_lsq(parameters_new, fjs)[:len(x)]
+        return calc_lsq(parameters_new, f0j), grad_calc_lsq(parameters_new, f0j)[:len(x)]
     print('step 0: Optimizing scaling')
     x = minimize(minimize_scaling,
                  args=(parameters.copy()),
@@ -1512,7 +1512,7 @@ def refine(
                      parameters,
                      jac=grad_calc_lsq,
                      method='BFGS',
-                     args=(jnp.array(fjs)),
+                     args=(jnp.array(f0j)),
                      options={'gtol': 1e-8 * jnp.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)})
         
         print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)):8.6f}, nit: {x.nit}, {x.message}')
@@ -1537,9 +1537,9 @@ def refine(
             restart = None  
         if np.max(np.linalg.norm(np.einsum('xy, zy -> zx', cell_mat_m, constructed_xyz - xyz_density), axis=-1)) > max_distance_diff:
             print(f'step {refine + 1}: calculating new structure factors')
-            del(fjs)
+            del(f0j)
             if f0j_source == 'gpaw_lcorr':
-                fjs = calc_f0j(cell_mat_m,
+                f0j = calc_f0j(cell_mat_m,
                                type_symbols,
                                constructed_xyz,
                                constructed_uij,
@@ -1550,7 +1550,7 @@ def refine(
                                restart=restart,
                                explicit_core=f0j_core is not None)
             else:
-                fjs = calc_f0j(cell_mat_m,
+                f0j = calc_f0j(cell_mat_m,
                                type_symbols,
                                constructed_xyz,
                                index_vec_h,
@@ -1560,7 +1560,7 @@ def refine(
                                restart=restart,
                                explicit_core=f0j_core is not None)
             if f0j_core is None:
-                fjs += f_dash[None,:,None]
+                f0j += f_dash[None,:,None]
             xyz_density = constructed_xyz
         else:
             print(f'step {refine + 1}: atom_positions are converged. No new structure factor calculation.')
@@ -1573,17 +1573,17 @@ def refine(
                                    construction_instructions,
                                    f0j_core,
                                    parameters,
-                                   fjs,
+                                   f0j,
                                    refinement_dict,
                                    wavelength)
     if core == 'constant':
-        fjs_all = fjs + f0j_core[None, :, :]
+        f0j_all = f0j + f0j_core[None, :, :]
     elif core == 'scale':
         # only flack and scaling factor can be before core parameter
         core_parameter = get_parameter_index('core', refinement_dict)
-        fjs_all = parameters[core_parameter] * fjs + f0j_core[None, :, :]
+        f0j_all = parameters[core_parameter] * f0j + f0j_core[None, :, :]
     elif core == 'combine':
-        fjs_all = fjs
+        f0j_all = f0j
     else:
         raise NotImplementedError('The used core is not implemented at the end of the har function (calculation of f0j')
     shift_ov_su = shift / np.sqrt(np.diag(var_cov_mat))
@@ -1591,7 +1591,7 @@ def refine(
     print('Ended refinement at ', end)
 
     additional_information = {
-        'fjs_anom': fjs_all,
+        'f0j_anom': f0j_all,
         'shift_ov_su': shift_ov_su,
         'start': start,
         'end': end

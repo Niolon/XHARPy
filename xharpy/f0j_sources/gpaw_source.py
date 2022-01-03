@@ -222,33 +222,64 @@ def calc_f0j(
     Parameters
     ----------
     cell_mat_m : np.ndarray
-        [description]
+        size (3, 3) array with the unit cell vectors as row vectors
     element_symbols : List[str]
-        [description]
+        element symbols (i.e. 'Na') for all the atoms within the asymmetric unit
     positions : np.ndarray
-        [description]
+        atomic positions in fractional coordinates for all the atoms within
+        the asymmetric unit
     index_vec_h : np.ndarray
-        [description]
+        size (H) vector containing Miller indicees of the measured reflections
     symm_mats_vecs : Tuple[np.ndarray, np.ndarray]
-        [description]
+        size (K, 3, 3) array of symmetry  matrices and (K, 3) array of
+        translation vectors for all symmetry elements in the unit cell
     computation_dict : Dict[str, Any]
-        [description]
+        contains options for the atomic form factor calculation. The function
+        will use and exclude the following options from the dictionary and pass
+        the rest onto the GPAW calculator without further checks.
+
+          - gridinterpolation (1, 2, 4): Using GPAWs interpolation this is the 
+            factor by which the grid from the wave function will be interpolated
+            for the calculation of atomic form factors with FFT. This can be 
+            reduced if you run out of memory for this step. Allowed values are
+            1, 2, and 4, by default 4
+
+          - average_symmequiv (bool): If True will first calculate the atomic 
+            form factors of symmetry equivalent atoms and than average them 
+            (taking symmetry into account) before then assigning the symmetry
+            transformed average value to all atoms. Is slower and not necessary
+            for most cases, but might be helpful with numerical stability for 
+            small grids, by default False
+
+          - skip_symm (Dict[int, List[int]]): Can used to prevent the
+            expansion of the atom(s) with the index(es) given as dictionary keys
+            as given in the construction_instructions with the symmetry
+            operations of the indexes given in the list, which correspond to the
+            indexes in the symm_mats_vecs object. This has proven to be
+            successful for the calculation of atoms disordered on special 
+            positions. Can only be used with average_symmequiv, by default {} 
+
+          - magmoms (np.ndarray): Experimental: starting values for magnetic
+            moments of atoms. These will be expanded to atoms in the unit cell 
+            by just applying the same magnetic moment to all symmetry equivalent
+            atoms. This is probably too simplistic and will fail.
+
+        For the allowed options of the GPAW calculator consult: 
+        https://wiki.fysik.dtu.dk/gpaw/documentation/basic.html
     restart : str, optional
-        [description], by default None
+        File with the starting density for the DFT calculation, by default None
     save : str, optional
-        [description], by default 'gpaw.gpw'
+        File to save to., by default 'gpaw.gpw'
     explicit_core : bool, optional
-        [description], by default True
+        If True the frozen core density is assumed to be calculated separately, 
+        therefore only the valence density will be split up, by default True
 
     Returns
     -------
-    np.ndarray
-        [description]
-    """
-
-    """
-    Calculate the aspherical atomic form factors from a density grid in the python package gpaw
-    for each reciprocal lattice vector present in index_vec_h.
+    f0j : np.ndarray
+        size (K, N, H) array of atomic form factors for all reflections and symmetry
+        generated atoms within the unit cells. Atoms on special positions are 
+        present multiple times and have the atomic form factor of the full atom.
     """
     computation_dict = computation_dict.copy()
     if 'gridinterpolation' in computation_dict:
@@ -256,7 +287,7 @@ def calc_f0j(
         #print(f'gridinterpolation set to {gridinterpolation}')
         del(computation_dict['gridinterpolation'])
     else:
-        gridinterpolation = 2
+        gridinterpolation = 4
     if 'average_symmequiv' in computation_dict:
         average_symmequiv = computation_dict['average_symmequiv']
         #print(f'average symmetry equivalents: {average_symmequiv}')
@@ -276,12 +307,14 @@ def calc_f0j(
         magmoms = None
 
     #assert not (not average_symmequiv and not do_not_move)
-    symm_positions, symm_symbols, f0j_indexes, magmoms_symm = expand_symm_unique(element_symbols,
-                                                                                 np.array(positions),
-                                                                                 np.array(cell_mat_m),
-                                                                                 (np.array(symm_mats_vecs[0]), np.array(symm_mats_vecs[1])),
-                                                                                 skip_symm=skip_symm,
-                                                                                 magmoms=magmoms)
+    symm_positions, symm_symbols, f0j_indexes, magmoms_symm = expand_symm_unique(
+        element_symbols,
+        np.array(positions),
+        np.array(cell_mat_m),
+        (np.array(symm_mats_vecs[0]), np.array(symm_mats_vecs[1])),
+        skip_symm=skip_symm,
+        magmoms=magmoms
+    )
     e_change = True
     if restart is None:
         atoms = crystal(symbols=symm_symbols,
@@ -376,7 +409,34 @@ def calc_f0j(
     return f0j
 
 
-def f_core_from_spline(spline, g_k, k=13):
+def f_core_from_spline(
+    spline: Any,
+    g_k: np.ndarray,
+    k: int= 13
+) -> np.ndarray:
+    """Calculate the spherical atomic form factor from a core density spline
+
+    Parameters
+    ----------
+    spline : Any
+        GPAW spline containing the core density for expansion. Anything else
+        with a map and get_cutoff function should work too. The unit of length
+        needs to be identical to the reciprocal of the unit used in g_k.
+    g_k : np.ndarray
+        reciprocal distances to origin for all. Reciprocal unit of length
+        needs to be identical to the one used in the spline
+    k : int, optional
+        determines the number of distance points used for the evaluation
+        as 2**k + 1. The first point is always zero, the other points are 
+        determined by np.exp(-1 * np.linspace(1.25 * k, 0.0 , 2**k)) * r_max, 
+        by default 13
+
+    Returns
+    -------
+    f0j_core: np.ndarray
+        calculated core atomic form factors for the reciprocal distances given 
+        in g_k
+    """
     r_max = spline.get_cutoff()
     r = np.zeros(2**k + 1)
     r[1:] = np.exp(-1 * np.linspace(1.25 * k, 0.0 , 2**k)) * r_max
@@ -391,13 +451,44 @@ def f_core_from_spline(spline, g_k, k=13):
 
 
 def calc_f0j_core(
-    cell_mat_m,
-    element_symbols,
-    positions,
-    index_vec_h,
-    symm_mats_vecs,
-    computation_dict
-):
+    cell_mat_m: np.ndarray,
+    element_symbols: List[str],
+    positions: np.ndarray,
+    index_vec_h: np.ndarray,
+    symm_mats_vecs: np.ndarray,
+    computation_dict: Dict[str, Any]
+) -> np.ndarray:
+    """Calculate the core atomic form factors on an exponential spherical grid.
+    Up to 5000 reflections every reflection will be calculated explicitely. 
+    Above that a spline will be generated from 5000 points on an exponential
+    grid. The spline is then used to calculate the individual atomic core form
+    factor values.
+
+    Parameters
+    ----------
+    cell_mat_m : np.ndarray
+        size (3, 3) array with the unit cell vectors as row vectors
+    element_symbols : List[str]
+        element symbols (i.e. 'Na') for all the atoms within the asymmetric unit
+    positions : np.ndarray
+        atomic positions in fractional coordinates for all the atoms within
+        the asymmetric unit
+    index_vec_h : np.ndarray
+        size (H) vector containing Miller indicees of the measured reflections
+    symm_mats_vecs : Tuple[np.ndarray, np.ndarray]
+        size (K, 3, 3) array of symmetry  matrices and (K, 3) array of
+        translation vectors for all symmetry elements in the unit cell
+    computation_dict : Dict[str, Any]
+        contains options for the calculation. The custom options will be ignored
+        and everything else is passed on to GPAW for initialisation. The only
+        option that makes a difference here is which setups are used. (Need to
+        be same as in calc_f0j)
+
+    Returns
+    -------
+    f0j_core: np.ndarray
+        size (N, H) array of atomic core form factors calculated separately
+    """
     computation_dict = computation_dict.copy()
     non_gpaw_keys = [
         'gridinterpolation',
@@ -458,7 +549,22 @@ def calc_f0j_core(
     return np.array([f0j_core[symbol] for symbol in element_symbols])
 
 
-def generate_cif_output(computation_dict):
+def generate_cif_output(
+    computation_dict: Dict[Any]
+) -> str:
+    """Generates at string, that details the computation options for use in the 
+    cif generation routine.
+
+    Parameters
+    ----------
+    computation_dict : Dict[str, Any]
+        contains options for the calculation.
+
+    Returns
+    -------
+    str
+        The string that will be added to the cif-file
+    """
     strings = []
     for key, val in computation_dict.items():
         if type(val) is dict:
@@ -476,5 +582,4 @@ def generate_cif_output(computation_dict):
   - Afterwards density was interpolated on a rectangular grid and partitioned
     according to the Hirshfeld scheme, using GPAWs build-in routines.
   - Atomic form factors were calculated using FFT from the numpy package"""
-
     return addition

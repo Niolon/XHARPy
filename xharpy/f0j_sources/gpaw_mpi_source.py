@@ -3,14 +3,18 @@ import numpy as np
 import subprocess
 import os
 import pickle
-import warnings
-from ase.spacegroup import crystal
+from typing import Any, Dict, List, Tuple
+
 
 from scipy.interpolate import interp1d
 from scipy.integrate import simps
 #import gpaw
 from ..core import expand_symm_unique
 
+
+# This is ugly but works. We cannot call mpiexec globally so we write out 
+# python scripts. GPAW must not be loaded in the main script or mpiexec will
+# not work so the core density calculation needs to be done in the same way
 
 step1_script = """from ase.spacegroup import crystal
 from ase.parallel import parprint
@@ -353,10 +357,87 @@ with open('core_r_values.pic', 'wb') as fo:
 """
 
 
-def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs, computation_dict=None, restart=None, save='gpaw.gpw', explicit_core=True):
-    """
-    Calculate the aspherical atomic form factors from a density grid in the python package gpaw
-    for each reciprocal lattice vector present in index_vec_h.
+def calc_f0j(
+    cell_mat_m: np.ndarray,
+    element_symbols: List[str],
+    positions: np.ndarray,
+    index_vec_h: np.ndarray,
+    symm_mats_vecs: Tuple[np.ndarray, np.ndarray],
+    computation_dict: Dict[str, Any],
+    restart: str = None,
+    save: str = 'gpaw.gpw',
+    explicit_core: bool = True
+)-> np.ndarray:
+    """Calculate the atomic form factor or atomic valence form factors using 
+    GPAW with MPI for the multi-core calculation. If you have problems and 
+    are in a jupyter notebook you probably need to restart. This routine will
+    not work if GPAW has been loaded anywhere else.
+
+    Parameters
+    ----------
+    cell_mat_m : np.ndarray
+        size (3, 3) array with the unit cell vectors as row vectors
+    element_symbols : List[str]
+        element symbols (i.e. 'Na') for all the atoms within the asymmetric unit
+    positions : np.ndarray
+        atomic positions in fractional coordinates for all the atoms within
+        the asymmetric unit
+    index_vec_h : np.ndarray
+        size (H) vector containing Miller indicees of the measured reflections
+    symm_mats_vecs : Tuple[np.ndarray, np.ndarray]
+        size (K, 3, 3) array of symmetry  matrices and (K, 3) array of
+        translation vectors for all symmetry elements in the unit cell
+    computation_dict : Dict[str, Any]
+        contains options for the atomic form factor calculation. The function
+        will use and exclude the following options from the dictionary and pass
+        the rest onto the GPAW calculator without further checks.
+
+          - gridinterpolation (1, 2, 4): Using GPAWs interpolation this is the 
+            factor by which the grid from the wave function will be interpolated
+            for the calculation of atomic form factors with FFT. This can be 
+            reduced if you run out of memory for this step. Allowed values are
+            1, 2, and 4, by default 4
+
+          - average_symmequiv (bool): If True will first calculate the atomic 
+            form factors of symmetry equivalent atoms and than average them 
+            (taking symmetry into account) before then assigning the symmetry
+            transformed average value to all atoms. Is slower and not necessary
+            for most cases, but might be helpful with numerical stability for 
+            small grids, by default False
+
+          - skip_symm (Dict[int, List[int]]): Can used to prevent the
+            expansion of the atom(s) with the index(es) given as dictionary keys
+            as given in the construction_instructions with the symmetry
+            operations of the indexes given in the list, which correspond to the
+            indexes in the symm_mats_vecs object. This has proven to be
+            successful for the calculation of atoms disordered on special 
+            positions. Can only be used with average_symmequiv, by default {} 
+
+          - magmoms (np.ndarray): Experimental: starting values for magnetic
+            moments of atoms. These will be expanded to atoms in the unit cell 
+            by just applying the same magnetic moment to all symmetry equivalent
+            atoms. This is probably too simplistic and will fail.
+
+          - mpicores (Union[int, str]): give the number of cores used for the 
+            mpi calculation. If this is 'auto' GPAW will select the number
+            itself, by default 'auto'
+
+        For the allowed options of the GPAW calculator consult: 
+        https://wiki.fysik.dtu.dk/gpaw/documentation/basic.html
+    restart : str, optional
+        File with the starting density for the DFT calculation, by default None
+    save : str, optional
+        File to save to., by default 'gpaw.gpw'
+    explicit_core : bool, optional
+        If True the frozen core density is assumed to be calculated separately, 
+        therefore only the valence density will be split up, by default True
+
+    Returns
+    -------
+    f0j : np.ndarray
+        size (K, N, H) array of atomic form factors for all reflections and symmetry
+        generated atoms within the unit cells. Atoms on special positions are 
+        present multiple times and have the atomic form factor of the full atom.
     """
     if computation_dict is None:
         computation_dict = {'xc': 'PBE', 'txt': 'gpaw.txt', 'h': 0.15, 'setups': 'paw'}
@@ -385,22 +466,27 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
         del(computation_dict['magmoms'])
     else:
         magmoms = None
-    if 'mpicores' in computation_dict:
+    if 'mpicores' in computation_dict and computation_dict['mpicores'] == 'auto':
+        ncores = None
+        del(computation_dict['mpicores'])
+    elif 'mpicores' in computation_dict:
         ncores = computation_dict['mpicores']
         del(computation_dict['mpicores'])
     else:
         ncores = None
 
     #assert not (not average_symmequiv and not do_not_move)
-    symm_positions, symm_symbols, f0j_indexes, magmoms_symm = expand_symm_unique(element_symbols,
-                                                                                 np.array(positions),
-                                                                                 np.array(cell_mat_m),
-                                                                                 (np.array(symm_mats_vecs[0]), np.array(symm_mats_vecs[1])),
-                                                                                 skip_symm=skip_symm,
-                                                                                 magmoms=magmoms)
+    symm_positions, symm_symbols, f0j_indexes, magmoms_symm = expand_symm_unique(
+        element_symbols,
+        np.array(positions),
+        np.array(cell_mat_m),
+        (np.array(symm_mats_vecs[0]), np.array(symm_mats_vecs[1])),
+        skip_symm=skip_symm,
+        magmoms=magmoms
+    )
 
-    # This utter disaster is necessary because mpiexec cannot be called once gpaw is loaded
-    # mpi does not seem to play well with the custom Hirshfeld partitioning and possibly jax
+    # This utter disaster is necessary because mpiexec cannot be called once gpaw has been loaded
+    # Calling mpi on everything does not seem to play well with the custom Hirshfeld partitioning and possibly jax
 
     step1_dict = {
         'kw_crystal': {
@@ -464,19 +550,51 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
     return f0j
 
 def calc_f0j_core(
-    cell_mat_m,
-    element_symbols,
-    positions,
-    index_vec_h,
-    symm_mats_vecs,
-    computation_dict
-):
+    cell_mat_m: np.ndarray,
+    element_symbols: List[str],
+    positions: np.ndarray,
+    index_vec_h: np.ndarray,
+    symm_mats_vecs: np.ndarray,
+    computation_dict: Dict[str, Any]
+) -> np.ndarray:
+    """Calculate the core atomic form factors on an exponential spherical grid.
+    Up to 5000 reflections every reflection will be calculated explicitely. 
+    Above that a spline will be generated from 5000 points on an exponential
+    grid. The spline is then used to calculate the individual atomic core form
+    factor values.
+
+    Parameters
+    ----------
+    cell_mat_m : np.ndarray
+        size (3, 3) array with the unit cell vectors as row vectors
+    element_symbols : List[str]
+        element symbols (i.e. 'Na') for all the atoms within the asymmetric unit
+    positions : np.ndarray
+        atomic positions in fractional coordinates for all the atoms within
+        the asymmetric unit
+    index_vec_h : np.ndarray
+        size (H) vector containing Miller indicees of the measured reflections
+    symm_mats_vecs : Tuple[np.ndarray, np.ndarray]
+        size (K, 3, 3) array of symmetry  matrices and (K, 3) array of
+        translation vectors for all symmetry elements in the unit cell
+    computation_dict : Dict[str, Any]
+        contains options for the calculation. The custom options will be ignored
+        and everything else is passed on to GPAW for initialisation. The only
+        option that makes a difference here is which setups are used. (Need to
+        be same as in calc_f0j)
+
+    Returns
+    -------
+    f0j_core: np.ndarray
+        size (N, H) array of atomic core form factors calculated separately
+    """
     computation_dict = computation_dict.copy()
     non_gpaw_keys = [
         'gridinterpolation',
         'average_symmequiv',
         'skip_symm',
-        'magmoms'
+        'magmoms',
+        'mpicores'
     ]
     for key in non_gpaw_keys:
         if key in computation_dict:
@@ -514,6 +632,19 @@ def calc_f0j_core(
     return f0j_core
 
 def generate_cif_output(computation_dict):
+    """Generates at string, that details the computation options for use in the 
+    cif generation routine.
+
+    Parameters
+    ----------
+    computation_dict : Dict[str, Any]
+        contains options for the calculation.
+
+    Returns
+    -------
+    cif_string: str
+        The string that will be added to the cif-file
+    """
     strings = []
     for key, val in computation_dict.items():
         if type(val) is dict:

@@ -1,0 +1,474 @@
+
+ +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ +  SHELXL -  CRYSTAL STRUCTURE REFINEMENT  -   MULTI-CPU VERSION  +
+ +  Copyright(C) George M. Sheldrick 1993-2018     Version 2018/3  +
+ +  iam                        started at 09:09:25 on 19-Feb-2021  +
+ +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ Command line parameters: iam -a50000 -b3000 -c624 -g0 -m0 -t8
+
+ -a sets the approximate maximum number of atoms including hydrogens.
+ -b sets the maximum number of full-matrix parameters (not used by CGLS).
+ For example -b9000 allows refinement of 1000 anisotropic atoms or 3000
+ with BLOC 1. For a 32-bit version, -b times the square root of the
+ number of threads should not exceed about 65500. -c sets the reflection
+ buffer size. This depends on the CPU cache size but will rarely
+ need changing.
+
+ -g sets the number of reflection groups used for calculating R_complete,
+ This must be greater than 1 but not greater than the total number of
+ reflections for refinement. -m sets the current reflection group number.
+ This may not be less than 1 nor greater than the number set by -g. These
+ command line flags override other ways of defining free-R reflections.
+ The -m value is also used as a seed for the WIGL pseudo-random shifts.
+
+ -t sets the number of threads, otherwise it is set to the apparent
+ number of CPUs. For optimal performance on hyperthreading systems,
+ -t should be set to a little more than half the number of CPUs;
+ e.g. -t4 or -t5 for an Intel i7 processor.
+
+ Running  8 threads on  8 processors
+
+ TITL I                P -4 21 m
+     iam.res
+     created by SHELXL-2018/3 at 17:20:27 on 18-Feb-2021
+ CELL  0.59960    5.5780    5.5780    4.6860    90.000    90.000    90.000
+ ZERR        2    0.0006    0.0006    0.0007     0.000     0.000     0.000
+ LATT  -1
+ SYMM               Y ,            - X ,            - Z
+ SYMM             - X ,            - Y ,              Z
+ SYMM             - Y ,              X ,            - Z
+ SYMM     0.50000 + X ,    0.50000 - Y ,            - Z
+ SYMM     0.50000 - Y ,    0.50000 - X ,              Z
+ SYMM     0.50000 - X ,    0.50000 + Y ,            - Z
+ SYMM     0.50000 + Y ,    0.50000 + X ,              Z
+ SFAC  C  H  N  O
+ DISP  C     0.002     0.001       8.3
+ DISP  H     0.000     0.000       0.7
+ DISP  N     0.004     0.002      13.3
+ DISP  O     0.007     0.004      21.1
+ UNIT     2    8   4   2
+
+ V =      145.80     F(000) =      64.0     Mu =   0.08 mm-1      Cell Wt =      120.12    Rho =  1.368
+
+ LIST 4 ! automatically inserted. Change 6 to 4 for CHECKCIF!!
+ RIGU
+ SIMU
+ TEMP  -150
+ SIZE    0.0900    0.1300    0.2300
+ L.S. 0
+ FMAP 2
+ ANIS $H
+ BOND $H
+ WGHT    0.000000
+ FVAR       1.02764
+ O     4    0.000000    0.500000    0.596679    10.25000    0.02036    0.02036 =
+          0.00663    0.00000    0.00000    0.00274
+ N     3    0.144773    0.644773    0.179014    10.50000    0.03011    0.03011 =
+          0.00959    0.00004    0.00004   -0.01598
+ H1    2    0.245918    0.745918    0.276559    10.50000    0.04661
+ H2    2    0.138459    0.638459   -0.006927    10.50000    0.03089
+ C     1    0.000000    0.500000    0.328255    10.25000    0.01501    0.01501 =
+          0.00766    0.00000    0.00000    0.00072
+ HKLF 4
+
+
+
+ Covalent radii and connectivity table for  I                P -4 21 m                                                 
+ C      0.770
+ H      0.320
+ N      0.700
+ O      0.660
+
+ O - C
+ N - C
+ C - O N N_$1
+
+
+ Operators for generating equivalent atoms:
+ $1   -x, -y+1, z
+
+
+     1022  Reflections read, of which       0  rejected
+
+   0 =< h =< 15,      0 =< k =< 10,      0 =< l =< 13,   Max. 2-theta =  114.80
+
+        0  Systematic absence violations (I>3sig(I)) before merging
+
+        0  Inconsistent equivalents
+
+     1022  Unique reflections, of which       0  suppressed
+
+ R(int) = 0.0000     R(sigma) = 0.0148      Friedel opposites not merged
+
+ Maximum memory for data reduction =      644 /    10488
+
+
+ Reflection statistics for all twin components combined (TWST 0 set)
+ Number of data for d > 0.356A (CIF: max) and d > 0.833A (CIF: full)
+ (ignoring systematic absences):
+ Unique reflections found (point group)       1022     101
+ Unique reflections possible (point group)    1819     154
+ Unique reflections found (Laue group)        1022     101
+ Unique reflections possible (Laue group)     1041     101
+ Unique Friedel pairs found                      0       0
+ Unique Friedel pairs possible                 778      53
+
+ Special position constraints for O
+ x =  0.0000   y =  0.5000   U22 = 1.0 * U11   U23 = 0   U13 = 0   
+ sof = 0.25000   
+ Input constraints retained (at least in part) for  sof
+
+ Special position constraints for N
+ y =  1.0 * x + 0.5000   U22 = 1.0 * U11   U13 = 1.0 * U23   sof = 0.50000   
+ Input constraints retained (at least in part) for  sof
+
+ Special position constraints for H1
+ y =  1.0 * x + 0.5000   U22 = 1.0 * U11   U13 = 1.0 * U23   sof = 0.50000   
+ Input constraints retained (at least in part) for  sof
+
+ Special position constraints for H2
+ y =  1.0 * x + 0.5000   U22 = 1.0 * U11   U13 = 1.0 * U23   sof = 0.50000   
+ Input constraints retained (at least in part) for  sof
+
+ Special position constraints for C
+ x =  0.0000   y =  0.5000   U22 = 1.0 * U11   U23 = 0   U13 = 0   
+ sof = 0.25000   
+ Input constraints retained (at least in part) for  sof
+
+
+
+  I                P -4 21 m                                                 
+
+ ATOM           x        y        z         sof        U11      U22      U33      U23      U13      U12       Ueq
+
+ O           0.00000  0.50000  0.59668    0.25000    0.02036  0.02036  0.00663  0.00000  0.00000  0.00274   0.01578
+ N           0.14477  0.64477  0.17901    0.50000    0.03011  0.03011  0.00959  0.00004  0.00004 -0.01598   0.02327
+ H1          0.24592  0.74592  0.27656    0.50000    0.04661  0.04661  0.04661  0.00000  0.00000  0.00000   0.04661
+ H2          0.13846  0.63846 -0.00693    0.50000    0.03089  0.03089  0.03089  0.00000  0.00000  0.00000   0.03089
+ C           0.00000  0.50000  0.32826    0.25000    0.01501  0.01501  0.00766  0.00000  0.00000  0.00072   0.01256
+
+
+ Final Structure Factor Calculation for  I                P -4 21 m                                                 
+
+ Total number of l.s. parameters =    27  Maximum vector length =  623   Memory required =     12 /    644 /    28035
+
+ wR2 =  0.0605 before cycle   1 for    1022 data and      0 /     27 parameters
+
+
+ Summary of restraints applied in cycle    1
+
+               ANTIBUMP  DFIX    DANG SAME/SADI CHIV/Z CHIV/NZ   FLAT    DELU    RIGU    SIMU    ISOR    SUMP
+
+       Number       0       0       0       0       0       0       0       0       9      12       0       0
+
+ rms sigma      0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0245  0.0800  0.0000  0.0000
+
+ rms deviation  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0000  0.0019  0.0082  0.0000  0.0000
+
+
+ GooF = S =     6.477;     Restrained GooF =      6.410 for      21 restraints
+
+ Weight = 1 / [ sigma^2(Fo^2) + ( 0.0000 * P )^2 +   0.00 * P ]   where  P = ( Max ( Fo^2, 0 ) + 2 * Fc^2 ) / 3
+
+ wR2 = 0.0605, GooF = S = 6.477, Restrained GooF = 6.410 for all data
+ R1 = 0.0294 for 803 Fo > 4sig(Fo) and 0.0405 for all 1022 data
+
+ Flack x =    7.331(999) by classical fit to all intensities
+ No quotients, so Flack x determined by classical fit to all intensities
+
+ Occupancy sum of asymmetric unit =     1.00 for non-hydrogen and     1.00 for H and D atoms
+
+
+
+ Principal mean square atomic displacements U
+
+   0.0231   0.0176   0.0066   O  
+   0.0461   0.0141   0.0096   N  
+   0.0466   0.0466   0.0466   H1  
+   0.0309   0.0309   0.0309   H2  
+   0.0157   0.0143   0.0077   C  
+
+     0  atoms may be split and     0  atoms NPD
+
+
+
+ Analysis of variance for reflections employed in refinement      K = Mean[Fo^2] / Mean[Fc^2]  for group
+
+
+ Fc/Fc(max)       0.000    0.005    0.008    0.011    0.016    0.020    0.027    0.037    0.053    0.091    1.000
+
+ Number in group       129.      99.      84.     121.      83.      98.     109.     100.      97.     102.
+
+            GooF      0.081    1.081    1.697    2.982    3.184    2.443    2.636    3.839    6.102   18.298
+
+             K        1.155    0.920    0.978    1.061    1.039    1.038    1.018    1.014    1.002    0.992
+
+
+ Resolution(A)    0.36     0.37     0.39     0.41     0.43     0.46     0.50     0.55     0.64     0.83     inf
+
+ Number in group       103.     105.      99.     103.     103.     100.     102.     102.     102.     103.
+
+            GooF      1.493    1.893    1.936    1.749    2.199    2.476    2.730    3.050    4.345   18.907
+
+             K        0.996    1.076    1.044    1.029    1.030    1.027    1.021    1.010    1.000    0.990
+
+             R1       0.181    0.120    0.104    0.069    0.053    0.046    0.036    0.025    0.019    0.028
+
+
+ Recommended weighting scheme:  WGHT    0.0509    0.0019
+
+
+ Most Disagreeable Reflections (* if suppressed or used for Rfree).
+ Error/esd is calculated as sqrt(wD^2/<wD^2>) where w is given by the weight
+ formula, D = Fo^2-Fc^2 and <> refers to the average over all reflections.
+
+     h   k   l          Fo^2          Fc^2    Error/esd  Fc/Fc(max)  Resolution(A)
+
+     0   1   1        141.97        151.70       8.93       0.386       3.59
+     0   0   4         28.25         37.79       8.76       0.193       1.17
+     0   1   2        145.08        131.18       8.50       0.359       2.16
+     0   0   1         12.72         10.51       7.28       0.102       4.69
+     0   1   3         83.08         75.30       6.77       0.272       1.50
+     1   2   2         28.64         25.77       6.75       0.159       1.71
+     0   1   5         18.07         21.80       6.17       0.146       0.92
+     2   2   0        215.33        230.46       5.95       0.476       1.97
+     0   2   0        147.66        137.08       5.83       0.367       2.79
+     0   2   1        187.23        178.42       5.60       0.418       2.40
+     1   1   0        954.86       1018.74       5.50       1.000       3.94
+     3   3   2          7.54          9.24       4.70       0.095       1.15
+     2   5   2          7.03          8.16       4.69       0.090       0.95
+     1   1   2         50.12         46.85       4.50       0.214       2.01
+     0   3   2         16.88         15.31       4.35       0.123       1.46
+     0   0   2        127.68        106.84       4.15       0.324       2.34
+     3   4   3         15.93         17.77       3.80       0.132       0.91
+     3   4   0          3.09          3.77       3.76       0.061       1.12
+     1   3   1        134.81        129.60       3.74       0.357       1.65
+     1   1   4         41.18         44.99       3.49       0.210       1.12
+     0   0   3         12.91         11.29       3.33       0.105       1.56
+     0   1   4          2.10          2.71       3.33       0.052       1.15
+     2   4   1         24.36         25.94       3.27       0.160       1.21
+     3   3   0        207.87        219.60       3.13       0.464       1.31
+     0   2   3         47.03         49.44       3.06       0.220       1.36
+     1   2   4         42.94         45.52       3.04       0.211       1.06
+     1   2   1         46.95         45.58       2.83       0.212       2.20
+     2   3   0         16.49         15.70       2.60       0.124       1.55
+     2   2   1        189.25        183.14       2.59       0.424       1.82
+     1   2   0        214.88        210.86       2.37       0.455       2.49
+     1   3   0         27.57         26.57       2.37       0.161       1.76
+     2   5   0         20.30         21.36       2.19       0.145       1.04
+     2   3   2         10.43         10.93       2.09       0.104       1.29
+     0   3   3         11.00         11.62       2.02       0.107       1.20
+     0   4   4          5.61          6.21       2.01       0.078       0.90
+     2   3   5          7.23          7.84       2.00       0.088       0.80
+     2   3   4         12.94         13.76       1.93       0.116       0.93
+     2   2   4         41.16         43.54       1.87       0.207       1.01
+     2   2   2         51.88         50.09       1.85       0.222       1.51
+     0   4   1         92.44         89.86       1.77       0.297       1.34
+     0   7   3          4.99          5.52       1.75       0.074       0.71
+     3   4   2         17.75         18.58       1.73       0.135       1.01
+     1   1   3         10.99         10.37       1.72       0.101       1.45
+     1   4   1         11.04         11.45       1.69       0.106       1.30
+     1   2   5         12.87         13.58       1.68       0.115       0.88
+     1   5   5          3.22          2.84       1.57       0.053       0.71
+     0   6   2          2.42          2.71       1.56       0.052       0.86
+     3   4   1         19.51         20.26       1.55       0.141       1.09
+     2   6   6          0.29          0.39       1.52       0.019       0.58
+     1   1   1        268.44        263.86       1.48       0.509       3.02
+
+
+
+ Bond lengths and angles
+
+ O -             Distance        Angles
+ C         1.2578          
+                 O              
+
+ N -             Distance        Angles
+ C         1.3392          
+ H1        0.9195           118.71       
+ H2        0.8727           118.21        123.08       
+                 N               C             H1           
+
+ C -             Distance        Angles
+ O         1.2578          
+ N         1.3392           121.48       
+ N_$1      1.3392           121.48        117.04       
+                 C               O             N            
+
+
+ FMAP and GRID set by program
+
+ FMAP   2   2  16
+ GRID    -1.923  -2  -2     1.923   2   2
+
+ R1 =  0.0405 for   1022 unique reflections after merging for Fourier
+
+
+ Electron density synthesis with coefficients Fo-Fc
+
+ Highest peak    0.35  at  0.3530  0.1470  0.8463  [  0.12 A from N ]
+ Deepest hole   -0.37  at  0.5000  0.0000  0.7245  [  0.25 A from C ]
+
+
+ Fourier peaks appended to .res file
+
+              x       y       z       sof     U      Peak   Distances to nearest atoms (including eq.)
+
+ Q1    1   0.0000  0.5000  0.4483   0.25000  0.05    0.29   0.56 C  0.70 O  1.70 N  2.10 H1
+ Q2    1   0.0970  0.5042  0.6419   1.00000  0.05    0.18   0.58 O  1.57 C  1.73 H1  1.82 H2
+ Q3    1   0.0394  0.5847  0.2598   1.00000  0.05    0.17   0.61 C  0.78 N  1.40 H2  1.46 H1
+ Q4    1   0.0575  0.5575  0.6616   0.50000  0.05    0.15   0.55 O  1.63 C  1.68 H2  2.08 H1
+ Q5    1   0.1720  0.5532  0.2261   1.00000  0.05    0.14   0.58 N  1.11 C  1.18 H1  1.21 H2
+ Q6    1   0.1691  0.7300  0.2247   1.00000  0.05    0.12   0.50 H1  0.54 N  1.21 H2  1.66 C
+ Q7    1   0.0375  0.4625  0.7550   0.50000  0.05    0.12   0.80 O  1.59 H2  1.72 H1  2.02 C
+ Q8    1   0.0098  0.8400  0.4699   1.00000  0.05    0.11   1.68 H1  1.90 N  1.95 H1  1.99 O
+ Q9    1   0.0434  0.8421 -0.1668   1.00000  0.05    0.11   1.46 H2  1.81 H1  2.04 N  2.22 O
+ Q10   1   0.0141  0.6399  0.6924   1.00000  0.05    0.10   0.90 O  1.57 H2  1.63 H1  1.88 C
+ Q11   1   0.2050  0.5054  0.2466   1.00000  0.05    0.10   0.90 N  1.21 C  1.37 H1  1.45 H2
+ Q12   1   0.1795  0.7820  0.2724   1.00000  0.05    0.10   0.42 H1  0.90 N  1.55 H2  1.88 C
+ Q13   1   0.1507  0.3493  0.1460   0.50000  0.05    0.09   1.46 C  1.66 N  1.77 H2  1.79 H2
+ Q14   1   0.0000  0.5000  0.8414   0.25000  0.05    0.09   1.15 O  1.30 H2  1.95 N  2.08 H1
+ Q15   1   0.0082  0.2937  0.6376   1.00000  0.05    0.09   1.17 O  1.45 H1  1.85 C  1.89 H2
+ Q16   1   0.0045  0.7939  0.5383   1.00000  0.05    0.09   1.66 O  1.70 H1  1.84 H1  1.91 C
+ Q17   1   0.1338  0.7793  0.1834   1.00000  0.05    0.09   0.75 N  0.78 H1  1.19 H2  1.86 C
+ Q18   1  -0.0085  0.9406  0.1848   1.00000  0.05    0.08   1.84 H1  1.86 N  2.08 H2  2.18 H2
+ Q19   1   0.0000  1.0000 -0.0748   0.50000  0.05    0.08   2.18 H2  2.19 H1  2.19 H2  2.19 N
+ Q20   1   0.2107  1.0130  0.2652   1.00000  0.05    0.08   1.50 H1  1.63 H2  1.74 O  2.13 N
+
+ Shortest distances between peaks (including symmetry equivalents)
+
+      5  11  0.34      2  10  0.34      3   3  0.36      6  12  0.37      2   4  0.38      6  17  0.39      8  16  0.41
+     10  15  0.47      6   6  0.48     12  17  0.49      7  14  0.50      3   5  0.52      4  10  0.54      9  20  0.57
+      7   7  0.59      2  15  0.61     18  19  0.61     15  20  0.66      2   7  0.67     18  18  0.67     15  16  0.68
+      4   7  0.70      3  11  0.70     19  19  0.70      7  10  0.70      5   6  0.72      6  12  0.72      2   2  0.73
+      5  17  0.77      3   5  0.78      2   2  0.80     12  12  0.81      6  17  0.84      9  18  0.84     10  20  0.86
+     11  17  0.88      4   4  0.91      4  15  0.91      2  10  0.92     16  20  0.92      6  11  0.93      2   4  0.93
+      2   7  0.94      5   5  0.94      4  14  0.96      5  12  0.96      3   3  0.98      5   6  0.99     10  10  0.99
+      9  19  1.01      1   3  1.03      3  11  1.03     11  13  1.03      7  10  1.04      2  10  1.04      3   3  1.04
+     10  14  1.05      1   2  1.06     11  12  1.07      2  14  1.08     12  17  1.08      2   2  1.08      8  15  1.09
+      9  18  1.09      1   4  1.10      3   6  1.10      7  15  1.10     10  16  1.12     17  17  1.15      2  20  1.16
+      3   6  1.17      4  10  1.18     17  18  1.20      2  16  1.20      5  13  1.20     10  10  1.21     18  20  1.22
+      9  15  1.22      3  13  1.24      3  17  1.26      5  11  1.26     18  19  1.26      2  15  1.27      6  11  1.27
+      8  20  1.27      2  15  1.27      8  11  1.29      5  17  1.29      5  12  1.29      8   8  1.30     12  20  1.30
+      9  10  1.32     18  20  1.34      2  10  1.35     11  18  1.35      3  12  1.35      4  20  1.36      8  12  1.36
+     10  15  1.38      1  10  1.39     12  15  1.40      3  17  1.41      3   5  1.42      9  16  1.42     17  20  1.42
+      8  16  1.43     12  18  1.43      7  20  1.44      1   5  1.45      8  18  1.45      1  15  1.45      3  11  1.45
+      3  12  1.45     11  16  1.45      9  19  1.45     10  15  1.45      1   7  1.47      4  16  1.47     19  20  1.48
+      9  17  1.48      1  11  1.48      8  16  1.48      7  15  1.49     14  15  1.50      5   8  1.50      4  15  1.50
+     17  19  1.53      8  10  1.53      3   5  1.53     12  16  1.53      9  12  1.54      3  13  1.55      6  18  1.55
+      8  17  1.55      5  18  1.55     11  12  1.55     15  15  1.56     10  10  1.57     11  11  1.57      6   8  1.58
+      2   8  1.58     12  16  1.58     11  17  1.61      6  20  1.61      5  16  1.64      3  11  1.64      2   9  1.65
+     10  12  1.65     11  11  1.66     16  16  1.67     14  20  1.69      2  15  1.69      1  16  1.69     15  15  1.69
+     10  20  1.70     15  17  1.70      9  13  1.71     17  18  1.71      8   9  1.71      2  20  1.71      9  11  1.71
+     16  18  1.73      3   8  1.74      6  15  1.74      5  11  1.75     13  17  1.75      9  17  1.75      8  12  1.76
+      9  18  1.76      3  16  1.76      8  20  1.76      8  20  1.76      2  16  1.76      6  16  1.77      7  16  1.77
+      6   9  1.77      5   5  1.78      4   9  1.78      8   8  1.79     12  15  1.79      7   9  1.80     18  18  1.80
+     16  18  1.80      2  20  1.80      2   3  1.80      2  12  1.80     13  18  1.81      8  18  1.81     16  17  1.81
+      8   9  1.82      2  16  1.82      9   9  1.83     12  19  1.83      7  20  1.83     11  19  1.83      4   8  1.83
+     11  15  1.83     15  18  1.83      1  14  1.84      8  18  1.85     16  18  1.85      1  13  1.85     16  17  1.85
+     13  14  1.86     12  18  1.86      8  15  1.86      2   3  1.87      6  13  1.87      7  12  1.88     10  16  1.88
+     17  19  1.88      3   4  1.89      1   8  1.90     15  18  1.90      6  16  1.90     12  20  1.90     10  20  1.91
+      1   6  1.91      9  17  1.91     10  17  1.91      8  18  1.91      6  19  1.91      3  15  1.91      5  13  1.92
+      9  14  1.92     10  12  1.92      6  20  1.93      6   8  1.93      6  15  1.94      2  11  1.95     10  15  1.95
+      6  10  1.95      5  15  1.97      2  12  1.97      3  16  1.98     19  20  1.98     11  20  1.98      5  19  1.98
+     13  20  1.99      3   8  1.99      8  12  1.99     13  17  1.99      5   9  2.00      8   9  2.00     11  18  2.00
+      8  15  2.00      4  20  2.00      2   3  2.01      5   5  2.01      2   5  2.01      9  10  2.02      6  18  2.02
+      9   9  2.03      3  14  2.03     10  16  2.03     15  20  2.03      3  18  2.03     15  16  2.03      7  13  2.04
+      1  12  2.04     15  20  2.04     12  15  2.05      6  18  2.05      8  13  2.05      3  10  2.05      9  18  2.05
+      6  16  2.06      8  19  2.06     16  20  2.06     10  18  2.06      6   9  2.06     12  16  2.06      5  14  2.06
+      3  15  2.07     11  20  2.07     12  13  2.07      8  16  2.07      3   6  2.07      2   3  2.07      5   9  2.07
+      4  16  2.07      8  17  2.08     15  16  2.08     12  16  2.09      6   7  2.09      6  10  2.09      9  11  2.09
+      2   8  2.10      1  20  2.10      5  20  2.10      9  11  2.10      2   6  2.11      2   9  2.11     16  20  2.11
+      9  13  2.11      3   6  2.11      3   4  2.11      6  13  2.11      7  16  2.12      6   8  2.12      7  17  2.12
+      2  17  2.12     10  11  2.12     15  16  2.12     15  19  2.12      1  17  2.13      5  11  2.13      9  20  2.13
+      4  11  2.13     17  18  2.13      4   5  2.14      3  10  2.14      6   9  2.14     16  19  2.15      4  12  2.15
+     13  19  2.15      7   9  2.15      6  13  2.16      9  16  2.16      5   8  2.16      2   8  2.17     15  17  2.17
+      7   8  2.17     14  16  2.17      5   9  2.17     10  18  2.17      2   5  2.18      9  12  2.18      6  15  2.18
+      6  16  2.18     20  20  2.18     17  20  2.18     13  16  2.18      5  18  2.18      3  17  2.18      2   6  2.19
+      5  16  2.19     11  13  2.19      2  20  2.20      9  12  2.20      5  10  2.20     15  16  2.21     17  20  2.21
+     12  13  2.21     11  14  2.22     12  18  2.22      8  10  2.22      9  12  2.22     16  18  2.22      2  11  2.22
+     12  14  2.23     11  19  2.23      2  16  2.23      6   9  2.24      2  12  2.24     11  16  2.24     10  17  2.25
+     11  16  2.25      2  11  2.26      6  19  2.26     12  19  2.26     13  20  2.27      2   9  2.27      8  11  2.27
+     18  20  2.27     17  20  2.28      3  17  2.28      3  15  2.28     16  16  2.28      2   6  2.28     10  19  2.29
+     11  11  2.29      5  20  2.30     16  16  2.30     15  15  2.30      8  12  2.31     15  17  2.31      8  10  2.31
+      4  12  2.31      8  19  2.31     10  12  2.31      4  12  2.31     10  13  2.32      6   9  2.32      5  16  2.32
+      8  17  2.32      3  12  2.32      5  15  2.32      8  11  2.32      3  18  2.32      3  16  2.32      3  10  2.33
+      2  17  2.33      5  19  2.33      9  10  2.33     10  13  2.33     11  15  2.33      5  15  2.34     11  20  2.34
+      9  20  2.34      2   5  2.34      9  15  2.34      8  15  2.34      8  10  2.34      4   6  2.35     17  18  2.35
+     16  16  2.35     20  20  2.35      6  19  2.35      9   9  2.36      6  15  2.36     14  17  2.36      7  13  2.36
+     12  20  2.36      2   6  2.36     12  15  2.36     13  19  2.36      8  15  2.36      2  18  2.37      2  12  2.37
+      3   7  2.37     13  15  2.38     13  13  2.38      3  12  2.38      9  17  2.38      8  10  2.38     20  20  2.38
+      5   7  2.39     14  17  2.39      9  16  2.39      3   9  2.39     11  16  2.39      5  18  2.39      3   8  2.39
+      6  14  2.40      8  11  2.40      3  10  2.40      6  14  2.40      9  17  2.40     17  18  2.40      5  20  2.40
+      5  10  2.40     13  17  2.41     10  20  2.41      3  15  2.41      6  10  2.41      6   8  2.41     16  20  2.41
+      8  20  2.41      3   7  2.42      4   8  2.42      9  20  2.42      4  17  2.43     16  17  2.43      2   8  2.43
+      4   9  2.44      5   8  2.44     11  15  2.44      4   6  2.44     11  15  2.44     13  16  2.45     13  18  2.45
+     11  16  2.45     11  15  2.46      7  12  2.46     13  15  2.46     16  19  2.46     12  20  2.46      4  11  2.46
+      2  18  2.46      3   9  2.46     10  11  2.46      6  11  2.47      9  16  2.47      4  13  2.47      8  16  2.47
+      5   6  2.47      8   9  2.48      6  20  2.48     16  17  2.48      2   5  2.48     10  12  2.48      3  19  2.48
+      2  17  2.48     11  17  2.49      4   5  2.49      6  18  2.49     12  13  2.49     15  18  2.49      3  16  2.49
+      7  11  2.50      2  13  2.50      7   8  2.50      8  11  2.50      5   7  2.50      9  15  2.50     16  20  2.50
+      2  11  2.50      3  20  2.51      6  10  2.51      6  18  2.51      2   8  2.52     10  17  2.52      2  12  2.52
+      4  18  2.53      4   6  2.53     10  16  2.53      1  12  2.53      5  17  2.53      8  12  2.53     12  18  2.53
+      8  12  2.53     10  16  2.54     11  17  2.54     16  20  2.54      5   9  2.55     10  11  2.55     12  19  2.55
+      5   6  2.56      5  16  2.56      6  20  2.56      5   8  2.57      2   8  2.57     10  16  2.57      3  20  2.57
+      8  14  2.57     13  18  2.58      5  15  2.58      3   8  2.58      5  20  2.58      8  16  2.58      2  13  2.58
+     10  11  2.59      8  17  2.59      5  10  2.59     18  20  2.59     11  18  2.59      4  17  2.59      5  13  2.60
+     16  17  2.60      9  20  2.60      7  17  2.60      4  13  2.60     15  20  2.60      7  18  2.60      8   8  2.60
+      2  19  2.61      8  13  2.61      9  12  2.61     12  16  2.61      6  11  2.62      9  11  2.62      5  15  2.62
+      5  16  2.62     17  19  2.62      2   9  2.62     15  19  2.62      5  18  2.62      3   9  2.63     10  12  2.63
+      4  17  2.63      1   9  2.64      8  17  2.64     10  11  2.64      3  20  2.64     12  18  2.64      7  18  2.65
+      2  12  2.65      5  10  2.65      2  17  2.65      6  19  2.65      8  15  2.65      2  16  2.65     15  15  2.65
+     11  12  2.66      3  20  2.66      4   8  2.66     11  18  2.66     17  17  2.66      5   8  2.67      2  16  2.67
+      3  18  2.68      7  11  2.68      6   7  2.68      3   9  2.68     11  12  2.68      6  20  2.68      5  17  2.68
+      9  15  2.69      7  17  2.69      3  16  2.69     10  19  2.69     15  17  2.70      4  18  2.70      8  20  2.70
+     12  20  2.71      6   7  2.71      6   9  2.71      7  19  2.71     17  20  2.72      5  12  2.72     13  18  2.72
+     11  18  2.72      3  15  2.72      9  16  2.72      3   9  2.73      7  17  2.73     15  20  2.73      5  17  2.73
+      3  18  2.73     11  18  2.73      3  20  2.73      8  17  2.73     10  17  2.74      9  15  2.74      6   8  2.74
+      8  11  2.75      8  15  2.75     11  20  2.75     12  14  2.75      5   9  2.75      1  18  2.75
+
+
+ Time profile in seconds
+ -----------------------
+
+      0.00: Read and process instructions
+      0.00: Fit rigid groups
+      0.00: Interpret restraints etc.
+      0.00: Generate connectivity array
+      0.00: Analyse DFIX and DANG restraints
+      0.00: Analyse SAME, SADI and NCSY restraints
+      0.00: Generate CHIV restraints
+      0.00: Check if bonds in residues restrained
+      0.00: Generate DELU and RIGU restraints
+      0.00: Generate SIMU restraints
+      0.00: Generate ISOR restraints
+      0.00: Analyse electron density
+      0.00: Analyse other restraints etc.
+      0.00: Read intensity data, sort/merge etc.
+      0.00: Set up constraints
+      0.00: OSF, H-atoms from difference map
+      0.00: Set up l.s. refinement
+      0.00: Generate idealized H-atoms
+      0.02: Structure factors and derivatives
+      0.00: Sum l.s. matrices
+      0.00: Generate and apply antibumping restraints
+      0.00: Apply other restraints
+      0.00: Solve l.s. equations
+      0.00: Generate HTAB table
+      0.00: Other dependent quantities, CIF, tables
+      0.00: Analysis of variance
+      0.00: Merge reflections for Fourier and .fcf
+      0.00: Fourier summations
+      0.00: Peaksearch
+      0.00: Analyse peaklist
+
+ ** WARNING: These times are only approximate for multiple threads.
+             To get better estimates run with -t1 **
+
+   Please cite: G.M. Sheldrick (2015) "Crystal structure refinement with
+   SHELXL", Acta Cryst., C71, 3-8 (Open Access) if SHELXL proves useful.
+
+ +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ +  iam           finished at 09:09:25   Total elapsed time:      0.06 secs  +
+ +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

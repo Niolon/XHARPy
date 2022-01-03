@@ -15,6 +15,7 @@ import jax
 import numpy as np
 import numpy.typing as npt
 from copy import deepcopy
+import pickle
 from scipy.optimize import minimize
 
 from .restraints import resolve_restraints
@@ -170,7 +171,8 @@ def get_value_or_default(
         'min_iter': 10,
         'restraints': [],
         'flack': False,
-        'save_file': 'gpaw.gpw'
+        'save_file': 'gpaw.gpw',
+        'core_io': ('none', 'core.pic')
     }
     return refinement_dict.get(parameter_name, defaults[parameter_name])
 
@@ -1365,6 +1367,11 @@ def refine(
             Not fully implemented. Do not use at the moment, by default []
           - save_file:
             Path to a file, where densities will be saved.
+          - core_io
+            Expects a tuple where the first entry can be 'save', 'load', 'none'
+            which is the action that is taken with the core density. The 
+            second argument in the tuple is the filename, to which the core
+            density is saved to or loaded from
 
     computation_dict : dict, optional
         Dict with options that are passed on to the f0j_source. See the 
@@ -1425,16 +1432,29 @@ def refine(
     restraints = get_value_or_default('restraints', refinement_dict)
     if len(restraints) > 0:
         warnings.warn('Restraints are still highly experimental, The current implementation did not reproduce SHELXL results. So do not use them for research right now!')
+
+    core_io, core_file = get_value_or_default('core_io', refinement_dict)
     core = get_value_or_default('core', refinement_dict)
     if f0j_source in ('iam') and core != 'combine':
         warnings.warn('core description is not possible with this f0j source')
     if core in ('scale', 'constant'):
-        if f0j_source == 'qe':
+        if core_io == 'load':
+            with open(core_file, 'rb') as fo:
+                f0j_core = pickle.load(fo)
+            if index_vec_h.shape[0] != f0j_core.shape[1]:
+                raise ValueError('The loaded core atomic form factors do not match the number of reflections')
+            print('  loaded core atomic form factors from disk')
+        elif f0j_source == 'qe':
             f0j_core, computation_dict = calc_f0j_core(cell_mat_m, type_symbols, index_vec_h, computation_dict)
             f0j_core = jnp.array(f0j_core)
         else:
             f0j_core = jnp.array(calc_f0j_core(cell_mat_m, type_symbols, constructed_xyz, index_vec_h, symm_mats_vecs, computation_dict))
+        if core_io == 'save':
+            with open(core_file, 'wb') as fo:
+                pickle.dump(f0j_core, fo)
+            print('  Saved core atomic form factors from disk')
         f0j_core += f_dash[:, None]
+
     elif core == 'combine':
         f0j_core = None
     else:

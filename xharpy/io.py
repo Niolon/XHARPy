@@ -669,27 +669,27 @@ def write_fcf(
         dispersion_imag = jnp.array([atom.dispersion_imag for atom in construction_instructions])
         f_dash = dispersion_real + 1j * dispersion_imag
 
-        #f0j_corr = np.zeros_like(f0j)
-        #f0j_corr += f_dash[None,:,None]
+        f0j_corr = np.zeros_like(information['f0j_anom'])
+        f0j_corr += f_dash[None,:,None]
 
 
-        #structure_factors_corr = np.array(calc_f(
-        #    xyz=constructed_xyz,
-        #    uij=constructed_uij,
-        #    cijk=constructed_cijk,
-        #    dijkl=constructed_dijkl,
-        #    occupancies=constructed_occupancies,
-        #    index_vec_h=index_vec_h,
-        #    cell_mat_f=cell_mat_f,
-        #    symm_mats_vecs=symm_mats_vecs,
-        #    f0j=f0j_corr
-        #))
+        structure_factors_corr = np.array(calc_f(
+            xyz=constructed_xyz,
+            uij=constructed_uij,
+            cijk=constructed_cijk,
+            dijkl=constructed_dijkl,
+            occupancies=constructed_occupancies,
+            index_vec_h=index_vec_h,
+            cell_mat_f=cell_mat_f,
+            symm_mats_vecs=symm_mats_vecs,
+            f0j=f0j_corr
+        ))
 
-        #f_obs_sq = hkl['intensity'].values.copy()
-        #f_obs_sq[f_obs_sq < 0] = 0
-        #f_obs = np.sqrt(f_obs_sq)
-        #f_obs = f_obs * np.exp(1j * np.angle(structure_factors))
-        #hkl['intensity'] = np.abs(f_obs + structure_factors_corr)**2
+        f_obs_sq = hkl['intensity'].values.copy()
+        f_obs_sq[f_obs_sq < 0] = 0
+        f_obs = np.sqrt(f_obs_sq)
+        f_obs = f_obs * np.exp(1j * np.angle(structure_factors))
+        hkl['intensity'] = np.abs(f_obs - structure_factors_corr)**2
 
         structure_factors = np.array(calc_f(
             xyz=constructed_xyz,
@@ -700,7 +700,7 @@ def write_fcf(
             index_vec_h=index_vec_h,
             cell_mat_f=cell_mat_f,
             symm_mats_vecs=symm_mats_vecs,
-            f0j=information['f0j_anom'] #- f_dash[None, :, None]
+            f0j=information['f0j_anom'] - f_dash[None, :, None]
         ))
 
         hkl['abs(f_calc)'] = np.abs(structure_factors)

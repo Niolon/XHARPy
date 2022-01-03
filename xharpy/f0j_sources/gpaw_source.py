@@ -550,7 +550,7 @@ def calc_f0j_core(
 
 
 def generate_cif_output(
-    computation_dict: Dict[Any]
+    computation_dict: Dict[str, Any]
 ) -> str:
     """Generates at string, that details the computation options for use in the 
     cif generation routine.

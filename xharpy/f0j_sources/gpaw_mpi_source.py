@@ -367,7 +367,7 @@ def calc_f0j(
     restart: str = None,
     save: str = 'gpaw.gpw',
     explicit_core: bool = True
-)-> np.ndarray:
+) -> np.ndarray:
     """Calculate the atomic form factor or atomic valence form factors using 
     GPAW with MPI for the multi-core calculation. If you have problems and 
     are in a jupyter notebook you probably need to restart. This routine will
@@ -631,7 +631,9 @@ def calc_f0j_core(
 
     return f0j_core
 
-def generate_cif_output(computation_dict):
+def generate_cif_output(
+    computation_dict: Dict[str, Any]
+) -> str:
     """Generates at string, that details the computation options for use in the 
     cif generation routine.
 

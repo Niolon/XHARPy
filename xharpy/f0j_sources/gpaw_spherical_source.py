@@ -1,5 +1,6 @@
 import numpy as np
 import pickle
+from typing import List, Tuple, Dict, Any
 
 from ase.units import Bohr
 from gpaw.spherical_harmonics import Y
@@ -23,17 +24,78 @@ from .grid.utils import get_cov_radii
 from .real_spher_harm import ylm_func_dict
 
 
-def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs, computation_dict=None, restart=None, save='gpaw.gpw', explicit_core=True):
-    """
-    Calculate the aspherical atomic form factors from a density grid in the python package gpaw
-    for each reciprocal lattice vector present in index_vec_h.
+def calc_f0j(
+    cell_mat_m: np.ndarray,
+    element_symbols: List[str],
+    positions: np.ndarray,
+    index_vec_h: np.ndarray,
+    symm_mats_vecs: Tuple[np.ndarray, np.ndarray],
+    computation_dict: Dict[str, Any],
+    restart: str = None,
+    save: str = 'gpaw.gpw',
+    explicit_core: bool = True
+)-> np.ndarray:
+    """Calculate the atomic form factor or atomic valence form factors using 
+    GPAW and a spherical grid expansion onto a grid as implemented in HORTON. 
+
+    Parameters
+    ----------
+    cell_mat_m : np.ndarray
+        size (3, 3) array with the unit cell vectors as row vectors
+    element_symbols : List[str]
+        element symbols (i.e. 'Na') for all the atoms within the asymmetric unit
+    positions : np.ndarray
+        atomic positions in fractional coordinates for all the atoms within
+        the asymmetric unit
+    index_vec_h : np.ndarray
+        size (H) vector containing Miller indicees of the measured reflections
+    symm_mats_vecs : Tuple[np.ndarray, np.ndarray]
+        size (K, 3, 3) array of symmetry  matrices and (K, 3) array of
+        translation vectors for all symmetry elements in the unit cell
+    computation_dict : Dict[str, Any]
+        contains options for the atomic form factor calculation. The function
+        will use and exclude the following options from the dictionary and pass
+        the rest onto the GPAW calculator without further checks.
+          - spherical_grid (str): Can be used to select a grid. Possible options
+            are: coarse, medium, fine, veryfine, ultrafine and insane, by
+            by default 'fine'
+
+          - skip_symm (Dict[int, List[int]]): Can used to prevent the
+            expansion of the atom(s) with the index(es) given as dictionary keys
+            as given in the construction_instructions with the symmetry
+            operations of the indexes given in the list, which correspond to the
+            indexes in the symm_mats_vecs object. This has proven to be
+            successful for the calculation of atoms disordered on special 
+            positions. Can only be used with average_symmequiv, by default {} 
+
+          - magmoms (np.ndarray): Experimental: starting values for magnetic
+            moments of atoms. These will be expanded to atoms in the unit cell 
+            by just applying the same magnetic moment to all symmetry equivalent
+            atoms. This is probably too simplistic and will fail.
+
+        For the allowed options of the GPAW calculator consult: 
+        https://wiki.fysik.dtu.dk/gpaw/documentation/basic.html
+    restart : str, optional
+        File with the starting density for the DFT calculation, by default None
+    save : str, optional
+        File to save to., by default 'gpaw.gpw'
+    explicit_core : bool, optional
+        If True the frozen core density is assumed to be calculated separately, 
+        therefore only the valence density will be split up, by default True
+
+    Returns
+    -------
+    f0j : np.ndarray
+        size (K, N, H) array of atomic form factors for all reflections and symmetry
+        generated atoms within the unit cells. Atoms on special positions are 
+        present multiple times and have the atomic form factor of the full atom.
     """
     if computation_dict is None:
         computation_dict = {'xc': 'PBE', 'txt': 'gpaw.txt', 'h': 0.15, 'setups': 'paw', 'mode': 'lcao', 'basis': 'dzp'}
     else:
         computation_dict = computation_dict.copy()
     if 'gridinterpolation' in computation_dict:
-        warnings.warn('gridinterpolation in computation_dict this is not used in spherical mode')
+        warnings.warn('gridinterpolation in computation_dict. This is not used in spherical mode')
         del(computation_dict['gridinterpolation'])
     if 'average_symmequiv' in computation_dict:
         warnings.warn("'average_symmequiv' is not allowed in spherical mode")
@@ -55,12 +117,14 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
     else:
         magmoms = None
 
-    symm_positions, symm_symbols, f0j_indexes, magmoms_symm = expand_symm_unique(element_symbols,
-                                                                                 np.array(positions),
-                                                                                 np.array(cell_mat_m),
-                                                                                 (np.array(symm_mats_vecs[0]), np.array(symm_mats_vecs[1])),
-                                                                                 skip_symm=skip_symm,
-                                                                                 magmoms=magmoms)
+    symm_positions, symm_symbols, f0j_indexes, magmoms_symm = expand_symm_unique(
+        element_symbols,
+        np.array(positions),
+        np.array(cell_mat_m),
+        (np.array(symm_mats_vecs[0]), np.array(symm_mats_vecs[1])),
+        skip_symm=skip_symm,
+        magmoms=magmoms
+    )
     e_change = True
     if restart is None:
         atoms = crystal(symbols=symm_symbols,
@@ -245,13 +309,44 @@ def f_core_from_spline(spline, g_k, k=13):
 
 
 def calc_f0j_core(
-    cell_mat_m,
-    element_symbols,
-    positions,
-    index_vec_h,
-    symm_mats_vecs,
-    computation_dict
-):
+    cell_mat_m: np.ndarray,
+    element_symbols: List[str],
+    positions: np.ndarray,
+    index_vec_h: np.ndarray,
+    symm_mats_vecs: np.ndarray,
+    computation_dict: Dict[str, Any]
+) -> np.ndarray:
+    """Calculate the core atomic form factors on an exponential spherical grid.
+    Up to 5000 reflections every reflection will be calculated explicitely. 
+    Above that a spline will be generated from 5000 points on an exponential
+    grid. The spline is then used to calculate the individual atomic core form
+    factor values.
+
+    Parameters
+    ----------
+    cell_mat_m : np.ndarray
+        size (3, 3) array with the unit cell vectors as row vectors
+    element_symbols : List[str]
+        element symbols (i.e. 'Na') for all the atoms within the asymmetric unit
+    positions : np.ndarray
+        atomic positions in fractional coordinates for all the atoms within
+        the asymmetric unit
+    index_vec_h : np.ndarray
+        size (H) vector containing Miller indicees of the measured reflections
+    symm_mats_vecs : Tuple[np.ndarray, np.ndarray]
+        size (K, 3, 3) array of symmetry  matrices and (K, 3) array of
+        translation vectors for all symmetry elements in the unit cell
+    computation_dict : Dict[str, Any]
+        contains options for the calculation. The custom options will be ignored
+        and everything else is passed on to GPAW for initialisation. The only
+        option that makes a difference here is which setups are used. (Need to
+        be same as in calc_f0j)
+
+    Returns
+    -------
+    f0j_core: np.ndarray
+        size (N, H) array of atomic core form factors calculated separately
+    """
     warnings.warn('The Hirshfeld weights in this mode are not calculated without core density so there might be some mismatch')
     computation_dict = computation_dict.copy()
     non_gpaw_keys = [
@@ -313,7 +408,22 @@ def calc_f0j_core(
     return np.array([f0j_core[symbol] for symbol in element_symbols])
 
 
-def generate_cif_output(computation_dict):
+def generate_cif_output(
+    computation_dict: Dict[str, Any]
+) -> str:
+    """Generates at string, that details the computation options for use in the 
+    cif generation routine.
+
+    Parameters
+    ----------
+    computation_dict : Dict[str, Any]
+        contains options for the calculation.
+
+    Returns
+    -------
+    str
+        The string that will be added to the cif-file
+    """
     strings = []
     for key, val in computation_dict.items():
         if type(val) is dict:

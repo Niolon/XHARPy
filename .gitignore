@@ -5,4 +5,5 @@
 
 *.gpw
 **/build
+**/xharpy_output
 **/.vscode

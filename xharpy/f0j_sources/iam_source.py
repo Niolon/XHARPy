@@ -1,5 +1,8 @@
 import numpy as np
 
+from typing import Any, Dict, List, Tuple
+
+
 element_parameters = {
     'H':     [np.array([0.493002, 0.322912, 0.140191, 0.040810]),
               np.array([10.5109, 26.1257, 3.14236, 57.7997]),
@@ -639,7 +642,49 @@ element_parameters = {
               13.267400]
 }
 
-def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs, computation_dict=None, restart=None, save=None, explicit_core=False):
+def calc_f0j(
+    cell_mat_m: np.ndarray,
+    element_symbols: List[str],
+    positions: np.ndarray,
+    index_vec_h: np.ndarray,
+    symm_mats_vecs: Tuple[np.ndarray, np.ndarray],
+    computation_dict: Dict[str, Any],
+    restart: str = None,
+    save: str = None,
+    explicit_core: bool = True
+)-> np.ndarray:
+    """Calculate the atomic form factor according to the tabulated values for
+    the independent atom model
+
+    Parameters
+    ----------
+    cell_mat_m : np.ndarray
+        size (3, 3) array with the unit cell vectors as row vectors
+    element_symbols : List[str]
+        element symbols (i.e. 'Na') for all the atoms within the asymmetric unit
+    positions : np.ndarray
+        ignored
+    index_vec_h : np.ndarray
+        size (H) vector containing Miller indicees of the measured reflections
+    symm_mats_vecs : Tuple[np.ndarray, np.ndarray]
+        size (K, 3, 3) array of symmetry  matrices and (K, 3) array of
+        translation vectors for all symmetry elements in the unit cell
+    computation_dict : Dict[str, Any]
+        There are no options here, will be ignored
+    restart : str, optional
+        ignored
+    save : str, optional
+        ignored
+    explicit_core : bool, optional
+        ignored
+
+    Returns
+    -------
+    f0j : np.ndarray
+        size (K, N, H) array of atomic form factors for all reflections and symmetry
+        generated atoms within the unit cells. Atoms on special positions are 
+        present multiple times and have the atomic form factor of the full atom.
+    """
     cell_mat_f = np.linalg.inv(cell_mat_m)
     vec_S_norm = np.linalg.norm(np.einsum('xy, hy -> hx', cell_mat_f.T, index_vec_h), axis=-1)
     n_symm = symm_mats_vecs[0].shape[0]
@@ -651,16 +696,26 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
     return f0j
 
 def calc_f0j_core(
-    cell_mat_m,
-    element_symbols,
-    positions,
-    index_vec_h,
-    symm_mats_vecs,
-    computation_dict
+    *args, **kwargs
 ):
-    raise NotImplementedError('Separate core calculation is non-sensical in IAM Mode')
+    raise ValueError('Separate core calculation is non-sensical in IAM Mode')
 
-def generate_cif_output(computation_dict):
+def generate_cif_output(
+    computation_dict: Dict[str, Any]
+) -> str:
+    """Generates at string, that details the computation options for use in the 
+    cif generation routine.
+
+    Parameters
+    ----------
+    computation_dict : Dict[str, Any]
+        ignored, there should be no options
+
+    Returns
+    -------
+    cif_string: str
+        The string that will be added to the cif-file
+    """
     addition = f"""  - Refinement was done using structure factors
     as usual for an IAM refinement"""
     return addition

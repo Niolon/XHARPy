@@ -169,7 +169,8 @@ def get_value_or_default(
         'max_iter': 100,
         'min_iter': 10,
         'restraints': [],
-        'flack': False
+        'flack': False,
+        'save_file': 'gpaw.gpw'
     }
     return refinement_dict.get(parameter_name, defaults[parameter_name])
 
@@ -484,13 +485,13 @@ def is_multientry(entry: Any) -> bool:
 
 def create_construction_instructions(
     atom_table: pd.DataFrame,
+    refinement_dict: Dict[str, Any],
     constraint_dict: Dict[str, Dict[str, ConstrainedValues]], 
     cell: Optional[jnp.ndarray] = None, 
     atoms_for_gc3: List[str] = [], 
     atoms_for_gc4: List[str] = [], 
     scaling0: float = 1.0, 
     exti0: float = 1e-6, 
-    refinement_dict: Dict[str, Any] = {}
 ) -> Tuple[List[AtomInstructions], jnp.ndarray]:
     """Creates the list of atomic instructions that are used during the
     refinement to reconstruct the atomic parameters from the parameter list.
@@ -502,6 +503,8 @@ def create_construction_instructions(
         like their counterparts in the cif file but without the common start for
         each table (e.g. atom_site_fract_x -> fract_x). The easiest way to
         generate an atom_table is with the cif2data function
+    refinement_dict : Dict[str, Any]
+        Dictionary that contains options for the refinement
     constraint_dict : Dict[str, Dict[str, ConstrainedValues]]
         outer key is the atom label. possible inner keys are: xyz, uij, cijk,
         dijkl and occ. The value of the inner dict needs to be one of the
@@ -521,8 +524,6 @@ def create_construction_instructions(
     exti0 : float, optional
         Starting value for the extinction correction parameter. Is only used
         if extinction is actually refined, by default 1e-6
-    refinement_dict : Dict[str, Any], optional
-        Dictionary that contains options for the refinement, by default {}
 
     Returns
     -------
@@ -1320,48 +1321,50 @@ def refine(
     refinement_dict : dict, optional
         Dictionary with refinement options, by default {}
         Available options are:
-            f0j_source: 
-                Source of the atomic form factors. The computation_dict 
-                will be passed on to this method. See the individual files in
-                f0j_sources for more information, by default 'gpaw'
-                Tested options: 'gpaw', 'iam', 'gpaw_mpi'
-                Some limitations: 'gpaw_spherical'
-                Still untested: 'gpaw_lcorr', 'gpaw_mbis', 'qe'
-            reload_step:   
-                Starting with this step the computation will try to reuse the 
-                density, if this is implemented in the source, by default 1
-            core:
-                If this is implemented in a f0j_source, it will integrate the 
-                frozen core density on a spherical grid and only use the valence
-                density for the updated atomic form factos options are 
-                'combine', which will not treat the core density separately,
-                'constant' which will integrate and add the core density without
-                scaling parameter and 'scale' which will refine a scaling 
-                parameter for the core density which might for systematic
-                deviations due to a coarse valence density grid (untested!)
-                By default 'constant'
-            extinction:
-                Use an extinction correction. Options: 'none' -> no extinction
-                correction, 'shelxl' use the (empirical) formula used by SHELXL 
-                to correct to correct for extinction, 'secondary' see Giacovazzo
-                et al. 'Fundmentals of Crystallography' (1992) p.97, by default
-                'none'
-            flack:
-                Refinement of the flack parameter. Free lunch ist currently not
-                implemented, by default False
-            max_dist_recalc:
-                If the max difference in atomic positions is under this value in 
-                Angstroems, no new structure factors will be calculated, by
-                default 1e-6
-            max_iter:
-                  Maximum of refinement cycles if convergence not reached, by 
-                  default: 100
-            min_iter:
-                  Minimum refinement cycles. The refinement will stop if the
-                  wR2 increases if the current cycle is higher than min_iter,
-                  by default 10
-            restraints:
-                Not fully implemented. Do not use at the moment, by default []
+          - f0j_source: 
+            Source of the atomic form factors. The computation_dict 
+            will be passed on to this method. See the individual files in
+            f0j_sources for more information, by default 'gpaw'
+            Tested options: 'gpaw', 'iam', 'gpaw_mpi'
+            Some limitations: 'gpaw_spherical'
+            Still untested: 'gpaw_lcorr', 'gpaw_mbis', 'qe'
+          - reload_step:   
+            Starting with this step the computation will try to reuse the 
+            density, if this is implemented in the source, by default 1
+          - core:
+            If this is implemented in a f0j_source, it will integrate the 
+            frozen core density on a spherical grid and only use the valence
+            density for the updated atomic form factos options are 
+            'combine', which will not treat the core density separately,
+            'constant' which will integrate and add the core density without
+            scaling parameter and 'scale' which will refine a scaling 
+            parameter for the core density which might for systematic
+            deviations due to a coarse valence density grid (untested!)
+            By default 'constant'
+          - extinction:
+            Use an extinction correction. Options: 'none' -> no extinction
+            correction, 'shelxl' use the (empirical) formula used by SHELXL 
+            to correct to correct for extinction, 'secondary' see Giacovazzo
+            et al. 'Fundmentals of Crystallography' (1992) p.97, by default
+            'none'
+          - flack:
+            Refinement of the flack parameter. Free lunch ist currently not
+            implemented, by default False
+          - max_dist_recalc:
+            If the max difference in atomic positions is under this value in 
+            Angstroems, no new structure factors will be calculated, by
+            default 1e-6
+          - max_iter:
+            Maximum of refinement cycles if convergence not reached, by 
+            default: 100
+          - min_iter:
+            Minimum refinement cycles. The refinement will stop if the
+            wR2 increases if the current cycle is higher than min_iter,
+            by default 10
+          - restraints:
+            Not fully implemented. Do not use at the moment, by default []
+          - save_file:
+            Path to a file, where densities will be saved.
 
     computation_dict : dict, optional
         Dict with options that are passed on to the f0j_source. See the 
@@ -1443,12 +1446,14 @@ def refine(
 
     min_iter = get_value_or_default('min_iter', refinement_dict)
 
+    save_file = get_value_or_default('save_file', refinement_dict)
+
     if 'weight' not in hkl.columns:
         hkl['weight'] = 1 / hkl['esd_int']**2
 
     print('  calculating first atomic form factors')
     if reload_step == 0:
-        restart = 'save.gpw'
+        restart = save_file
     else:
         restart = None
     if f0j_source == 'gpaw_lcorr':
@@ -1459,7 +1464,7 @@ def refine(
                        index_vec_h,
                        symm_mats_vecs,
                        computation_dict=computation_dict,
-                       save='save.gpw',
+                       save=save_file,
                        restart=restart,
                        explicit_core=f0j_core is not None)
     else:
@@ -1469,7 +1474,7 @@ def refine(
                        index_vec_h,
                        symm_mats_vecs,
                        computation_dict=computation_dict,
-                       save='save.gpw',
+                       save=save_file,
                        restart=restart,
                        explicit_core=f0j_core is not None)
     if f0j_core is None:
@@ -1532,7 +1537,7 @@ def refine(
         
         constructed_xyz, constructed_uij, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
         if refine >= reload_step - 1:
-            restart = 'save.gpw'  
+            restart = save_file
         else:
             restart = None  
         if np.max(np.linalg.norm(np.einsum('xy, zy -> zx', cell_mat_m, constructed_xyz - xyz_density), axis=-1)) > max_distance_diff:
@@ -1546,7 +1551,7 @@ def refine(
                                index_vec_h,
                                symm_mats_vecs,
                                computation_dict=computation_dict,
-                               save='save.gpw',
+                               save=save_file,
                                restart=restart,
                                explicit_core=f0j_core is not None)
             else:
@@ -1556,7 +1561,7 @@ def refine(
                                index_vec_h,
                                symm_mats_vecs,
                                computation_dict=computation_dict,
-                               save='save.gpw',
+                               save=save_file,
                                restart=restart,
                                explicit_core=f0j_core is not None)
             if f0j_core is None:

@@ -2,7 +2,8 @@ import sys
 import os
 import argparse
 from .core import refine, create_construction_instructions
-from .io import cif2data, lst2constraint_dict, write_cif, write_fcf, shelxl_hkl_to_pd
+from .io import (cif2data, lst2constraint_dict, write_cif, write_fcf, 
+                 shelxl_hkl_to_pd, write_res)
 
 
 def input_with_default(question, default):
@@ -14,7 +15,6 @@ def input_with_default(question, default):
         sys.exit()
     else:
         return answer.strip()
-
 
 
 def cli(**kwargs):
@@ -110,7 +110,10 @@ def cli(**kwargs):
 
     computation_dict['kpts'] = {'size': tuple(kpoints), 'gamma': True}
 
-    refinement_dict = {'core': 'constant', 'extinction': extinction}
+    refinement_dict = {
+        'core': 'constant',
+        'extinction': extinction
+    }
 
     if 'mpi_cores' not in kwargs:
         mpi_string = input_with_default(
@@ -135,14 +138,15 @@ def cli(**kwargs):
     else:
         output_folder = kwargs['output_folder'][0]
 
+    refinement_dict['save_file'] = os.path.join(output_folder, 'gpaw_density.gpw')
+
     if not os.path.exists(output_folder):
         os.mkdir(output_folder)
-
     
     construction_instructions, parameters = create_construction_instructions(
         atom_table,
-        constraint_dict,
-        refinement_dict=refinement_dict
+        refinement_dict,
+        constraint_dict
     )
 
     parameters, var_cov_mat, information = refine(
@@ -151,41 +155,62 @@ def cli(**kwargs):
         hkl,
         construction_instructions,
         parameters,
+        wavelength=wavelength,
         computation_dict=computation_dict,
         refinement_dict=refinement_dict
     )
 
     write_cif(
         os.path.join(output_folder, 'xharpy.cif'),
-        'xharpy_refinement',
+        'xharpy',
         shelx_cif_name=cif_name,
         shelx_descr=cif_index,
-        source_cif_name=cif_name,
-        source_descr=cif_index,
-        f0j=information['f0j_anom'],
-        parameters=parameters,
-        var_cov_mat=var_cov_mat,
-        construction_instructions=construction_instructions,
+        cell=cell,
+        cell_esd=cell_esd,
         symm_mats_vecs=symm_mats_vecs,
         hkl=hkl,
-        shift_ov_su=information['shift_ov_su'],
-        computation_dict=computation_dict,
+        construction_instructions=construction_instructions,
+        parameters=parameters,
+        var_cov_mat=var_cov_mat,
         refinement_dict=refinement_dict,
-        cell=cell,
-        cell_esd=cell_esd
+        computation_dict=computation_dict,
+        information=information
     )
 
     write_fcf(
         filename=os.path.join(output_folder, 'xharpy.fcf'),
-        hkl=hkl,
-        refinement_dict=refinement_dict,
-        parameters=parameters,
-        symm_strings=symm_strings,
-        construction_instructions=construction_instructions,
-        f0j=information['f0j_anom'],
+        fcf_dataset='xharpy',
+        fcf_mode=4,
         cell=cell,
-        dataset_name='xharpy_refinement',
-        fcf_mode=4
+        hkl=hkl,
+        construction_instructions=construction_instructions,
+        parameters=parameters,
+        refinement_dict=refinement_dict,
+        symm_strings=symm_strings,
+        information=information,
+    )
+
+    write_res(
+        filename=os.path.join(output_folder, 'xharpy_6.res'),
+        in_res_path=lst_name,
+        cell=cell,
+        cell_esd=cell_esd,
+        construction_instructions=construction_instructions,
+        parameters=parameters,
+        wavelength=wavelength
+    )
+
+    write_fcf(
+        filename=os.path.join(output_folder, 'xharpy_6.fcf'),
+        fcf_dataset='xharpy_6',
+        fcf_mode=6,
+        cell=cell,
+        hkl=hkl,
+        construction_instructions=construction_instructions,
+        parameters=parameters,
+        refinement_dict=refinement_dict,
+        symm_strings=symm_strings,
+        information=information,
     )
 
     

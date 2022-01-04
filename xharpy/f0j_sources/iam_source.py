@@ -649,8 +649,7 @@ def calc_f0j(
     index_vec_h: np.ndarray,
     symm_mats_vecs: Tuple[np.ndarray, np.ndarray],
     computation_dict: Dict[str, Any],
-    restart: str = None,
-    save: str = None,
+    restart: bool = True,
     explicit_core: bool = True
 )-> np.ndarray:
     """Calculate the atomic form factor according to the tabulated values for
@@ -671,9 +670,7 @@ def calc_f0j(
         translation vectors for all symmetry elements in the unit cell
     computation_dict : Dict[str, Any]
         There are no options here, will be ignored
-    restart : str, optional
-        ignored
-    save : str, optional
+    restart : bool, optional
         ignored
     explicit_core : bool, optional
         ignored

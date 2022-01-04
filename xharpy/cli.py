@@ -3,7 +3,7 @@ import os
 import argparse
 from .core import refine, create_construction_instructions
 from .io import (cif2data, lst2constraint_dict, write_cif, write_fcf, 
-                 shelxl_hkl_to_pd, write_res)
+                 shelxl_hkl2pd, write_res)
 
 
 def input_with_default(question, default):
@@ -57,7 +57,7 @@ def cli(**kwargs):
         )
     else:
         hkl_name = kwargs['hkl_name'][0]
-    hkl = shelxl_hkl_to_pd(hkl_name)
+    hkl = shelxl_hkl2pd(hkl_name)
 
     if 'extinction' not in kwargs:
         extinction = input_with_default(

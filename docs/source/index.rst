@@ -22,10 +22,11 @@ function. No explicit gradients are needed.
 
    installation
    commandline
+   examples
+   library/library_index
    modules
    xharpy 
    xharpy.f0j_sources
-   examples
 
 Indices and tables
 ==================

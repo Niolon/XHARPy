@@ -31,8 +31,7 @@ def calc_f0j(
     index_vec_h: np.ndarray,
     symm_mats_vecs: Tuple[np.ndarray, np.ndarray],
     computation_dict: Dict[str, Any],
-    restart: str = None,
-    save: str = 'gpaw.gpw',
+    restart: bool = True,
     explicit_core: bool = True
 )-> np.ndarray:
     """Calculate the atomic form factor or atomic valence form factors using 
@@ -56,6 +55,10 @@ def calc_f0j(
         contains options for the atomic form factor calculation. The function
         will use and exclude the following options from the dictionary and pass
         the rest onto the GPAW calculator without further checks.
+
+          - save_file (str): Path to the file that is used for saving and 
+            loading DFT results, by default 'gpaw_result.gpw'
+
           - spherical_grid (str): Can be used to select a grid. Possible options
             are: coarse, medium, fine, veryfine, ultrafine and insane, by
             by default 'fine'
@@ -75,10 +78,8 @@ def calc_f0j(
 
         For the allowed options of the GPAW calculator consult: 
         https://wiki.fysik.dtu.dk/gpaw/documentation/basic.html
-    restart : str, optional
-        File with the starting density for the DFT calculation, by default None
-    save : str, optional
-        File to save to., by default 'gpaw.gpw'
+    restart : bool, optional
+        If true, the DFT calculation will be restarted from a previous calculation
     explicit_core : bool, optional
         If True the frozen core density is assumed to be calculated separately, 
         therefore only the valence density will be split up, by default True
@@ -90,16 +91,26 @@ def calc_f0j(
         generated atoms within the unit cells. Atoms on special positions are 
         present multiple times and have the atomic form factor of the full atom.
     """
-    if computation_dict is None:
-        computation_dict = {'xc': 'PBE', 'txt': 'gpaw.txt', 'h': 0.15, 'setups': 'paw', 'mode': 'lcao', 'basis': 'dzp'}
-    else:
-        computation_dict = computation_dict.copy()
+    computation_dict = computation_dict.copy()
+
     if 'gridinterpolation' in computation_dict:
         warnings.warn('gridinterpolation in computation_dict. This is not used in spherical mode')
         del(computation_dict['gridinterpolation'])
+
+    if 'save_file' in computation_dict:
+        if computation_dict['save_file'] == 'none':
+            save = None
+            restart = False
+        else:
+            save = computation_dict['save_file']
+        del(computation_dict['save_file'])
+    else:
+        save = 'gpaw_result.gpw'
+
     if 'average_symmequiv' in computation_dict:
         warnings.warn("'average_symmequiv' is not allowed in spherical mode")
         del(computation_dict['average_symmequiv'])
+
     if 'spherical_grid' in computation_dict:
         grid_name = computation_dict['spherical_grid']
         del(computation_dict['spherical_grid'])
@@ -126,7 +137,7 @@ def calc_f0j(
         magmoms=magmoms
     )
     e_change = True
-    if restart is None:
+    if not restart:
         atoms = crystal(symbols=symm_symbols,
                         basis=symm_positions % 1,
                         cell=cell_mat_m.T,
@@ -138,7 +149,7 @@ def calc_f0j(
         try:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                atoms, calc = gpaw.restart(restart, txt=computation_dict['txt'])
+                atoms, calc = gpaw.restart(save, txt=computation_dict['txt'])
                 e1_0 = atoms.get_potential_energy()
 
                 atoms.set_scaled_positions(symm_positions % 1)

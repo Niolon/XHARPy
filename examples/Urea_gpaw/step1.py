@@ -8,7 +8,7 @@ with open('step1_values.pic', 'rb') as fo:
     value_dict = pickle.load(fo)
 
 e_change = True
-if value_dict['restart'] is None:
+if not value_dict['restart']:
     atoms = crystal(**value_dict['kw_crystal'])
     calc = gpaw.GPAW(**value_dict['kw_gpaw'])
     atoms.set_calculator(calc)
@@ -17,7 +17,7 @@ else:
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            atoms, calc = gpaw.restart(value_dict['restart'], txt=value_dict['kw_gpaw']['txt'], xc=value_dict['kw_gpaw']['xc'])
+            atoms, calc = gpaw.restart(value_dict['save'], txt=value_dict['kw_gpaw']['txt'], xc=value_dict['kw_gpaw']['xc'])
             e1_0 = atoms.get_potential_energy()
 
             atoms.set_scaled_positions(value_dict['kw_crystal']['basis'])

@@ -25,9 +25,12 @@ Windows
 -------
 As the library relies on GPAW there is no direct straightforward way to 
 install on Microsoft Windows Python installations. However, the library 
-has been tested on the Linux Subsystem For Windows. So you can install that very
-handy program from Microsoft and simply follow the Linux installation
-afterwards.
+has been tested on the
+`Windows Subsystem For Linux <https://docs.microsoft.com/en-us/windows/wsl/install>`_.
+This provides a full linux shell under windows and can be installed to run linux
+programs on Microsoft Windows. Afterwards you can follow the linux instruction
+from that shell.
+
 
 Linux
 -----
@@ -58,6 +61,8 @@ $PYTHONPATH. As long as there is no installation routine you can do this by
 
    conda develop /path/to/xharpy
 
+This will create a .pth file in the site-packages of your conda environment.
+
 Currently xHARPy has no working possibility for calculating difference 
 electron densities on its own. For this purpose we need the cctbx library. 
 The library will however run without cctbx, with some features unavailable.
@@ -80,8 +85,10 @@ further analyse the results. This is however not necessary.
 
    conda install -c conda-forge jupyter jupyterlab
 
+
 Using other functionals in GPAW
 -------------------------------
+
 If installed via conda GPAW does bring the PAW setups for some functionals. If 
 you wand to use metaGGA functionals further action is also not necessary, as
 these will use the PBE setups. For usage of GGA or LDA functionals not included

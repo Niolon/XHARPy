@@ -242,9 +242,9 @@ def symm_to_matrix_vector(instruction: str) -> Tuple[jnp.ndarray, jnp.ndarray]:
     Returns
     -------
     symm_matrix: jnp.ndarray, 
-      size (3, 3) array containing the symmetry matrix for the symmetry element
+        size (3, 3) array containing the symmetry matrix for the symmetry element
     symm_vector: jnp.ndarray
-      size (3) array containing the translation vector for the symmetry element
+        size (3) array containing the translation vector for the symmetry element
     """    
     instruction_strings = [val.replace(' ', '').upper() for val in instruction.split(',')]
     matrix = jnp.zeros((3,3), dtype=np.float64)
@@ -318,7 +318,7 @@ def cif2data(
         array with the estimated standard deviation of the lattice constants
         (Angstroem, Degree)
     symm_mats_vecs: Tuple[jnp.ndarray, jnp.ndarray]
-      size (K, 3, 3) array of symmetry matrices and (K, 3) array of translation
+        size (K, 3, 3) array of symmetry matrices and (K, 3) array of translation
         vectors for all symmetry elements in the unit cell
     symm_instructions: List[str]
         List of symmetry instructions from the cif-file. Needed for writing a
@@ -490,7 +490,7 @@ def lst2constraint_dict(filename: str) -> Dict[str, Dict[str, ConstrainedValues]
     return constraint_dict
 
 
-def shelxl_hkl_to_pd(hkl_name: str) -> pd.DataFrame:
+def shelxl_hkl2pd(hkl_name: str) -> pd.DataFrame:
     """Helper function to read in a shelx-style .hkl file as dataframe. Note
     that xHARPy does expect a merged hkl file, using an unmerged file will 
     be very slow and lead to unexpected esd values.
@@ -526,7 +526,7 @@ def shelxl_hkl_to_pd(hkl_name: str) -> pd.DataFrame:
         raise ValueError('Could not read hkl_file, more than 6 or less than 5 columns found')
     return df
 
-def fcf_to_hkl_pd(
+def fcf2hkl_pd(
     fcf_path: str,
     fcf_dataset: Union[str, int] = 0
 ) -> pd.DataFrame:
@@ -1431,11 +1431,11 @@ def create_fcf4_table(
     Parameters
     ----------
     index_vec_h : jnp.ndarray
-      size (H, 3) array of Miller indicees of observed reflections
+        size (H, 3) array of Miller indicees of observed reflections
     structure_factors : jnp.ndarray
-      size (H)-sized array with complex structure factors for each reflection
+        size (H)-sized array with complex structure factors for each reflection
     intensity : jnp.ndarray
-      size (H) array of observed reflection intensities
+        size (H) array of observed reflection intensities
     esd_int : jnp.ndarray
         Estimated standard deviation of the observed reflection intensites
     scaling : float
@@ -1602,7 +1602,7 @@ def write_cif(
         array with the estimated standard deviation of the lattice constants
         (Angstroem, Degree)
     symm_mats_vecs : Tuple[jnp.ndarray, jnp.ndarray]
-      size (K, 3, 3) array of symmetry matrices and (K, 3) array of translation
+        size (K, 3, 3) array of symmetry matrices and (K, 3) array of translation
         vectors for all symmetry elements in the unit cell
     hkl : pd.DataFrame
         pandas DataFrame containing the reflection data. Needs to have at least

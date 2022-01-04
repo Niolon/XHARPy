@@ -212,8 +212,7 @@ def calc_f0j(
     index_vec_h: np.ndarray,
     symm_mats_vecs: Tuple[np.ndarray, np.ndarray],
     computation_dict: Dict[str, Any],
-    restart: str = None,
-    save: str = 'gpaw.gpw',
+    restart: bool = True,
     explicit_core: bool = True
 )-> np.ndarray:
     """Calculate the atomic form factor or atomic valence form factors using 
@@ -237,6 +236,9 @@ def calc_f0j(
         contains options for the atomic form factor calculation. The function
         will use and exclude the following options from the dictionary and pass
         the rest onto the GPAW calculator without further checks.
+
+          - save_file (str): Path to the file that is used for saving and 
+            loading DFT results, by default 'gpaw_result.gpw'
 
           - gridinterpolation (1, 2, 4): Using GPAWs interpolation this is the 
             factor by which the grid from the wave function will be interpolated
@@ -264,12 +266,11 @@ def calc_f0j(
             by just applying the same magnetic moment to all symmetry equivalent
             atoms. This is probably too simplistic and will fail.
 
+
         For the allowed options of the GPAW calculator consult: 
         https://wiki.fysik.dtu.dk/gpaw/documentation/basic.html
-    restart : str, optional
-        File with the starting density for the DFT calculation, by default None
-    save : str, optional
-        File to save to., by default 'gpaw.gpw'
+    restart : bool, optional
+        If true, the DFT calculation will be restarted from a previous calculation
     explicit_core : bool, optional
         If True the frozen core density is assumed to be calculated separately, 
         therefore only the valence density will be split up, by default True
@@ -288,6 +289,16 @@ def calc_f0j(
         del(computation_dict['gridinterpolation'])
     else:
         gridinterpolation = 4
+
+    if 'save_file' in computation_dict:
+        if computation_dict['save_file'] == 'none':
+            save = None
+            restart = False
+        else:
+            save = computation_dict['save_file']
+        del(computation_dict['save_file'])
+    else:
+        save = 'gpaw_result.gpw'
     if 'average_symmequiv' in computation_dict:
         average_symmequiv = computation_dict['average_symmequiv']
         #print(f'average symmetry equivalents: {average_symmequiv}')
@@ -316,7 +327,7 @@ def calc_f0j(
         magmoms=magmoms
     )
     e_change = True
-    if restart is None:
+    if not restart:
         atoms = crystal(symbols=symm_symbols,
                         basis=symm_positions % 1,
                         cell=cell_mat_m.T,
@@ -328,7 +339,7 @@ def calc_f0j(
         try:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                atoms, calc = gpaw.restart(restart, txt=computation_dict['txt'], xc=computation_dict['xc'])
+                atoms, calc = gpaw.restart(save, txt=computation_dict['txt'], xc=computation_dict['xc'])
                 e1_0 = atoms.get_potential_energy()
 
                 atoms.set_scaled_positions(symm_positions % 1)
@@ -494,7 +505,8 @@ def calc_f0j_core(
         'gridinterpolation',
         'average_symmequiv',
         'skip_symm',
-        'magmoms'
+        'magmoms',
+        'save_file'
     ]
     for key in non_gpaw_keys:
         if key in computation_dict:

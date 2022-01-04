@@ -26,7 +26,7 @@ with open('step1_values.pic', 'rb') as fo:
     value_dict = pickle.load(fo)
 
 e_change = True
-if value_dict['restart'] is None:
+if not value_dict['restart']:
     atoms = crystal(**value_dict['kw_crystal'])
     calc = gpaw.GPAW(**value_dict['kw_gpaw'])
     atoms.set_calculator(calc)
@@ -35,7 +35,7 @@ else:
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            atoms, calc = gpaw.restart(value_dict['restart'], txt=value_dict['kw_gpaw']['txt'], xc=value_dict['kw_gpaw']['xc'])
+            atoms, calc = gpaw.restart(value_dict['save'], txt=value_dict['kw_gpaw']['txt'], xc=value_dict['kw_gpaw']['xc'])
             e1_0 = atoms.get_potential_energy()
 
             atoms.set_scaled_positions(value_dict['kw_crystal']['basis'])
@@ -214,8 +214,6 @@ class HirshfeldPartitioning:
         return charges
 
 def density_to_f0j(save, gridinterpolation, explicit_core, index_vec_h, symm_mats_vecs, symm_positions, positions, average_symmequiv, f0j_indexes):
-    if save is None:
-        save = 'save.gpw'
     atoms, calc = gpaw.restart(save)
     e1 = atoms.get_potential_energy()
 
@@ -364,8 +362,7 @@ def calc_f0j(
     index_vec_h: np.ndarray,
     symm_mats_vecs: Tuple[np.ndarray, np.ndarray],
     computation_dict: Dict[str, Any],
-    restart: str = None,
-    save: str = 'gpaw.gpw',
+    restart: bool = True,
     explicit_core: bool = True
 ) -> np.ndarray:
     """Calculate the atomic form factor or atomic valence form factors using 
@@ -391,6 +388,9 @@ def calc_f0j(
         contains options for the atomic form factor calculation. The function
         will use and exclude the following options from the dictionary and pass
         the rest onto the GPAW calculator without further checks.
+
+          - save_file (str): Path to the file that is used for saving and 
+            loading DFT results, by default 'gpaw_result.gpw'
 
           - gridinterpolation (1, 2, 4): Using GPAWs interpolation this is the 
             factor by which the grid from the wave function will be interpolated
@@ -426,8 +426,6 @@ def calc_f0j(
         https://wiki.fysik.dtu.dk/gpaw/documentation/basic.html
     restart : str, optional
         File with the starting density for the DFT calculation, by default None
-    save : str, optional
-        File to save to., by default 'gpaw.gpw'
     explicit_core : bool, optional
         If True the frozen core density is assumed to be calculated separately, 
         therefore only the valence density will be split up, by default True
@@ -439,16 +437,26 @@ def calc_f0j(
         generated atoms within the unit cells. Atoms on special positions are 
         present multiple times and have the atomic form factor of the full atom.
     """
-    if computation_dict is None:
-        computation_dict = {'xc': 'PBE', 'txt': 'gpaw.txt', 'h': 0.15, 'setups': 'paw'}
-    else:
-        computation_dict = computation_dict.copy()
+    computation_dict = computation_dict.copy()
+
     if 'gridinterpolation' in computation_dict:
         gridinterpolation = computation_dict['gridinterpolation']
         #print(f'gridinterpolation set to {gridinterpolation}')
         del(computation_dict['gridinterpolation'])
     else:
-        gridinterpolation = 2
+        gridinterpolation = 4
+    
+
+    if 'save_file' in computation_dict:
+        if computation_dict['save_file'] == 'none':
+            save = None
+            restart = False
+        else:
+            save = computation_dict['save_file']
+        del(computation_dict['save_file'])
+    else:
+        save = 'gpaw_result.gpw'
+    
     if 'average_symmequiv' in computation_dict:
         average_symmequiv = computation_dict['average_symmequiv']
         #print(f'average symmetry equivalents: {average_symmequiv}')
@@ -594,7 +602,8 @@ def calc_f0j_core(
         'average_symmequiv',
         'skip_symm',
         'magmoms',
-        'mpicores'
+        'mpicores',
+        'save_file'
     ]
     for key in non_gpaw_keys:
         if key in computation_dict:
@@ -621,6 +630,9 @@ def calc_f0j_core(
         fo.write(core_script)
  
     res = subprocess.run('python core.py', shell=True)
+
+    if res.returncode == 1:
+        raise ValueError('Something went wrong in the core calculation. For debugging try if you can run the single core calculation')
 
     with open('core_r_values.pic', 'rb') as fo:
         f0j_core = pickle.load(fo)

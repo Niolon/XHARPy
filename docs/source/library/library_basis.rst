@@ -101,10 +101,192 @@ A basic example for a ``refinement_dict`` would look like this:
         #'f0j_source': 'gpaw_mpi', # GPAW with multi-core
         'core': 'constant', # treatment of the core density
         'extinction': 'none', # Refinement of extinction
-        'reload_step': 1, # step where the density is reloaded from the save_file
-        'save_file': 'gpaw_result.gpw' # File where the DFT result is stored
+        'reload_step': 1, # step where the density is reloaded from the save_file, 1 means first step AFTER initialisation
     }
 
-You might notice that three of the options concern the computation of the
-atomic form factors. However, these are still used in the refinement routine.
+You might notice that two of the options concern the computation of the
+atomic form factors. The ``f0j_source`` is used to actually select the 
+implementation of the atomic form factor calculation within the refinement 
+routine. The implementations are also unaware of the step in the refinement. 
+The refinement itself triggers the reloading of a precalculated density.
+We want to start from a new density, but after initialisation we want to reload
+previous calculation to speed things up. We also want to calculate core density
+on a separate spherical grid, as they have sharp maxima at the core positions. 
+This might not be well described on the rectangular grid we use for the valence
+density. This also means Hirshfeld partitioning will not affect the core density.
+There are more options for the ``refinement_dict``, which are explained on a
+:doc:`separate page <library_refinement_dict>`.
 
+Next we need to define the options for the atomic form factor calculation. these
+are directly passed on to the routines that we loaded with the f0j_source. An 
+example the selected GPAW source and a molecular structure might look like this:
+
+.. code-block:: python
+
+    computation_dict = {
+        # options for the xHARPy implementation
+        'save_file': 'gpaw_result.gpw', # Where are results saved and loaded
+        'gridinterpolation': 4, # density interpolation to use for Hirshfeld and FFT
+
+        # options that are passed on to the gpaw calculator
+        'xc': 'SCAN', # Functional
+        'txt': 'gpaw.txt', # Text output for GPAW
+        'h': 0.175, # Grid spacing for wavefunction calculation
+        'convergence':{'density': 1e-7}, # Higher convergence for density calculation
+        'symmetry': {'symmorphic': False}, # Also search for symmetry involving translation
+        'nbands': -2 # Number of calculated bands = n(occ) + 2
+    }
+
+As you can see the function of the GPAW source will read the options that are 
+specific to the xHARPy GPAW plugin and remove it from the dictionary. All options 
+that are not known will be passed on to the GPAW calculator without any further 
+checks. Options for the calc_f0j function can be found in the specific docstrings or 
+here in the xharpy.f0j_sources page. GPAW options can be found in the 
+`GPAW documentation <https://wiki.fysik.dtu.dk/gpaw/documentation/basic.html>`_
+
+Refinement
+----------
+
+For refinement we need to import two additional functions
+
+.. code-block:: python
+
+import create_construction_instructions, refine
+
+As mentioned on the introduction xHARPy uses JAX to automatically generate
+gradients. However, we want to have one object that can map an array of
+parameters to the properties of the atoms within the unit cell. Because of the 
+implementation in JAX, using just-in-time compiling, that object has to be
+immutable. We get it and starting values for the parameters by calling the 
+``create_construction_instructions`` function:
+
+.. code-block:: python
+
+    construction_instructions, parameters = create_construction_instructions(
+        atom_table=atom_table,
+        constraint_dict=constraint_dict,
+        refinement_dict=refinement_dict
+    )
+
+As you see we also need to pass the constraint_dict from the first section, as 
+well as our refinement_dict in order to reserve additional parameters for things
+like extinction.
+
+Finally, we can call the refine function, to do our actual refinement:
+
+.. code-block:: Python
+
+    parameters, var_cov_mat, information = refine(
+        cell=cell, 
+        symm_mats_vecs=symm_mats_vecs,
+        hkl=hkl,
+        construction_instructions=construction_instructions,
+        parameters=parameters,
+        wavelength=wavelength,
+        refinement_dict=refinement_dict,
+        computation_dict=computation_dict
+    )
+
+The refinement will always refine the scale factor first before the atomic 
+parameters are refined.
+
+We get back a refined set of parameters, the variance-covariance matrix and 
+an additional dictionary that contains things that might be interesting (such as
+starting and end time) and things that are needed for output (such as the atomic
+form factor values or the shifts at the last step).
+
+Writing data to disk
+--------------------
+
+Finally we want to export our structures. There are three kinds of files that we
+can write at the moment, and three functions that we need to import
+    
+.. code-block:: python
+
+    import write_cif, write_res, write_fcf
+
+The *crystallographic information file* is a standard format for exchanging and
+depositing crystallographic data. We can write such a file with:
+
+.. code-block:: python
+
+    write_cif(
+        output_cif_path='xharpy.cif'),
+        cif_dataset='xharpy',
+        shelx_cif_path='iam.cif',
+        shelx_dataset=0,
+        cell=cell,
+        cell_esd=cell_esd,
+        symm_mats_vecs=symm_mats_vecs,
+        hkl=hkl,
+        construction_instructions=construction_instructions,
+        parameters=parameters,
+        var_cov_mat=var_cov_mat,
+        refinement_dict=refinement_dict,
+        computation_dict=computation_dict,
+        information=information
+    )
+
+You might notice that we need an original cif file (the library was developed
+wth SHELXL) to generate the new cif file. The reason is that the write-routine
+does currently not calculate all values by itself. Additional values such as 
+crystal size can also be added to the original cif file and will be then copied 
+to the new one.
+
+Fcf files can be written as fcf mode 4 or 6 with the two commands:
+
+.. code-block:: python
+
+    write_fcf(
+        fcf_path='xharpy.fcf',
+        fcf_dataset='xharpy',
+        fcf_mode=4,
+        cell=cell,
+        hkl=hkl,
+        construction_instructions=construction_instructions,
+        parameters=parameters,
+        wavelength=wavelength,
+        refinement_dict=refinement_dict,
+        symm_strings=symm_strings,
+        information=information,
+    )
+
+.. code-block:: python
+
+    write_fcf(
+        fcf_path='xharpy_6.fcf',
+        fcf_dataset='xharpy_6',
+        fcf_mode=6,
+        cell=cell,
+        hkl=hkl,
+        construction_instructions=construction_instructions,
+        parameters=parameters,
+        wavelength=wavelength,
+        refinement_dict=refinement_dict,
+        symm_strings=symm_strings,
+        information=information,
+    )
+
+Both outputs will correct for extinction, but only fcf6 will correct the
+observed reflections for dispersion effects. If you want to access the corrected
+values for validation. Both functions return a pandas DataFrame.
+
+For visualisation of the structure and the difference electron density is is
+also helpful to write a SHELXL .res file. This can be done by: 
+
+.. code-block:: python
+
+    write_res(
+        out_res_path='xharpy_6.res'),
+        in_res_path='iam.lst',
+        cell=cell,
+        cell_esd=cell_esd,
+        construction_instructions=construction_instructions,
+        parameters=parameters,
+        wavelength=wavelength
+    )
+
+Again we need a template res or lst file. Currently xHARPy has no way to divide
+symmetry cards into those generated by a lattice centring or inversion symmetry 
+and those generated by other symmetry elements. Which would be necessary for 
+writing these files on its own.

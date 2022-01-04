@@ -1349,8 +1349,9 @@ def refine(
             et al. 'Fundmentals of Crystallography' (1992) p.97, by default
             'none'
           - flack:
-            Refinement of the flack parameter. Free lunch ist currently not
-            implemented, by default False
+            Refinement of the flack parameter. Because xHARPy does not merge at
+            the moment this should not be considered really implemented,
+            by default False
           - max_dist_recalc:
             If the max difference in atomic positions is under this value in 
             Angstroems, no new structure factors will be calculated, by
@@ -1362,7 +1363,7 @@ def refine(
             Minimum refinement cycles. The refinement will stop if the
             wR2 increases if the current cycle is higher than min_iter,
             by default 10
-          - core_io
+          - core_io:
             Expects a tuple where the first entry can be 'save', 'load', 'none'
             which is the action that is taken with the core density. The 
             second argument in the tuple is the filename, to which the core
@@ -1836,7 +1837,7 @@ def create_atom_table(
     parameters: jnp.ndarray,
     var_cov_mat: jnp.ndarray
 ) -> pd.DataFrame:
-    """[summary]
+    """Recreates an atom table from the refined parameters
 
     Parameters
     ----------
@@ -1853,8 +1854,8 @@ def create_atom_table(
 
     Returns
     -------
-    pd.DataFrame
-        [description]
+    atom_table: pd.DataFrame
+        The atom_table dataframe
     """
     atom_table_new = pd.DataFrame(columns=[
         'label', 'type_symbol', 'fract_x', 'fract_y', 'fract_z', 
@@ -1876,7 +1877,7 @@ def create_atom_table(
     )
 
     atom_table_new['label'] = [instr.name for instr in construction_instructions]
-    atom_table_new['type_symbol'] = [instr.name for instr in construction_instructions]
+    atom_table_new['type_symbol'] = [instr.element for instr in construction_instructions]
     atom_table_new[['fract_x', 'fract_y', 'fract_z']] = np.array(xyz)
     atom_table_new[['fract_x_esd', 'fract_y_esd', 'fract_z_esd']] = np.array(xyz_esd)
     atom_table_new[['U_11', 'U_22', 'U_33', 'U_23', 'U_13', 'U_12']] = uij

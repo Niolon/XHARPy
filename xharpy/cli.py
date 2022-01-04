@@ -138,7 +138,8 @@ def cli(**kwargs):
     else:
         output_folder = kwargs['output_folder'][0]
 
-    refinement_dict['save_file'] = os.path.join(output_folder, 'gpaw_density.gpw')
+    computation_dict['save_file'] = os.path.join(output_folder, 'gpaw_density.gpw')
+    computation_dict['txt'] = os.path.join(output_folder, 'gpaw.txt')
 
     if not os.path.exists(output_folder):
         os.mkdir(output_folder)
@@ -213,9 +214,7 @@ def cli(**kwargs):
         information=information,
     )
 
-    
 
-    
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run a Hirshfeld atom refinement with xHARPy from Command Line')
     parser.add_argument('--cif_name', nargs=1, help='Name of input cif file. Is assumed to be generated with shelxl')

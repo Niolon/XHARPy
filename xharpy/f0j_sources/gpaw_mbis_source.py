@@ -698,7 +698,7 @@ def calc_f0j(
         gridinterpolation = 4
 
     if 'save_file' in computation_dict:
-        if computation_dict['save_file'] == 'none'':
+        if computation_dict['save_file'] == 'none':
             save = None
             restart = False
         else:

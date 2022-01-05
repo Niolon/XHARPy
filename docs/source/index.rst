@@ -6,15 +6,33 @@
 Welcome to xHARPy's documentation!
 ==================================
 
-**xHARPY** (x-ray diffraction Hirshfeld Atom Refinement in Python) is a Python library that enables refinement with custom atomic form factor calculations.
-Current implemented and tested sources for atomic form factors are Hirshfeld Atom Refinement from periodic DFT calculations and the Independent Atom Model.
+**xHARPY** (x-ray diffraction Hirshfeld Atom Refinement in Python) is a Python
+library that enables refinement with custom atomic form factor calculations.
 
-Refinement itself relies heavily on JAX for the automatic generation of gradients. This means that new features only have to be implemented in the loss
+This is the first refinement library to implement the calculation of atomic form
+factors from periodic PAW-DFT calculations. Independent atom model for comparison
+and debugging is also available.
+
+The library has been written with extensibility in mind. You can look at the 
+f0j_sources folder for examples how to write a new atomic form factor source.
+
+Refinement itself relies heavily on JAX for the automatic generation of 
+gradients. This means that new features only have to be implemented in the loss
 function. No explicit gradients are needed. 
+
+If you have used the library in your research, please cite the paper where it
+was originally published:
+
+TODO: Insert paper here
+
+This library was written during my PhD which was embedded in the research 
+training group BENCh at the University of Göttingen, which is funded by 
+the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) - 389479699/GRK245
 
 .. note::
 
-   This project is still at the beginning of its development. Things might fundamentally change with future versions.
+   This project is still at the beginning of its development. Things might
+   fundamentally change with future versions.
 
 .. toctree::
    :maxdepth: 2
@@ -22,8 +40,8 @@ function. No explicit gradients are needed.
 
    installation
    commandline
-   examples
    library/library_index
+   examples
    modules
    xharpy 
    xharpy.f0j_sources

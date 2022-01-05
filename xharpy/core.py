@@ -879,7 +879,10 @@ def construct_values(
             bound_xyz = xyz[instruction.xyz.bound_atom_index]
             plane1_xyz = xyz[instruction.xyz.plane_atom1_index]
             plane2_xyz = xyz[instruction.xyz.plane_atom2_index]
-            addition = 2 * bound_xyz - plane1_xyz - plane2_xyz
+            direction1 = bound_xyz - plane1_xyz
+            direction2 = bound_xyz - plane2_xyz
+            addition = (direction1 / jnp.linalg.norm(cell_mat_m @ direction1)
+                        + direction2 / jnp.linalg.norm(cell_mat_m @ direction2))
             direction = addition / jnp.linalg.norm(cell_mat_m @ addition)
             xyz = jax.ops.index_update(xyz, jax.ops.index[index], bound_xyz + direction * instruction.xyz.distance)
         
@@ -888,7 +891,13 @@ def construct_values(
             tetrahedron_atom1_xyz = xyz[instruction.xyz.tetrahedron_atom1_index]
             tetrahedron_atom2_xyz = xyz[instruction.xyz.tetrahedron_atom2_index]
             tetrahedron_atom3_xyz = xyz[instruction.xyz.tetrahedron_atom3_index]
-            addition = 3 * bound_xyz - tetrahedron_atom1_xyz - tetrahedron_atom2_xyz - tetrahedron_atom3_xyz
+            direction1 = bound_xyz - tetrahedron_atom1_xyz
+            direction2 = bound_xyz - tetrahedron_atom2_xyz
+            direction3 = bound_xyz - tetrahedron_atom3_xyz
+            addition = (direction1 / jnp.linalg.norm(cell_mat_m @ direction1)
+                        + direction2 / jnp.linalg.norm(cell_mat_m @ direction2)
+                        + direction3 / jnp.linalg.norm(cell_mat_m @ direction3))
+
             direction = (addition) / jnp.linalg.norm(cell_mat_m @ (addition))
             xyz = jax.ops.index_update(xyz, jax.ops.index[index], bound_xyz + direction * instruction.xyz.distance)
 
@@ -1523,7 +1532,7 @@ def refine(
                  options={'gtol': 1e-8 * jnp.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)})
     for index, val in enumerate(x.x):
         parameters = jax.ops.index_update(parameters, jax.ops.index[index], val)
-    print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)):8.6f}, nit: {x.nit}, {x.message}')
+    print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)):8.6f}, number of iterations: {x.nit}')
 
     r_opt_density = 1e10
     for refine in range(max_iter):
@@ -1535,7 +1544,7 @@ def refine(
                      args=(jnp.array(f0j)),
                      options={'gtol': 1e-8 * jnp.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)})
         
-        print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)):8.6f}, nit: {x.nit}, {x.message}')
+        print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)):8.6f}, number of iterations: {x.nit}')
         shift = parameters - x.x
         parameters = jnp.array(x.x) 
         #if x.nit == 0:

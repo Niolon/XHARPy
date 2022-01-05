@@ -33,9 +33,7 @@ release = '0.1.1'
 # ones.
 extensions = [
     'sphinx_rtd_theme',
-    'sphinx.ext.napoleon',
-    'nbsphinx',
-    'sphinx_gallery.load_style'
+    'sphinx.ext.napoleon'
 ]
 
 # Add any paths that contain templates here, relative to this directory.

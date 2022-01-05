@@ -151,7 +151,7 @@ For refinement we need to import two additional functions
 
 .. code-block:: python
 
-import create_construction_instructions, refine
+    from xharpy import create_construction_instructions, refine
 
 As mentioned on the introduction xHARPy uses JAX to automatically generate
 gradients. However, we want to have one object that can map an array of
@@ -203,7 +203,7 @@ can write at the moment, and three functions that we need to import
     
 .. code-block:: python
 
-    import write_cif, write_res, write_fcf
+    from xharpy import write_cif, write_res, write_fcf
 
 The *crystallographic information file* is a standard format for exchanging and
 depositing crystallographic data. We can write such a file with:

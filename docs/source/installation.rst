@@ -55,7 +55,9 @@ Followed by installing the necessary packages
    conda install -c conda-forge jax=0.2.26 numpy=1.20.3 scipy=1.7.3 pandas=1.3.5
 
 You need to add the folder where your xharpy *directory* is located to the 
-$PYTHONPATH. As long as there is no installation routine you can do this by
+$PYTHONPATH. If you are unsure the directory should be one level above the one
+where the ``__init__.py`` is located. As long as there is no installation
+routine you can do this by
 
 .. code-block:: console
 

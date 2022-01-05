@@ -45,3 +45,8 @@ For difference electron density calculation
 This does not mean, that the library will not work with other versions. I tried
 not to use the newest of features, but I do not have the means/time to test how
 much older or newer the versions can be before things start to break.
+
+Documentation
+-------------
+
+With the sphinx package 

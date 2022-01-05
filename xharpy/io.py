@@ -526,6 +526,38 @@ def shelxl_hkl2pd(hkl_name: str) -> pd.DataFrame:
         raise ValueError('Could not read hkl_file, more than 6 or less than 5 columns found')
     return df
 
+def xd_hkl2pd(
+    path: str
+) -> pd.DataFrame:
+    """Returns the reflection intensity DataFrame from an XD hkl file.
+    Currently, only F^2 with NDAT 7 is implemented as format
+
+    Parameters
+    ----------
+    path : str
+        Path to hkl file
+
+    Returns
+    -------
+    hkl: pd.DataFrame
+        Dataframe with named columns: 'h', 'k', 'l', 'dataset', 'intensity',
+        'esd_int', 'scale'
+
+    Raises
+    ------
+    NotImplementedError
+        Format of xd.hkl currently not implemented.
+    """
+    with open(path, 'r') as fo:
+        first_line = fo.readlines()[0]
+    options = first_line.split()
+    if options[1] != 'F^2' or options[3] != '7':
+        raise NotImplementedError('Currently only F^2 and NDAT 7 is implemented')
+
+    hkl = pd.read_csv(path, skiprows=1, header=None, sep='\s+')
+    hkl.columns = ['h', 'k', 'l', 'dataset', 'intensity', 'esd_int', 'scale']
+    return hkl
+
 def fcf2hkl_pd(
     fcf_path: str,
     fcf_dataset: Union[str, int] = 0

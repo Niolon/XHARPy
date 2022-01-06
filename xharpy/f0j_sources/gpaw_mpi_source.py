@@ -4,6 +4,7 @@ import subprocess
 import os
 import pickle
 from typing import Any, Dict, List, Tuple
+import shlex
 
 
 from scipy.interpolate import interp1d
@@ -522,7 +523,7 @@ def calc_f0j(
     #time.sleep(1)
 
     if ncores is None:
-        res = subprocess.run('mpiexec gpaw python step1.py', shell=True)
+        res = subprocess.run(shlex.split('mpiexec gpaw python step1.py'))
     else:
         res = subprocess.run(f'mpiexec -n {ncores} gpaw python step1.py', shell=True)
 

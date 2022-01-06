@@ -51,4 +51,4 @@ much older or newer the versions can be before things start to break.
 Documentation
 -------------
 
-With the sphinx package 
+With the sphinx package and

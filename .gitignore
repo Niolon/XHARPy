@@ -4,7 +4,7 @@
 *.py[cod]
 
 *.gpw
-**/build
+**/doctrees
 **/xharpy_output
 **/.vscode
 

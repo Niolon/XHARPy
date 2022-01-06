@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>xharpy.f0j_sources package &mdash; xHARPy 0.1.1 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="xharpy.f0j_sources.rho package" href="xharpy.f0j_sources.rho.html" />
+    <link rel="prev" title="xharpy package" href="xharpy.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> xHARPy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="commandline.html">Command Line Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="library/library_index.html">Scripting with xHARPy</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">xharpy</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="xharpy.html">xharpy package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="xharpy.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">xharpy.f0j_sources package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="xharpy.html#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xharpy.html#module-xharpy.cli">xharpy.cli module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xharpy.html#module-xharpy.conversion">xharpy.conversion module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xharpy.html#module-xharpy.core">xharpy.core module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xharpy.html#module-xharpy.io">xharpy.io module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xharpy.html#module-xharpy.paper">xharpy.paper module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xharpy.html#module-xharpy.quality">xharpy.quality module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xharpy.html#module-xharpy.restraints">xharpy.restraints module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xharpy.html#module-xharpy.weighting">xharpy.weighting module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="xharpy.html#module-xharpy">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="xharpy.html">xharpy package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="xharpy.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">xharpy.f0j_sources package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#module-xharpy.f0j_sources">Module contents</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#subpackages">Subpackages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-xharpy.f0j_sources.gpaw_lcorr_source">xharpy.f0j_sources.gpaw_lcorr_source module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-xharpy.f0j_sources.gpaw_mbis_source">xharpy.f0j_sources.gpaw_mbis_source module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-xharpy.f0j_sources.gpaw_mpi_source">xharpy.f0j_sources.gpaw_mpi_source module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-xharpy.f0j_sources.gpaw_source">xharpy.f0j_sources.gpaw_source module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-xharpy.f0j_sources.gpaw_spherical_source">xharpy.f0j_sources.gpaw_spherical_source module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-xharpy.f0j_sources.iam_source">xharpy.f0j_sources.iam_source module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-xharpy.f0j_sources.qe_source">xharpy.f0j_sources.qe_source module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-xharpy.f0j_sources.real_spher_harm">xharpy.f0j_sources.real_spher_harm module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="xharpy.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xharpy.html#module-xharpy.cli">xharpy.cli module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xharpy.html#module-xharpy.conversion">xharpy.conversion module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xharpy.html#module-xharpy.core">xharpy.core module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xharpy.html#module-xharpy.io">xharpy.io module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xharpy.html#module-xharpy.paper">xharpy.paper module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xharpy.html#module-xharpy.quality">xharpy.quality module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xharpy.html#module-xharpy.restraints">xharpy.restraints module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xharpy.html#module-xharpy.weighting">xharpy.weighting module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xharpy.html#module-xharpy">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">xharpy.f0j_sources package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-xharpy.f0j_sources">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#usage">Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#development">Development</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="xharpy.f0j_sources.rho.html">xharpy.f0j_sources.rho package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-xharpy.f0j_sources.gpaw_lcorr_source">xharpy.f0j_sources.gpaw_lcorr_source module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-xharpy.f0j_sources.gpaw_mbis_source">xharpy.f0j_sources.gpaw_mbis_source module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-xharpy.f0j_sources.gpaw_mpi_source">xharpy.f0j_sources.gpaw_mpi_source module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-xharpy.f0j_sources.gpaw_source">xharpy.f0j_sources.gpaw_source module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-xharpy.f0j_sources.gpaw_spherical_source">xharpy.f0j_sources.gpaw_spherical_source module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-xharpy.f0j_sources.iam_source">xharpy.f0j_sources.iam_source module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-xharpy.f0j_sources.qe_source">xharpy.f0j_sources.qe_source module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-xharpy.f0j_sources.real_spher_harm">xharpy.f0j_sources.real_spher_harm module</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">xHARPy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="modules.html">xharpy</a> &raquo;</li>
+          <li><a href="xharpy.html">xharpy package</a> &raquo;</li>
+      <li>xharpy.f0j_sources package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/xharpy.f0j_sources.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="xharpy-f0j-sources-package">
+<h1>xharpy.f0j_sources package<a class="headerlink" href="#xharpy-f0j-sources-package" title="Permalink to this headline"></a></h1>
+<div class="section" id="module-xharpy.f0j_sources">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-xharpy.f0j_sources" title="Permalink to this headline"></a></h2>
+<p>These modules provide the possibility to generate atomic form factors for the
+use in xHARPy.</p>
+<div class="section" id="usage">
+<h3>Usage<a class="headerlink" href="#usage" title="Permalink to this headline"></a></h3>
+<p>Each of the modules has to implement three functions:</p>
+<dl class="simple">
+<dt>calc_f0j</dt><dd><p>Calculates the atomic form factors that have to be recalculated during the
+refinement</p>
+</dd>
+<dt>calc_f0j_core</dt><dd><p>Calculates the frozen core density on a spherical grid. This means it is
+only calculated once for each refinement. The core density can therefore
+be integrated on much smaller steps close to the core position</p>
+</dd>
+<dt>generate_cif_output</dt><dd><p>Generates the output for the cif file that represents how the atomic
+form factors were obtained</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="development">
+<h3>Development<a class="headerlink" href="#development" title="Permalink to this headline"></a></h3>
+<p>If you want to write your own new way of calculating atomic form factors you
+can write a new module within the f0j_sources folder.</p>
+<p>In addition to the the implementation of the three functions they need to be
+added to the core.refine function and to the io.write_cif functions with the
+same selection key in the refinement_dict[‘f0j_source’]</p>
+</div>
+</div>
+<div class="section" id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="xharpy.f0j_sources.rho.html">xharpy.f0j_sources.rho package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="xharpy.f0j_sources.rho.html#module-xharpy.f0j_sources.rho">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline"></a></h2>
+</div>
+<div class="section" id="module-xharpy.f0j_sources.gpaw_lcorr_source">
+<span id="xharpy-f0j-sources-gpaw-lcorr-source-module"></span><h2>xharpy.f0j_sources.gpaw_lcorr_source module<a class="headerlink" href="#module-xharpy.f0j_sources.gpaw_lcorr_source" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_lcorr_source.HirshfeldDensity">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_lcorr_source.</span></span><span class="sig-name descname"><span class="pre">HirshfeldDensity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">calculator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_lcorr_source.HirshfeldDensity" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">gpaw.density.RealSpaceDensity</span></code></p>
+<p>Density as sum of atomic densities.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_lcorr_source.HirshfeldDensity.get_density">
+<span class="sig-name descname"><span class="pre">get_density</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atom_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gridrefinement</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_core</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_lcorr_source.HirshfeldDensity.get_density" title="Permalink to this definition"></a></dt>
+<dd><p>Get sum of atomic densities from the given atom list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atom_indices</strong> (<em>list_like</em>) – All atoms are taken if the list is not given.</p></li>
+<li><p><strong>gridrefinement</strong> (<em>1</em><em>, </em><em>2</em><em>, </em><em>4</em>) – Gridrefinement given to get_all_electron_density</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>spin summed density, grid_descriptor</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>type</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_lcorr_source.HirshfeldDensity.set_positions">
+<span class="sig-name descname"><span class="pre">set_positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spos_ac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_partition</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_lcorr_source.HirshfeldDensity.set_positions" title="Permalink to this definition"></a></dt>
+<dd><p>HirshfeldDensity builds a hack density object to calculate
+all electron density
+of atoms. This methods overrides the parallel distribution of
+atomic density matrices
+in density.py</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_lcorr_source.HirshfeldPartitioning">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_lcorr_source.</span></span><span class="sig-name descname"><span class="pre">HirshfeldPartitioning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">calculator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">density_cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-12</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_lcorr_source.HirshfeldPartitioning" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Partion space according to the Hirshfeld method.</p>
+<p>After: F. L. Hirshfeld Theoret. Chim.Acta 44 (1977) 129-138</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_lcorr_source.HirshfeldPartitioning.get_calculator">
+<span class="sig-name descname"><span class="pre">get_calculator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_lcorr_source.HirshfeldPartitioning.get_calculator" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_lcorr_source.HirshfeldPartitioning.get_charges">
+<span class="sig-name descname"><span class="pre">get_charges</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">den_g</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_lcorr_source.HirshfeldPartitioning.get_charges" title="Permalink to this definition"></a></dt>
+<dd><p>Charge on the atom according to the Hirshfeld partitioning</p>
+<p>Can be applied to any density den_g.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_lcorr_source.HirshfeldPartitioning.get_effective_volume_ratio">
+<span class="sig-name descname"><span class="pre">get_effective_volume_ratio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atom_index</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_lcorr_source.HirshfeldPartitioning.get_effective_volume_ratio" title="Permalink to this definition"></a></dt>
+<dd><p>Effective volume to free volume ratio.</p>
+<p>After: Tkatchenko and Scheffler PRL 102 (2009) 073005, eq. (7)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_lcorr_source.HirshfeldPartitioning.get_effective_volume_ratios">
+<span class="sig-name descname"><span class="pre">get_effective_volume_ratios</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_lcorr_source.HirshfeldPartitioning.get_effective_volume_ratios" title="Permalink to this definition"></a></dt>
+<dd><p>Return the list of effective volume to free volume ratios.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_lcorr_source.HirshfeldPartitioning.get_weight">
+<span class="sig-name descname"><span class="pre">get_weight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atom_index</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_lcorr_source.HirshfeldPartitioning.get_weight" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_lcorr_source.HirshfeldPartitioning.initialize">
+<span class="sig-name descname"><span class="pre">initialize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_lcorr_source.HirshfeldPartitioning.initialize" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_lcorr_source.calc_f0j">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_lcorr_source.</span></span><span class="sig-name descname"><span class="pre">calc_f0j</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_symbols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uij</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_vec_h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symm_mats_vecs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restart</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">explicit_core</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_lcorr_source.calc_f0j" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate the aspherical atomic form factors from a density grid in the python package gpaw
+for each reciprocal lattice vector present in index_vec_h.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_lcorr_source.calc_f0j_core">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_lcorr_source.</span></span><span class="sig-name descname"><span class="pre">calc_f0j_core</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_symbols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_vec_h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symm_mats_vecs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_lcorr_source.calc_f0j_core" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_lcorr_source.f_core_from_spline">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_lcorr_source.</span></span><span class="sig-name descname"><span class="pre">f_core_from_spline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spline</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">g_k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">13</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_lcorr_source.f_core_from_spline" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-xharpy.f0j_sources.gpaw_mbis_source">
+<span id="xharpy-f0j-sources-gpaw-mbis-source-module"></span><h2>xharpy.f0j_sources.gpaw_mbis_source module<a class="headerlink" href="#module-xharpy.f0j_sources.gpaw_mbis_source" title="Permalink to this headline"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_mbis_source.GridPart">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_mbis_source.</span></span><span class="sig-name descname"><span class="pre">GridPart</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">densnames</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_mbis_source.GridPart" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Helper class for collecting density grid data.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_mbis_source.calc_f0j">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_mbis_source.</span></span><span class="sig-name descname"><span class="pre">calc_f0j</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_symbols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_vec_h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symm_mats_vecs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restart</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">explicit_core</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_mbis_source.calc_f0j" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate the aspherical atomic form factors from a density grid in the python package gpaw
+for each reciprocal lattice vector present in index_vec_h.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_mbis_source.calc_f0j_core">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_mbis_source.</span></span><span class="sig-name descname"><span class="pre">calc_f0j_core</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_symbols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_vec_h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symm_mats_vecs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_mbis_source.calc_f0j_core" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_mbis_source.compute_augmentation_spheres">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_mbis_source.</span></span><span class="sig-name descname"><span class="pre">compute_augmentation_spheres</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">uniform_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setups</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atnums</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atcoords</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_mbis_source.compute_augmentation_spheres" title="Permalink to this definition"></a></dt>
+<dd><p>Compute the density density corrections within the muffin tin spheres on grids.
+Parametes
+———
+uniform_data, setups, atoms</p>
+<blockquote>
+<div><p>Data generated by get_uniform_grid_data and get_atomic_grid_data.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>atnums</dt><dd><p>Atomic numbers</p>
+</dd>
+<dt>atcoords</dt><dd><p>Atomic (nuclear) coordinates.</p>
+</dd>
+</dl>
+<p>All results are stored in the atoms argument.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_mbis_source.compute_uniform_points">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_mbis_source.</span></span><span class="sig-name descname"><span class="pre">compute_uniform_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">uniform_data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_mbis_source.compute_uniform_points" title="Permalink to this definition"></a></dt>
+<dd><p>Compute the trivial positions and weights of the uniform grid points.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_mbis_source.denspart_conventions">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_mbis_source.</span></span><span class="sig-name descname"><span class="pre">denspart_conventions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">uniform_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_mbis_source.denspart_conventions" title="Permalink to this definition"></a></dt>
+<dd><p>Convert all result from all the above functions into a format suitable for denspart.
+:param uniform_data: Dictionary with detailed data from the uniform grid of a GPAW calculation.
+:param atoms: List with dicationaries with atomic grid data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Dictionary with just the data needed for running denspart.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>density</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_mbis_source.dump_spline">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_mbis_source.</span></span><span class="sig-name descname"><span class="pre">dump_spline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setup</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_mbis_source.dump_spline" title="Permalink to this definition"></a></dt>
+<dd><p>Convert a spline from a GPAW atom setup.
+:param data: Dictionary in which the spline is stored.
+:param key: Used for making dictionary keys.
+:param y: Function values at the spline grid points.
+:param setup: The GPAW setup to which this spline belongs.
+:param l: Angular momentum.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_mbis_source.eval_correction">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_mbis_source.</span></span><span class="sig-name descname"><span class="pre">eval_correction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atom_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">setup_data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_mbis_source.eval_correction" title="Permalink to this definition"></a></dt>
+<dd><p>Compute the pseudo to all-electron corrections for one muffin-tin sphere.
+:param atom_data: Dictionary with the density matrices.
+:param setup_data: Atomic (basis) functions stored on radial grids.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The atomic grid for integrations in the muffin tin sphere.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>grid</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Conventions used in variable names, following GPAW conventions:
+- with t = pseudo
+- without t = all-electron
+- c = core
+- v = valence</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_mbis_source.generate_cif_output">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_mbis_source.</span></span><span class="sig-name descname"><span class="pre">generate_cif_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_mbis_source.generate_cif_output" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_mbis_source.get_atomic_grid_data">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_mbis_source.</span></span><span class="sig-name descname"><span class="pre">get_atomic_grid_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">calc</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_mbis_source.get_atomic_grid_data" title="Permalink to this definition"></a></dt>
+<dd><p>Load atomic setups and atomic wavefunctions from GPAW calculation.
+:param calc: GPAW calculator instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><em>setups</em> – A dictionary with atomic setups used. Keys are atomic numbers and values are
+dictionaries with relevant data for later evaluation of the density corrections
+within the augmentation spheres.</p></li>
+<li><p><em>atoms</em> – A list with atomic wavefunction data. Contains dm and optional spindm.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_mbis_source.get_horton2_order">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_mbis_source.</span></span><span class="sig-name descname"><span class="pre">get_horton2_order</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ls</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_mbis_source.get_horton2_order" title="Permalink to this definition"></a></dt>
+<dd><p>Return a permutation of the basis functions to obtain HORTON 2 conventions.
+:param ls: Array with angular momenta of the basis functions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Reordering of the basis functions.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>permutation</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_mbis_source.get_uniform_grid_data">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_mbis_source.</span></span><span class="sig-name descname"><span class="pre">get_uniform_grid_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">calc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cellvecs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atnums</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_mbis_source.get_uniform_grid_data" title="Permalink to this definition"></a></dt>
+<dd><p>Take the (pseudo) density on the the uniform grid. This is the easy part.
+:param calc: GPAW calculator instance.
+:param cellvecs: 3 x 3 array whose rows are cell vectors.
+:param atnums: Array with atomic numbers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Dictionary with several items extracted from the GPAW calculator.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>uniform_data</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_mbis_source.prepare_input">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_mbis_source.</span></span><span class="sig-name descname"><span class="pre">prepare_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">calc</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_mbis_source.prepare_input" title="Permalink to this definition"></a></dt>
+<dd><p>Prepare input for denspart from a GPAW run.
+:param atoms: A list of ASE atoms from a GPAW calculation.
+:param calc: The GPAW calculator instance</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A dictionary with all input data for a partitioning.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>input_data</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_mbis_source.spherical_harmonics">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_mbis_source.</span></span><span class="sig-name descname"><span class="pre">spherical_harmonics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">work</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lmax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">racah</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_mbis_source.spherical_harmonics" title="Permalink to this definition"></a></dt>
+<dd><p>Recursive calculation of spherical harmonics.
+:param work: The input and output array. First three elements should contain x, y and z.</p>
+<blockquote>
+<div><p>After calling this function, the spherical harmonics are stored in Horton 2
+order: c10 c11 s11 c20 c21 s21 c22 s22 c30 c31 s31 c32 s32 c33 s33 …
+(c stands for cosine-like, s for sine like, first ditit is l, second digit is m.)</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lmax</strong> – Maximum angular momentum. The work array should have at least (lmax + 1)**2 - 1
+elements along the first dimension.</p></li>
+<li><p><strong>solid</strong> – When True, the real regular solid harmonics are computed instead of the normal
+spherical harmonics.</p></li>
+<li><p><strong>racah</strong> – Use Racah’s normalization. The default is False for conventional spherical harmonics
+and True for solid harmonics. Setting this to False for solid harmonics will
+raise an error. When <code class="docutils literal notranslate"><span class="pre">racah==True</span></code>, the L2 norm of the spherical harmonics is
+4 pi / (2 l + 1).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-xharpy.f0j_sources.gpaw_mpi_source">
+<span id="xharpy-f0j-sources-gpaw-mpi-source-module"></span><h2>xharpy.f0j_sources.gpaw_mpi_source module<a class="headerlink" href="#module-xharpy.f0j_sources.gpaw_mpi_source" title="Permalink to this headline"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_mpi_source.calc_f0j">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_mpi_source.</span></span><span class="sig-name descname"><span class="pre">calc_f0j</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_symbols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_vec_h</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symm_mats_vecs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restart</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">explicit_core</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_mpi_source.calc_f0j" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate the atomic form factor or atomic valence form factors using
+GPAW with MPI for the multi-core calculation. If you have problems and
+are in a jupyter notebook you probably need to restart. This routine will
+not work if GPAW has been loaded anywhere else.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cell_mat_m</strong> (<em>np.ndarray</em>) – size (3, 3) array with the unit cell vectors as row vectors</p></li>
+<li><p><strong>element_symbols</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – element symbols (i.e. ‘Na’) for all the atoms within the asymmetric unit</p></li>
+<li><p><strong>positions</strong> (<em>np.ndarray</em>) – atomic positions in fractional coordinates for all the atoms within
+the asymmetric unit</p></li>
+<li><p><strong>index_vec_h</strong> (<em>np.ndarray</em>) – size (H) vector containing Miller indicees of the measured reflections</p></li>
+<li><p><strong>symm_mats_vecs</strong> (<em>Tuple</em><em>[</em><em>np.ndarray</em><em>, </em><em>np.ndarray</em><em>]</em>) – size (K, 3, 3) array of symmetry  matrices and (K, 3) array of
+translation vectors for all symmetry elements in the unit cell</p></li>
+<li><p><strong>computation_dict</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – <p>contains options for the atomic form factor calculation. The function
+will use and exclude the following options from the dictionary and pass
+the rest onto the GPAW calculator without further checks.</p>
+<blockquote>
+<div><ul>
+<li><p>save_file (str): Path to the file that is used for saving and
+loading DFT results, by default ‘gpaw_result.gpw’</p></li>
+<li><p>gridinterpolation (1, 2, 4): Using GPAWs interpolation this is the
+factor by which the grid from the wave function will be interpolated
+for the calculation of atomic form factors with FFT. This can be
+reduced if you run out of memory for this step. Allowed values are
+1, 2, and 4, by default 4</p></li>
+<li><p>average_symmequiv (bool): If True will first calculate the atomic
+form factors of symmetry equivalent atoms and than average them
+(taking symmetry into account) before then assigning the symmetry
+transformed average value to all atoms. Is slower and not necessary
+for most cases, but might be helpful with numerical stability for
+small grids, by default False</p></li>
+<li><p>skip_symm (Dict[int, List[int]]): Can used to prevent the
+expansion of the atom(s) with the index(es) given as dictionary keys
+as given in the construction_instructions with the symmetry
+operations of the indexes given in the list, which correspond to the
+indexes in the symm_mats_vecs object. This has proven to be
+successful for the calculation of atoms disordered on special
+positions. Can only be used with average_symmequiv, by default {}</p></li>
+<li><p>magmoms (np.ndarray): Experimental: starting values for magnetic
+moments of atoms. These will be expanded to atoms in the unit cell
+by just applying the same magnetic moment to all symmetry equivalent
+atoms. This is probably too simplistic and will fail.</p></li>
+<li><p>mpicores (Union[int, str]): give the number of cores used for the
+mpi calculation. If this is ‘auto’ GPAW will select the number
+itself, by default ‘auto’</p></li>
+</ul>
+</div></blockquote>
+<p>For the allowed options of the GPAW calculator consult:
+<a class="reference external" href="https://wiki.fysik.dtu.dk/gpaw/documentation/basic.html">https://wiki.fysik.dtu.dk/gpaw/documentation/basic.html</a></p>
+</p></li>
+<li><p><strong>restart</strong> (<em>str</em><em>, </em><em>optional</em>) – File with the starting density for the DFT calculation, by default None</p></li>
+<li><p><strong>explicit_core</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True the frozen core density is assumed to be calculated separately,
+therefore only the valence density will be split up, by default True</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>f0j</strong> – size (K, N, H) array of atomic form factors for all reflections and symmetry
+generated atoms within the unit cells. Atoms on special positions are
+present multiple times and have the atomic form factor of the full atom.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_mpi_source.calc_f0j_core">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_mpi_source.</span></span><span class="sig-name descname"><span class="pre">calc_f0j_core</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_symbols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_vec_h</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symm_mats_vecs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_mpi_source.calc_f0j_core" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate the core atomic form factors on an exponential spherical grid.
+Up to 5000 reflections every reflection will be calculated explicitely.
+Above that a spline will be generated from 5000 points on an exponential
+grid. The spline is then used to calculate the individual atomic core form
+factor values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cell_mat_m</strong> (<em>np.ndarray</em>) – size (3, 3) array with the unit cell vectors as row vectors</p></li>
+<li><p><strong>element_symbols</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – element symbols (i.e. ‘Na’) for all the atoms within the asymmetric unit</p></li>
+<li><p><strong>positions</strong> (<em>np.ndarray</em>) – atomic positions in fractional coordinates for all the atoms within
+the asymmetric unit</p></li>
+<li><p><strong>index_vec_h</strong> (<em>np.ndarray</em>) – size (H) vector containing Miller indicees of the measured reflections</p></li>
+<li><p><strong>symm_mats_vecs</strong> (<em>Tuple</em><em>[</em><em>np.ndarray</em><em>, </em><em>np.ndarray</em><em>]</em>) – size (K, 3, 3) array of symmetry  matrices and (K, 3) array of
+translation vectors for all symmetry elements in the unit cell</p></li>
+<li><p><strong>computation_dict</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – contains options for the calculation. The custom options will be ignored
+and everything else is passed on to GPAW for initialisation. The only
+option that makes a difference here is which setups are used. (Need to
+be same as in calc_f0j)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>f0j_core</strong> – size (N, H) array of atomic core form factors calculated separately</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_mpi_source.generate_cif_output">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_mpi_source.</span></span><span class="sig-name descname"><span class="pre">generate_cif_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_mpi_source.generate_cif_output" title="Permalink to this definition"></a></dt>
+<dd><p>Generates at string, that details the computation options for use in the
+cif generation routine.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>computation_dict</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – contains options for the calculation.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>cif_string</strong> – The string that will be added to the cif-file</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-xharpy.f0j_sources.gpaw_source">
+<span id="xharpy-f0j-sources-gpaw-source-module"></span><h2>xharpy.f0j_sources.gpaw_source module<a class="headerlink" href="#module-xharpy.f0j_sources.gpaw_source" title="Permalink to this headline"></a></h2>
+<p>This module provides the necessary functions for calculating atomic form
+factors using the GPAW library in single-core mode.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_source.HirshfeldDensity">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_source.</span></span><span class="sig-name descname"><span class="pre">HirshfeldDensity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">calculator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_source.HirshfeldDensity" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">gpaw.density.RealSpaceDensity</span></code></p>
+<p>Density as sum of atomic densities.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_source.HirshfeldDensity.get_density">
+<span class="sig-name descname"><span class="pre">get_density</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atom_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gridrefinement</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_core</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_source.HirshfeldDensity.get_density" title="Permalink to this definition"></a></dt>
+<dd><p>Get sum of atomic densities from the given atom list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atom_indices</strong> (<em>list_like</em>) – All atoms are taken if the list is not given.</p></li>
+<li><p><strong>gridrefinement</strong> (<em>1</em><em>, </em><em>2</em><em>, </em><em>4</em>) – Gridrefinement given to get_all_electron_density</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>spin summed density, grid_descriptor</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>type</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_source.HirshfeldDensity.set_positions">
+<span class="sig-name descname"><span class="pre">set_positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spos_ac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_partition</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_source.HirshfeldDensity.set_positions" title="Permalink to this definition"></a></dt>
+<dd><p>HirshfeldDensity builds a hack density object to calculate
+all electron density
+of atoms. This methods overrides the parallel distribution of
+atomic density matrices
+in density.py</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_source.HirshfeldPartitioning">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_source.</span></span><span class="sig-name descname"><span class="pre">HirshfeldPartitioning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">calculator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">density_cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-12</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_source.HirshfeldPartitioning" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Partion space according to the Hirshfeld method.</p>
+<p>After: F. L. Hirshfeld Theoret. Chim.Acta 44 (1977) 129-138</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_source.HirshfeldPartitioning.get_calculator">
+<span class="sig-name descname"><span class="pre">get_calculator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_source.HirshfeldPartitioning.get_calculator" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_source.HirshfeldPartitioning.get_charges">
+<span class="sig-name descname"><span class="pre">get_charges</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">den_g</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_source.HirshfeldPartitioning.get_charges" title="Permalink to this definition"></a></dt>
+<dd><p>Charge on the atom according to the Hirshfeld partitioning</p>
+<p>Can be applied to any density den_g.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_source.HirshfeldPartitioning.get_effective_volume_ratio">
+<span class="sig-name descname"><span class="pre">get_effective_volume_ratio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atom_index</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_source.HirshfeldPartitioning.get_effective_volume_ratio" title="Permalink to this definition"></a></dt>
+<dd><p>Effective volume to free volume ratio.</p>
+<p>After: Tkatchenko and Scheffler PRL 102 (2009) 073005, eq. (7)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_source.HirshfeldPartitioning.get_effective_volume_ratios">
+<span class="sig-name descname"><span class="pre">get_effective_volume_ratios</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_source.HirshfeldPartitioning.get_effective_volume_ratios" title="Permalink to this definition"></a></dt>
+<dd><p>Return the list of effective volume to free volume ratios.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_source.HirshfeldPartitioning.get_weight">
+<span class="sig-name descname"><span class="pre">get_weight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atom_index</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_source.HirshfeldPartitioning.get_weight" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_source.HirshfeldPartitioning.initialize">
+<span class="sig-name descname"><span class="pre">initialize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_source.HirshfeldPartitioning.initialize" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_source.calc_f0j">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_source.</span></span><span class="sig-name descname"><span class="pre">calc_f0j</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_symbols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_vec_h</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symm_mats_vecs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restart</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">explicit_core</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_source.calc_f0j" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate the atomic form factor or atomic valence form factors using
+GPAW.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cell_mat_m</strong> (<em>np.ndarray</em>) – size (3, 3) array with the unit cell vectors as row vectors</p></li>
+<li><p><strong>element_symbols</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – element symbols (i.e. ‘Na’) for all the atoms within the asymmetric unit</p></li>
+<li><p><strong>positions</strong> (<em>np.ndarray</em>) – atomic positions in fractional coordinates for all the atoms within
+the asymmetric unit</p></li>
+<li><p><strong>index_vec_h</strong> (<em>np.ndarray</em>) – size (H) vector containing Miller indicees of the measured reflections</p></li>
+<li><p><strong>symm_mats_vecs</strong> (<em>Tuple</em><em>[</em><em>np.ndarray</em><em>, </em><em>np.ndarray</em><em>]</em>) – size (K, 3, 3) array of symmetry  matrices and (K, 3) array of
+translation vectors for all symmetry elements in the unit cell</p></li>
+<li><p><strong>computation_dict</strong> – <p>contains options for the atomic form factor calculation. The function
+will use and exclude the following options from the dictionary and pass
+the rest onto the GPAW calculator without further checks.</p>
+<blockquote>
+<div><ul>
+<li><p>save_file (str): Path to the file that is used for saving and
+loading DFT results, by default ‘gpaw_result.gpw’</p></li>
+<li><p>gridinterpolation (1, 2, 4): Using GPAWs interpolation this is the
+factor by which the grid from the wave function will be interpolated
+for the calculation of atomic form factors with FFT. This can be
+reduced if you run out of memory for this step. Allowed values are
+1, 2, and 4, by default 4</p></li>
+<li><p>average_symmequiv (bool): If True will first calculate the atomic
+form factors of symmetry equivalent atoms and than average them
+(taking symmetry into account) before then assigning the symmetry
+transformed average value to all atoms. Is slower and not necessary
+for most cases, but might be helpful with numerical stability for
+small grids, by default False</p></li>
+<li><p>skip_symm (Dict[int, List[int]]): Can used to prevent the
+expansion of the atom(s) with the index(es) given as dictionary keys
+as given in the construction_instructions with the symmetry
+operations of the indexes given in the list, which correspond to the
+indexes in the symm_mats_vecs object. This has proven to be
+successful for the calculation of atoms disordered on special
+positions. Can only be used with average_symmequiv, by default {}</p></li>
+<li><p>magmoms (np.ndarray): Experimental: starting values for magnetic
+moments of atoms. These will be expanded to atoms in the unit cell
+by just applying the same magnetic moment to all symmetry equivalent
+atoms. This is probably too simplistic and will fail.</p></li>
+</ul>
+</div></blockquote>
+</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="simple">
+<dt>restart<span class="classifier">bool, optional</span></dt><dd><p>If true, the DFT calculation will be restarted from a previous calculation</p>
+</dd>
+<dt>explicit_core<span class="classifier">bool, optional</span></dt><dd><p>If True the frozen core density is assumed to be calculated separately,
+therefore only the valence density will be split up, by default True</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><strong>f0j</strong> – size (K, N, H) array of atomic form factors for all reflections and symmetry
+generated atoms within the unit cells. Atoms on special positions are
+present multiple times and have the atomic form factor of the full atom.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_source.calc_f0j_core">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_source.</span></span><span class="sig-name descname"><span class="pre">calc_f0j_core</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_symbols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_vec_h</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symm_mats_vecs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_source.calc_f0j_core" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate the core atomic form factors on an exponential spherical grid.
+Up to 5000 reflections every reflection will be calculated explicitely.
+Above that a spline will be generated from 5000 points on an exponential
+grid. The spline is then used to calculate the individual atomic core form
+factor values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cell_mat_m</strong> (<em>np.ndarray</em>) – size (3, 3) array with the unit cell vectors as row vectors</p></li>
+<li><p><strong>element_symbols</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – element symbols (i.e. ‘Na’) for all the atoms within the asymmetric unit</p></li>
+<li><p><strong>positions</strong> (<em>np.ndarray</em>) – atomic positions in fractional coordinates for all the atoms within
+the asymmetric unit</p></li>
+<li><p><strong>index_vec_h</strong> (<em>np.ndarray</em>) – size (H) vector containing Miller indicees of the measured reflections</p></li>
+<li><p><strong>symm_mats_vecs</strong> (<em>Tuple</em><em>[</em><em>np.ndarray</em><em>, </em><em>np.ndarray</em><em>]</em>) – size (K, 3, 3) array of symmetry  matrices and (K, 3) array of
+translation vectors for all symmetry elements in the unit cell</p></li>
+<li><p><strong>computation_dict</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – contains options for the calculation. The custom options will be ignored
+and everything else is passed on to GPAW for initialisation. The only
+option that makes a difference here is which setups are used. (Need to
+be same as in calc_f0j)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>f0j_core</strong> – size (N, H) array of atomic core form factors calculated separately</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_source.f_core_from_spline">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_source.</span></span><span class="sig-name descname"><span class="pre">f_core_from_spline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spline</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">g_k</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">13</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_source.f_core_from_spline" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate the spherical atomic form factor from a core density spline</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spline</strong> (<em>Any</em>) – GPAW spline containing the core density for expansion. Anything else
+with a map and get_cutoff function should work too. The unit of length
+needs to be identical to the reciprocal of the unit used in g_k.</p></li>
+<li><p><strong>g_k</strong> (<em>np.ndarray</em>) – reciprocal distances to origin for all. Reciprocal unit of length
+needs to be identical to the one used in the spline</p></li>
+<li><p><strong>k</strong> (<em>int</em><em>, </em><em>optional</em>) – determines the number of distance points used for the evaluation
+as 2**k + 1. The first point is always zero, the other points are
+determined by np.exp(-1 * np.linspace(1.25 * k, 0.0 , 2**k)) * r_max,
+by default 13</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>f0j_core</strong> – calculated core atomic form factors for the reciprocal distances given
+in g_k</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_source.generate_cif_output">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_source.</span></span><span class="sig-name descname"><span class="pre">generate_cif_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_source.generate_cif_output" title="Permalink to this definition"></a></dt>
+<dd><p>Generates at string, that details the computation options for use in the
+cif generation routine.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>computation_dict</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – contains options for the calculation.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The string that will be added to the cif-file</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-xharpy.f0j_sources.gpaw_spherical_source">
+<span id="xharpy-f0j-sources-gpaw-spherical-source-module"></span><h2>xharpy.f0j_sources.gpaw_spherical_source module<a class="headerlink" href="#module-xharpy.f0j_sources.gpaw_spherical_source" title="Permalink to this headline"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_spherical_source.calc_f0j">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_spherical_source.</span></span><span class="sig-name descname"><span class="pre">calc_f0j</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_symbols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_vec_h</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symm_mats_vecs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restart</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">explicit_core</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_spherical_source.calc_f0j" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate the atomic form factor or atomic valence form factors using
+GPAW and a spherical grid expansion onto a grid as implemented in HORTON.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cell_mat_m</strong> (<em>np.ndarray</em>) – size (3, 3) array with the unit cell vectors as row vectors</p></li>
+<li><p><strong>element_symbols</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – element symbols (i.e. ‘Na’) for all the atoms within the asymmetric unit</p></li>
+<li><p><strong>positions</strong> (<em>np.ndarray</em>) – atomic positions in fractional coordinates for all the atoms within
+the asymmetric unit</p></li>
+<li><p><strong>index_vec_h</strong> (<em>np.ndarray</em>) – size (H) vector containing Miller indicees of the measured reflections</p></li>
+<li><p><strong>symm_mats_vecs</strong> (<em>Tuple</em><em>[</em><em>np.ndarray</em><em>, </em><em>np.ndarray</em><em>]</em>) – size (K, 3, 3) array of symmetry  matrices and (K, 3) array of
+translation vectors for all symmetry elements in the unit cell</p></li>
+<li><p><strong>computation_dict</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – <p>contains options for the atomic form factor calculation. The function
+will use and exclude the following options from the dictionary and pass
+the rest onto the GPAW calculator without further checks.</p>
+<blockquote>
+<div><ul>
+<li><p>save_file (str): Path to the file that is used for saving and
+loading DFT results, by default ‘gpaw_result.gpw’</p></li>
+<li><p>spherical_grid (str): Can be used to select a grid. Possible options
+are: coarse, medium, fine, veryfine, ultrafine and insane, by
+by default ‘fine’</p></li>
+<li><p>skip_symm (Dict[int, List[int]]): Can used to prevent the
+expansion of the atom(s) with the index(es) given as dictionary keys
+as given in the construction_instructions with the symmetry
+operations of the indexes given in the list, which correspond to the
+indexes in the symm_mats_vecs object. This has proven to be
+successful for the calculation of atoms disordered on special
+positions. Can only be used with average_symmequiv, by default {}</p></li>
+<li><p>magmoms (np.ndarray): Experimental: starting values for magnetic
+moments of atoms. These will be expanded to atoms in the unit cell
+by just applying the same magnetic moment to all symmetry equivalent
+atoms. This is probably too simplistic and will fail.</p></li>
+</ul>
+</div></blockquote>
+<p>For the allowed options of the GPAW calculator consult:
+<a class="reference external" href="https://wiki.fysik.dtu.dk/gpaw/documentation/basic.html">https://wiki.fysik.dtu.dk/gpaw/documentation/basic.html</a></p>
+</p></li>
+<li><p><strong>restart</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, the DFT calculation will be restarted from a previous calculation</p></li>
+<li><p><strong>explicit_core</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True the frozen core density is assumed to be calculated separately,
+therefore only the valence density will be split up, by default True</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>f0j</strong> – size (K, N, H) array of atomic form factors for all reflections and symmetry
+generated atoms within the unit cells. Atoms on special positions are
+present multiple times and have the atomic form factor of the full atom.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_spherical_source.calc_f0j_core">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_spherical_source.</span></span><span class="sig-name descname"><span class="pre">calc_f0j_core</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_symbols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_vec_h</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symm_mats_vecs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_spherical_source.calc_f0j_core" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate the core atomic form factors on an exponential spherical grid.
+Up to 5000 reflections every reflection will be calculated explicitely.
+Above that a spline will be generated from 5000 points on an exponential
+grid. The spline is then used to calculate the individual atomic core form
+factor values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cell_mat_m</strong> (<em>np.ndarray</em>) – size (3, 3) array with the unit cell vectors as row vectors</p></li>
+<li><p><strong>element_symbols</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – element symbols (i.e. ‘Na’) for all the atoms within the asymmetric unit</p></li>
+<li><p><strong>positions</strong> (<em>np.ndarray</em>) – atomic positions in fractional coordinates for all the atoms within
+the asymmetric unit</p></li>
+<li><p><strong>index_vec_h</strong> (<em>np.ndarray</em>) – size (H) vector containing Miller indicees of the measured reflections</p></li>
+<li><p><strong>symm_mats_vecs</strong> (<em>Tuple</em><em>[</em><em>np.ndarray</em><em>, </em><em>np.ndarray</em><em>]</em>) – size (K, 3, 3) array of symmetry  matrices and (K, 3) array of
+translation vectors for all symmetry elements in the unit cell</p></li>
+<li><p><strong>computation_dict</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – contains options for the calculation. The custom options will be ignored
+and everything else is passed on to GPAW for initialisation. The only
+option that makes a difference here is which setups are used. (Need to
+be same as in calc_f0j)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>f0j_core</strong> – size (N, H) array of atomic core form factors calculated separately</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_spherical_source.f_core_from_spline">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_spherical_source.</span></span><span class="sig-name descname"><span class="pre">f_core_from_spline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spline</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">g_k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">13</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_spherical_source.f_core_from_spline" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.gpaw_spherical_source.generate_cif_output">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.gpaw_spherical_source.</span></span><span class="sig-name descname"><span class="pre">generate_cif_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#xharpy.f0j_sources.gpaw_spherical_source.generate_cif_output" title="Permalink to this definition"></a></dt>
+<dd><p>Generates at string, that details the computation options for use in the
+cif generation routine.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>computation_dict</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – contains options for the calculation.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The string that will be added to the cif-file</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-xharpy.f0j_sources.iam_source">
+<span id="xharpy-f0j-sources-iam-source-module"></span><h2>xharpy.f0j_sources.iam_source module<a class="headerlink" href="#module-xharpy.f0j_sources.iam_source" title="Permalink to this headline"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.iam_source.calc_f0j">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.iam_source.</span></span><span class="sig-name descname"><span class="pre">calc_f0j</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_symbols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_vec_h</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symm_mats_vecs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restart</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">explicit_core</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="headerlink" href="#xharpy.f0j_sources.iam_source.calc_f0j" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate the atomic form factor according to the tabulated values for
+the independent atom model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cell_mat_m</strong> (<em>np.ndarray</em>) – size (3, 3) array with the unit cell vectors as row vectors</p></li>
+<li><p><strong>element_symbols</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – element symbols (i.e. ‘Na’) for all the atoms within the asymmetric unit</p></li>
+<li><p><strong>positions</strong> (<em>np.ndarray</em>) – ignored</p></li>
+<li><p><strong>index_vec_h</strong> (<em>np.ndarray</em>) – size (H) vector containing Miller indicees of the measured reflections</p></li>
+<li><p><strong>symm_mats_vecs</strong> (<em>Tuple</em><em>[</em><em>np.ndarray</em><em>, </em><em>np.ndarray</em><em>]</em>) – size (K, 3, 3) array of symmetry  matrices and (K, 3) array of
+translation vectors for all symmetry elements in the unit cell</p></li>
+<li><p><strong>computation_dict</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – There are no options here, will be ignored</p></li>
+<li><p><strong>restart</strong> (<em>bool</em><em>, </em><em>optional</em>) – ignored</p></li>
+<li><p><strong>explicit_core</strong> (<em>bool</em><em>, </em><em>optional</em>) – ignored</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>f0j</strong> – size (K, N, H) array of atomic form factors for all reflections and symmetry
+generated atoms within the unit cells. Atoms on special positions are
+present multiple times and have the atomic form factor of the full atom.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.iam_source.calc_f0j_core">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.iam_source.</span></span><span class="sig-name descname"><span class="pre">calc_f0j_core</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.iam_source.calc_f0j_core" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.iam_source.generate_cif_output">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.iam_source.</span></span><span class="sig-name descname"><span class="pre">generate_cif_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#xharpy.f0j_sources.iam_source.generate_cif_output" title="Permalink to this definition"></a></dt>
+<dd><p>Generates at string, that details the computation options for use in the
+cif generation routine.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>computation_dict</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – ignored, there should be no options</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>cif_string</strong> – The string that will be added to the cif-file</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-xharpy.f0j_sources.qe_source">
+<span id="xharpy-f0j-sources-qe-source-module"></span><h2>xharpy.f0j_sources.qe_source module<a class="headerlink" href="#module-xharpy.f0j_sources.qe_source" title="Permalink to this headline"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.qe_source.calc_f0j">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">calc_f0j</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_symbols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_vec_h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symm_mats_vecs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restart</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">explicit_core</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.calc_f0j" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate the aspherical atomic form factors from a density grid in the python package gpaw
+for each reciprocal lattice vector present in index_vec_h.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.qe_source.calc_f0j_core">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">calc_f0j_core</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_symbols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_vec_h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.calc_f0j_core" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.qe_source.f_core_from_spline">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">f_core_from_spline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spline</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">g_k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">13</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.f_core_from_spline" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.qe_source.qe_atomic_density">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">qe_atomic_density</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">symm_symbols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symm_positions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.qe_atomic_density" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.qe_source.qe_density">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">qe_density</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">symm_symbols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symm_positions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.qe_density" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.qe_source.qe_entry_string">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">qe_entry_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">string_sign</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.qe_entry_string" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.qe_source.qe_pp_file">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">qe_pp_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.qe_pp_file" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.qe_source.qe_pw_file">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">qe_pw_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">symm_symbols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symm_positions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.qe_pw_file" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-xharpy.f0j_sources.real_spher_harm">
+<span id="xharpy-f0j-sources-real-spher-harm-module"></span><h2>xharpy.f0j_sources.real_spher_harm module<a class="headerlink" href="#module-xharpy.f0j_sources.real_spher_harm" title="Permalink to this headline"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.real_spher_harm.get_multiplication_instructions">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.real_spher_harm.</span></span><span class="sig-name descname"><span class="pre">get_multiplication_instructions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">l1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.real_spher_harm.get_multiplication_instructions" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.real_spher_harm.spherical_bessel">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.real_spher_harm.</span></span><span class="sig-name descname"><span class="pre">spherical_bessel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">l</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gr</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.real_spher_harm.spherical_bessel" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.f0j_sources.real_spher_harm.spherical_harmonic">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.real_spher_harm.</span></span><span class="sig-name descname"><span class="pre">spherical_harmonic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">l</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.real_spher_harm.spherical_harmonic" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="xharpy.html" class="btn btn-neutral float-left" title="xharpy package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="xharpy.f0j_sources.rho.html" class="btn btn-neutral float-right" title="xharpy.f0j_sources.rho package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Paul Niklas Ruth.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Refinement Options &mdash; xHARPy 0.1.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="xharpy" href="../modules.html" />
+    <link rel="prev" title="Constraints" href="library_symm_con.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> xHARPy
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../commandline.html">Command Line Interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples.html">Examples</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="library_index.html">Scripting with xHARPy</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="library_basis.html">Basic Use</a></li>
+<li class="toctree-l2"><a class="reference internal" href="library_symm_con.html">Constraints</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Refinement Options</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#f0j-source">f0j_source:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reload-step">reload_step:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#core">core:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#extinction">extinction:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#max-dist-recalc">max_dist_recalc:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#max-iter">max_iter:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#min-iter">min_iter:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#core-io">core_io:</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">xharpy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../xharpy.html">xharpy package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../xharpy.f0j_sources.html">xharpy.f0j_sources package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">xHARPy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="library_index.html">Scripting with xHARPy</a> &raquo;</li>
+      <li>Refinement Options</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/library/library_refinement_dict.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="refinement-options">
+<h1>Refinement Options<a class="headerlink" href="#refinement-options" title="Permalink to this headline"></a></h1>
+<p>These are the options that can be passed from to the <code class="docutils literal notranslate"><span class="pre">refinement_dict</span></code></p>
+<div class="section" id="f0j-source">
+<h2>f0j_source:<a class="headerlink" href="#f0j-source" title="Permalink to this headline"></a></h2>
+<p>Source of the atomic form factors. The computation_dict
+will be passed on to this method. See the individual files in
+f0j_sources for more information, by default ‘gpaw’
+Options: ‘gpaw’, ‘iam’, ‘gpaw_mpi’
+Some limitations: ‘gpaw_spherical’</p>
+</div>
+<div class="section" id="reload-step">
+<h2>reload_step:<a class="headerlink" href="#reload-step" title="Permalink to this headline"></a></h2>
+<p>Starting with this step the computation will try to reuse the
+density, if this is implemented in the source, by default 1</p>
+</div>
+<div class="section" id="core">
+<h2>core:<a class="headerlink" href="#core" title="Permalink to this headline"></a></h2>
+<p>If this is implemented in a f0j_source, it will integrate the
+frozen core density on a spherical grid and only use the valence
+density for the updated atomic form factor options are
+‘combine’, which will not treat the core density separately,
+‘constant’ which will integrate and add the core density without
+scaling parameter and ‘scale’ which will refine a scaling
+parameter for the core density which might for systematic
+deviations due to a coarse valence density grid (untested!)
+By default ‘constant’</p>
+</div>
+<div class="section" id="extinction">
+<h2>extinction:<a class="headerlink" href="#extinction" title="Permalink to this headline"></a></h2>
+<dl class="simple">
+<dt>Use an extinction correction. Options:</dt><dd><ul class="simple">
+<li><p>‘none’ means no extinction correction</p></li>
+<li><p>‘shelxl’ use the (empirical) formula used by SHELXL to correct to correct for extinction</p></li>
+<li><p>‘secondary’ see Giacovazzo et al. ‘Fundamentals of Crystallography’ (1992) p.97</p></li>
+</ul>
+</dd>
+</dl>
+<p>By default ‘none’</p>
+</div>
+<div class="section" id="max-dist-recalc">
+<h2>max_dist_recalc:<a class="headerlink" href="#max-dist-recalc" title="Permalink to this headline"></a></h2>
+<p>If the max difference in atomic positions is under this value in
+Angstroems, no new structure factors will be calculated, by
+default 1e-6</p>
+</div>
+<div class="section" id="max-iter">
+<h2>max_iter:<a class="headerlink" href="#max-iter" title="Permalink to this headline"></a></h2>
+<p>Maximum of refinement cycles if convergence not reached, by
+default: 100</p>
+</div>
+<div class="section" id="min-iter">
+<h2>min_iter:<a class="headerlink" href="#min-iter" title="Permalink to this headline"></a></h2>
+<p>Minimum refinement cycles. The refinement will stop if the
+wR2 increases if the current cycle is higher than min_iter,
+by default 10</p>
+</div>
+<div class="section" id="core-io">
+<h2>core_io:<a class="headerlink" href="#core-io" title="Permalink to this headline"></a></h2>
+<p>Expects a tuple where the first entry can be ‘save’, ‘load’, ‘none’
+which is the action that is taken with the core density. The
+second argument in the tuple is the filename, to which the core
+density is saved to or loaded from</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="library_symm_con.html" class="btn btn-neutral float-left" title="Constraints" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../modules.html" class="btn btn-neutral float-right" title="xharpy" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Paul Niklas Ruth.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

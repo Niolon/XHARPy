@@ -1,8 +1,10 @@
-xHARPy
+XHARPy
 ======
 
+::.. image:: XHARPy_logo.svg
 
-**xHARPY** (x-ray diffraction Hirshfeld Atom Refinement in Python) is a Python
+
+**XHARPY** (X-ray diffraction Hirshfeld Atom Refinement in Python) is a Python
 library that enables refinement with custom atomic form factor calculations.
 
 This is the first refinement library to implement the calculation of atomic form

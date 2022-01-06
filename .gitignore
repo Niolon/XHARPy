@@ -7,3 +7,13 @@
 **/build
 **/xharpy_output
 **/.vscode
+
+# Temporary file of gpaw_mpi
+step1.py
+step1_values.pic
+core.py
+core_values.pic
+core_r_values.pic
+step2.py
+step2_values.pic
+f0j.pic

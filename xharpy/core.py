@@ -288,7 +288,7 @@ def expand_symm_unique(
         n_atoms += unique_indexes.shape[0]
     if magmoms_symm is not None:
         magmoms_symm = np.array(magmoms_symm)
-    return un_positions.copy(), type_symbols_symm, np.array(inv_indexes), magmoms_symm
+    return un_positions.copy(), type_symbols_symm, np.array(inv_indexes, dtype=object), magmoms_symm
 
 
 @jax.jit

@@ -218,7 +218,7 @@ class HirshfeldPartitioning:
             charges.append(atom.number - finegd.integrate(weight_g * den_g))
         return charges
 
-def density_to_f0j(save, gridinterpolation, explicit_core, index_vec_h, symm_mats_vecs, symm_positions, positions, average_symmequiv, f0j_indexes):
+def density_to_f0j(save, gridinterpolation, explicit_core, index_vec_h, symm_mats_vecs, symm_positions, positions, symm_equiv, f0j_indexes):
     atoms, calc = gpaw.restart(save)
     e1 = atoms.get_potential_energy()
 
@@ -242,7 +242,7 @@ def density_to_f0j(save, gridinterpolation, explicit_core, index_vec_h, symm_mat
     assert density.shape[2] // 2 > index_vec_h[:,2].max(), 'Your gridspacing is too large.'
     f0j = np.zeros((symm_mats_vecs[0].shape[0], positions.shape[0], index_vec_h.shape[0]), dtype=np.complex128)
 
-    if average_symmequiv:
+    if symm_equiv == 'averaged':
         h, k, l = np.meshgrid(*map(lambda n: np.fft.fftfreq(n, 1/n).astype(np.int64), density.shape), indexing='ij')
         for atom_index, symm_atom_indexes in enumerate(f0j_indexes):
             f0j_sum = np.zeros_like(h, dtype=np.complex128)
@@ -257,7 +257,17 @@ def density_to_f0j(save, gridinterpolation, explicit_core, index_vec_h, symm_mat
             for symm_index, symm_matrix in enumerate(symm_mats_vecs[0]):
                 h_rot, k_rot, l_rot = np.einsum('xy, zy -> zx', symm_matrix.T, index_vec_h).astype(np.int64).T
                 f0j[symm_index, atom_index, :] = f0j_sum[h_rot, k_rot, l_rot]
-    else:
+    elif symm_equiv == 'once':
+        h, k, l = np.meshgrid(*map(lambda n: np.fft.fftfreq(n, 1/n).astype(np.int64), density.shape), indexing='ij')
+        for atom_index, (symm_atom_index, *_) in enumerate(f0j_indexes):
+            h_density = density * partitioning.hdensity.get_density([symm_atom_index], gridrefinement=gridinterpolation, skip_core=explicit_core)[0] / overall_hdensityy
+            frac_position = symm_positions[symm_atom_index]
+            phase_to_zero = np.exp(-2j * np.pi * (frac_position[0] * h + frac_position[1] * k + frac_position[2] * l))
+            f0j_symm1 = np.fft.ifftn(h_density) * phase_to_zero * np.prod(h.shape)
+            for symm_index, symm_matrix in enumerate(symm_mats_vecs[0]):
+                h_rot, k_rot, l_rot = np.einsum('xy, zy -> zx', symm_matrix.T, index_vec_h).astype(np.int64).T
+                f0j[symm_index, atom_index, :] = f0j_symm1[h_rot, k_rot, l_rot]    
+    elif symm_equiv == 'individually':
         #TODO Is a discrete Fourier Transform just of the hkl we need possibly faster? Can we then interpolate the density to get even better factors?
         # This could also save memory, fft is O(NlogN) naive dft is probably N^2
         h_vec, k_vec, l_vec = index_vec_h.T
@@ -404,12 +414,14 @@ def calc_f0j(
             reduced if you run out of memory for this step. Allowed values are
             1, 2, and 4, by default 4
 
-          - average_symmequiv (bool): If True will first calculate the atomic 
-            form factors of symmetry equivalent atoms and than average them 
-            (taking symmetry into account) before then assigning the symmetry
-            transformed average value to all atoms. Is slower and not necessary
-            for most cases, but might be helpful with numerical stability for 
-            small grids, by default False
+          - symm_equiv (str): The atomic form factors of symmetry equivalent
+            atoms can be calculated individually for each atom ('individually')
+            or they can be calculated once for each atom in the asymmetric unit
+            and expanded to the other atoms ('once'), finally they can be 
+            averaged between symmetry equivalent atoms and expanded afterwards
+            ('averaged'). Once should be sufficient for most structures and 
+            saves time. Try one of the other options if you suspect problems,
+            by default 'once'
 
           - skip_symm (Dict[int, List[int]]): Can used to prevent the
             expansion of the atom(s) with the index(es) given as dictionary keys
@@ -417,7 +429,8 @@ def calc_f0j(
             operations of the indexes given in the list, which correspond to the
             indexes in the symm_mats_vecs object. This has proven to be
             successful for the calculation of atoms disordered on special 
-            positions. Can only be used with average_symmequiv, by default {} 
+            positions. Can not be used with if symm_equiv is 'individually',
+            by default {} 
 
           - magmoms (np.ndarray): Experimental: starting values for magnetic
             moments of atoms. These will be expanded to atoms in the unit cell 
@@ -462,15 +475,15 @@ def calc_f0j(
         del(computation_dict['save_file'])
     else:
         save = 'gpaw_result.gpw'
-    
-    if 'average_symmequiv' in computation_dict:
-        average_symmequiv = computation_dict['average_symmequiv']
-        #print(f'average symmetry equivalents: {average_symmequiv}')
-        del(computation_dict['average_symmequiv'])
+    if 'symm_equiv' in computation_dict:
+        symm_equiv = computation_dict['symm_equiv']
+        if symm_equiv not in ('once', 'averaged', 'individually'):
+            raise NotImplementedError('symm_equiv treatment must be once, averaged or individually')
+        del(computation_dict['symm_equiv'])
     else:
-        average_symmequiv = False
+        symm_equiv = 'once'
     if 'skip_symm' in computation_dict:
-        assert len(computation_dict['skip_symm']) == 0 or average_symmequiv, 'skip_symm does need average_symmequiv' 
+        assert len(computation_dict['skip_symm']) == 0 or symm_equiv in ('once', 'averaged'), 'skip_symm does need symm_equiv once or averaged' 
         skip_symm = computation_dict['skip_symm']
         del(computation_dict['skip_symm'])
     else:
@@ -540,7 +553,7 @@ def calc_f0j(
         'symm_mats_vecs': symm_mats_vecs,
         'symm_positions': symm_positions,
         'positions': positions,
-        'average_symmequiv': average_symmequiv,
+        'symm_equiv': symm_equiv,
         'f0j_indexes': f0j_indexes
     }
     with open('step2_values.pic', 'wb') as fo:

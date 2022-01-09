@@ -64,7 +64,7 @@ def qe_pw_file(symm_symbols, symm_positions, cell_mat_m, computation_dict):
         }
     }
     for section, secval in computation_dict.items():
-        if section in ('paw_files', 'core_electrons', 'k_points'):
+        if section in ('paw_files', 'core_electrons', 'k_points', 'mpicores'):
             # these are either given in tables in QE or not used
             continue
         if section in qe_options:
@@ -82,8 +82,9 @@ def qe_pw_file(symm_symbols, symm_positions, cell_mat_m, computation_dict):
         lines.append(f'{symbol} {mass:8.3f}  {pp}')
     pp_string = '\n'.join(lines)
     output.append('ATOMIC_SPECIES\n' + pp_string)
-    cell_mat_str = '\n'.join(f'{line[0]:9.6f} {line[1]:9.6f} {line[2]:9.6f}' for line in cell_mat_m.T)
-    output.append('CELL_PARAMETERS angstrom\n' + cell_mat_str)
+    if qe_options['system']['ibrav'] == 0:
+        cell_mat_str = '\n'.join(f'{line[0]:9.6f} {line[1]:9.6f} {line[2]:9.6f}' for line in cell_mat_m.T)
+        output.append('CELL_PARAMETERS angstrom\n' + cell_mat_str)
     atoms_string = '\n'.join(f'{sym} {pos[0]:12.10f} {pos[1]:12.10f} {pos[2]:12.10f}' for sym, pos in zip(symm_symbols, symm_positions))
     output.append('ATOMIC_POSITIONS crystal\n' + atoms_string)
     if 'k_points' in computation_dict:
@@ -119,8 +120,6 @@ def qe_pp_file(computation_dict):
     }
     if 'control' in computation_dict and 'prefix' in computation_dict['control']:
         qe_options['inputpp']['prefix'] = computation_dict['control']['prefix']
-    if 'control' in computation_dict and 'prefix' in computation_dict['control']:
-        qe_options['inputpp']['prefix'] = computation_dict['control']['prefix']
     if 'core_electrons' in computation_dict:
         # we have precalculated core electrons -> FT(core) has been done separately
         qe_options['inputpp']['plot_num'] = 17
@@ -138,21 +137,33 @@ def qe_pp_file(computation_dict):
 def qe_density(symm_symbols, symm_positions, cell_mat_m, computation_dict):
     with open('pw.in', 'w') as fo:
         fo.write(qe_pw_file(symm_symbols, symm_positions, cell_mat_m, computation_dict))
-    #time.sleep(1)
-    #with open('pw.out', 'w') as fo:
-    #    subprocess.call(['pw.x', '-i', 'pw.in', '-o', 'pw.out'], stdout=fo, stderr=subprocess.DEVNULL, shell=True)
-    subprocess.call(['pw.x -i pw.in'], stderr=subprocess.DEVNULL, shell=True)
     with open('pp.in', 'w') as fo:
         fo.write(qe_pp_file(computation_dict))
-    with open('pp.out', 'w') as fo:
-        subprocess.call(['pp.x', '-i', 'pp.in'], stdout=fo, stderr=subprocess.DEVNULL)
+    mpicores = computation_dict.get('mpicores', 1)
+    if 'electrons' in computation_dict and computation_dict['electrons'].get('electron_maxstep', 1) == 0:
+        out_pw = '/dev/null'
+        out_pp = '/dev/null'
+    else:
+        out_pw = 'pw.out'
+        out_pp = 'pp.out'
+    if mpicores == 1:
+        subprocess.call([f'pw.x -i pw.in > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+        subprocess.call([f'pp.x -i pp.in > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+    elif mpicores == 'auto':
+        subprocess.call([f'mpirun pw.x -i pw.in > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+        subprocess.call([f'mpirun pp.x -i pp.in > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+    else:
+        assert type(mpicores) == int, 'mpicores has to either "auto" or int'
+        n_cores = mpicores
+        subprocess.call([f'mpirun -n {n_cores} pw.x -i pw.in > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+        subprocess.call([f'mpirun -n {n_cores} pp.x -i pp.in > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+
     density, _ = cubetools.read_cube('density.cube')
     element_list = list(mass_dict.keys())
+
     n_elec = sum([element_list.index(symb) + 1 for symb in symm_symbols])
-    if 'core_density' in computation_dict:
-        n_elec -= sum([computation_dict['core_density'][symb] for symb in symm_symbols])
-        print(computation_dict['core_density'])
-    print(len(symm_symbols), n_elec)
+    if 'core_electrons' in computation_dict:
+        n_elec -= sum([computation_dict['core_electrons'][symb] for symb in symm_symbols])
     return density * n_elec / density.sum()
 
 def qe_atomic_density(symm_symbols, symm_positions, cell_mat_m, computation_dict):
@@ -176,14 +187,15 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
     """
     assert computation_dict is not None, 'there is no default computation_dict for the qe_source'
     computation_dict = deepcopy(computation_dict)
-    if 'average_symmequiv' in computation_dict:
-        average_symmequiv = computation_dict['average_symmequiv']
-        #print(f'average symmetry equivalents: {average_symmequiv}')
-        del(computation_dict['average_symmequiv'])
+    if 'symm_equiv' in computation_dict:
+        symm_equiv = computation_dict['symm_equiv']
+        if symm_equiv not in ('once', 'averaged', 'individually'):
+            raise NotImplementedError('symm_equiv treatment must be once, averaged or individually')
+        del(computation_dict['symm_equiv'])
     else:
-        average_symmequiv = False
+        symm_equiv = 'once'
     if 'skip_symm' in computation_dict:
-        assert len(computation_dict['skip_symm']) == 0 or average_symmequiv, 'skip_symm does need average_symmequiv' 
+        assert len(computation_dict['skip_symm']) == 0 or symm_equiv in ('once', 'averaged'), 'skip_symm does need symm_equiv once or averaged' 
         skip_symm = computation_dict['skip_symm']
         del(computation_dict['skip_symm'])
     else:
@@ -203,7 +215,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
                                                                                  magmoms=None)
 
     density = qe_density(symm_symbols, symm_positions, cell_mat_m, computation_dict)
-    print('  calculated density')
+    print('  calculated density, continuing with partitioning')
 
     overall_hdensity = qe_atomic_density(symm_symbols, symm_positions, cell_mat_m, computation_dict)
     assert -density.shape[0] // 2 < index_vec_h[:,0].min(), 'Your gridspacing is too large.'
@@ -214,7 +226,7 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
     assert density.shape[2] // 2 > index_vec_h[:,2].max(), 'Your gridspacing is too large.'
     f0j = np.zeros((symm_mats_vecs[0].shape[0], positions.shape[0], index_vec_h.shape[0]), dtype=np.complex128)
 
-    if average_symmequiv:
+    if symm_equiv == 'averaged':
         h, k, l = np.meshgrid(*map(lambda n: np.fft.fftfreq(n, 1/n).astype(np.int64), density.shape), indexing='ij')
         for atom_index, symm_atom_indexes in enumerate(f0j_indexes):
             f0j_sum = np.zeros_like(h, dtype=np.complex128)
@@ -230,7 +242,18 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
             for symm_index, symm_matrix in enumerate(symm_mats_vecs[0]):
                 h_rot, k_rot, l_rot = np.einsum('xy, zy -> zx', symm_matrix.T, index_vec_h).astype(np.int64).T
                 f0j[symm_index, atom_index, :] = f0j_sum[h_rot, k_rot, l_rot]
-    else:
+    elif symm_equiv == 'once':
+        h, k, l = np.meshgrid(*map(lambda n: np.fft.fftfreq(n, 1/n).astype(np.int64), density.shape), indexing='ij')
+        for atom_index, (symm_atom_index, *_) in enumerate(f0j_indexes):
+            atomic_density = qe_atomic_density([symm_symbols[symm_atom_index]], symm_positions[None,symm_atom_index,:],cell_mat_m, computation_dict)
+            h_density = density * atomic_density/ overall_hdensity
+            frac_position = symm_positions[symm_atom_index]
+            phase_to_zero = np.exp(-2j * np.pi * (frac_position[0] * h + frac_position[1] * k + frac_position[2] * l))
+            f0j_symm1 = np.fft.ifftn(h_density) * phase_to_zero * np.prod(h.shape)
+            for symm_index, symm_matrix in enumerate(symm_mats_vecs[0]):
+                h_rot, k_rot, l_rot = np.einsum('xy, zy -> zx', symm_matrix.T, index_vec_h).astype(np.int64).T
+                f0j[symm_index, atom_index, :] = f0j_symm1[h_rot, k_rot, l_rot]
+    elif symm_equiv == 'individually':
         #TODO Is a discrete Fourier Transform just of the hkl we need possibly faster? Can we then interpolate the density to get even better factors?
         # This could also save memory, fft is O(NlogN) naive dft is probably N^2
         h_vec, k_vec, l_vec = index_vec_h.T
@@ -295,8 +318,7 @@ def calc_f0j_core(cell_mat_m, element_symbols, index_vec_h, computation_dict):
         j0 = np.zeros_like(gr)
         j0[gr != 0] = np.sin(2 * np.pi * gr[gr != 0]) / (2 * np.pi * gr[gr != 0])
         j0[gr == 0] = 1
-        y00_factor = 0.5 * np.pi**(-0.5)
         int_me = 4 * np.pi * r**2  * core * j0
-        core_factors_element[element_symbol] = simps(int_me, x=r) * y00_factor
+        core_factors_element[element_symbol] = simps(int_me, x=r)
     computation_dict['core_electrons'] = core_electrons
     return np.array([core_factors_element[symbol] for symbol in element_symbols]), computation_dict

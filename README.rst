@@ -51,4 +51,6 @@ much older or newer the versions can be before things start to break.
 Documentation
 -------------
 
-With the sphinx package and
+With the sphinx package and the sphinx-rtd-theme installed you can compile the 
+documentation using make instal in the doc directory. A prebuild version is 
+available, but might be slightly out of date.

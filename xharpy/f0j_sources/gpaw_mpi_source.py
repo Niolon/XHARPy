@@ -260,7 +260,7 @@ def density_to_f0j(save, gridinterpolation, explicit_core, index_vec_h, symm_mat
     elif symm_equiv == 'once':
         h, k, l = np.meshgrid(*map(lambda n: np.fft.fftfreq(n, 1/n).astype(np.int64), density.shape), indexing='ij')
         for atom_index, (symm_atom_index, *_) in enumerate(f0j_indexes):
-            h_density = density * partitioning.hdensity.get_density([symm_atom_index], gridrefinement=gridinterpolation, skip_core=explicit_core)[0] / overall_hdensityy
+            h_density = density * partitioning.hdensity.get_density([symm_atom_index], gridrefinement=gridinterpolation, skip_core=explicit_core)[0] / overall_hdensity
             frac_position = symm_positions[symm_atom_index]
             phase_to_zero = np.exp(-2j * np.pi * (frac_position[0] * h + frac_position[1] * k + frac_position[2] * l))
             f0j_symm1 = np.fft.ifftn(h_density) * phase_to_zero * np.prod(h.shape)
@@ -502,7 +502,6 @@ def calc_f0j(
     else:
         ncores = None
 
-    #assert not (not average_symmequiv and not do_not_move)
     symm_positions, symm_symbols, f0j_indexes, magmoms_symm = expand_symm_unique(
         element_symbols,
         np.array(positions),
@@ -618,7 +617,7 @@ def calc_f0j_core(
     computation_dict = computation_dict.copy()
     non_gpaw_keys = [
         'gridinterpolation',
-        'average_symmequiv',
+        'symm_equiv',
         'skip_symm',
         'magmoms',
         'mpicores',

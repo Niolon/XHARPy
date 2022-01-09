@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Examples &mdash; xHARPy 0.1.1 documentation</title>
+  <title>Examples &mdash; XHARPy 0.1.1 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -17,8 +17,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Scripting with xHARPy" href="library/library_index.html" />
-    <link rel="prev" title="Command Line Interface" href="commandline.html" /> 
+    <link rel="next" title="xharpy" href="modules.html" />
+    <link rel="prev" title="Refinement Options" href="library/library_refinement_dict.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -26,7 +26,8 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> xHARPy
+            <a href="index.html" class="icon icon-home"> XHARPy
+            <img src="_static/XHARPy_logo.svg" class="logo" alt="Logo"/>
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -40,8 +41,25 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="commandline.html">Command Line Interface</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="library/library_index.html">Scripting with xHARPy</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#calculation-with-gpaw">Calculation with GPAW</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#l-alanin-with-gpaw">L-Alanin with GPAW</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cpna-with-gpaw">CpNa with GPAW</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#calculation-with-quantum-espresso">Calculation with Quantum Espresso</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#l-alanin-with-quantum-espresso">L-Alanin with Quantum Espresso</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#urea-with-quantum-espresso">Urea with Quantum Espresso</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#calculation-with-the-independent-atom-model">Calculation with the Independent Atom model</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#l-alanin-with-the-independent-atom-model">L-Alanin with the Independent Atom Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#l-alanin-with-the-independent-atom-model-and-hydrogen-constraints">L-Alanin with the Independent Atom Model and Hydrogen Constraints</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="modules.html">xharpy</a></li>
 <li class="toctree-l1"><a class="reference internal" href="xharpy.html">xharpy package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="xharpy.f0j_sources.html">xharpy.f0j_sources package</a></li>
@@ -53,7 +71,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">xHARPy</a>
+          <a href="index.html">XHARPy</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -73,15 +91,80 @@
              
   <div class="section" id="examples">
 <h1>Examples<a class="headerlink" href="#examples" title="Permalink to this headline"></a></h1>
-<p>There is a number of examples as jupyter notebooks in the project</p>
+<p>There is a number of examples as jupyter notebooks in the project. Here, is a
+list with connected keywords for faster reference.</p>
+<div class="section" id="calculation-with-gpaw">
+<h2>Calculation with GPAW<a class="headerlink" href="#calculation-with-gpaw" title="Permalink to this headline"></a></h2>
+<div class="section" id="l-alanin-with-gpaw">
+<h3>L-Alanin with GPAW<a class="headerlink" href="#l-alanin-with-gpaw" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p>Program: GPAW</p></li>
+<li><p>SCAN calculation</p></li>
+<li><p>Using MPI</p></li>
+<li><p>Constant Core calculation</p></li>
+</ul>
+</div>
+<div class="section" id="cpna-with-gpaw">
+<h3>CpNa with GPAW<a class="headerlink" href="#cpna-with-gpaw" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p>Folder: CpNa_gpaw_special_position</p></li>
+<li><p>Program: GPAW</p></li>
+<li><p>RPBE calculation</p></li>
+<li><p>Constant core calculation</p></li>
+<li><p>Read xd.hkl</p></li>
+<li><p>Disorder on special position / skip atoms</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="calculation-with-quantum-espresso">
+<h2>Calculation with Quantum Espresso<a class="headerlink" href="#calculation-with-quantum-espresso" title="Permalink to this headline"></a></h2>
+<div class="section" id="l-alanin-with-quantum-espresso">
+<h3>L-Alanin with Quantum Espresso<a class="headerlink" href="#l-alanin-with-quantum-espresso" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p>Folder: L-Alanin_qe</p></li>
+<li><p>Program: Quantum Espresso</p></li>
+<li><p>PBE calculation</p></li>
+<li><p>Constant core calculation</p></li>
+</ul>
+</div>
+<div class="section" id="urea-with-quantum-espresso">
+<h3>Urea with Quantum Espresso<a class="headerlink" href="#urea-with-quantum-espresso" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p>Folder: Urea_qe</p></li>
+<li><p>Program: Quantum Espresso</p></li>
+<li><p>B3LYP calculation from PBE files</p></li>
+<li><p>Core scaling</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="calculation-with-the-independent-atom-model">
+<h2>Calculation with the Independent Atom model<a class="headerlink" href="#calculation-with-the-independent-atom-model" title="Permalink to this headline"></a></h2>
+<div class="section" id="l-alanin-with-the-independent-atom-model">
+<h3>L-Alanin with the Independent Atom Model<a class="headerlink" href="#l-alanin-with-the-independent-atom-model" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p>Folder: L-Alanin_iam</p></li>
+<li><p>Independent Atom Model</p></li>
+<li><p>Isotropic Hydrogen Refinement</p></li>
+</ul>
+</div>
+<div class="section" id="l-alanin-with-the-independent-atom-model-and-hydrogen-constraints">
+<h3>L-Alanin with the Independent Atom Model and Hydrogen Constraints<a class="headerlink" href="#l-alanin-with-the-independent-atom-model-and-hydrogen-constraints" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p>Folder: L-Alanin_iam_HConstraints</p></li>
+<li><p>Independent Atom Model</p></li>
+<li><p>Isotropic Hydrogen Refinement</p></li>
+<li><p>Position constraints for sp3 hydrogen atoms</p></li>
+</ul>
+</div>
+</div>
 </div>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="commandline.html" class="btn btn-neutral float-left" title="Command Line Interface" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="library/library_index.html" class="btn btn-neutral float-right" title="Scripting with xHARPy" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="library/library_refinement_dict.html" class="btn btn-neutral float-left" title="Refinement Options" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="modules.html" class="btn btn-neutral float-right" title="xharpy" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

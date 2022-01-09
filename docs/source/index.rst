@@ -3,10 +3,10 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to xHARPy's documentation!
+Welcome to XHARPy's documentation!
 ==================================
 
-**xHARPY** (x-ray diffraction Hirshfeld Atom Refinement in Python) is a Python
+**XHARPy** (X-ray diffraction data Hirshfeld Atom Refinement in Python) is a Python
 library that enables refinement with custom atomic form factor calculations.
 
 This is the first refinement library to implement the calculation of atomic form

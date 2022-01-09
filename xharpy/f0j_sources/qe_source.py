@@ -1,3 +1,4 @@
+from typing import Union, List, Dict, Any, Tuple
 import numpy as np
 from copy import deepcopy
 import subprocess
@@ -26,7 +27,36 @@ mass_dict = {
     'Ac': np.nan, 'Th': 232.04, 'Pa': 231.04, 'U': 238.03
 }
 
-def qe_entry_string(name, value, string_sign=True):
+ang_per_bohr = 0.529177210903
+
+
+def qe_entry_string(
+    name: str,
+    value: Union[str, float, int, bool],
+    string_sign: bool = True
+) -> str:
+    """Creates a formatted string for output in a quantum-espresso input file
+
+    Parameters
+    ----------
+    name : str
+        Name of the option
+    value : Union[str, float, int, bool]
+        The value of the option
+    string_sign : bool, optional
+        If the value is a string this value determines, whether the entry,
+        will have '' as an indicator of the type, by default True
+
+    Returns
+    -------
+    str
+        Formatted string
+
+    Raises
+    ------
+    NotImplementedError
+        The type of value is currently not implemented
+    """
     if type(value) is str:
         if string_sign:
             entry_str = f"'{value}'"
@@ -46,7 +76,33 @@ def qe_entry_string(name, value, string_sign=True):
         raise NotImplementedError(f'{type(value)} is not implemented')
     return f'    {name} = {entry_str}'
 
-def qe_pw_file(symm_symbols, symm_positions, cell_mat_m, computation_dict):
+def qe_pw_file(
+    symm_symbols: List[str],
+    symm_positions: np.ndarray,
+    cell_mat_m: np.ndarray,
+    computation_dict: Dict[str, Any]
+) -> str:
+    """Creates an input file for pw.x for the density calculation
+
+    Parameters
+    ----------
+    symm_symbols : List[str]
+        Atom Type indicators for the symmetry expanded atoms in the unit cell
+    symm_positions : np.ndarray
+        atomic positions in fractional coordinates for the symmetry expanded 
+        atoms in the unit cell.
+    cell_mat_m : np.ndarray
+        size (3, 3) array with the unit cell vectors as row vectors, only used 
+        if ibrav != 0 
+    computation_dict : Dict[str, Any]
+        Dictionary with the calculation options, see calc_f0j function for
+        options
+
+    Returns
+    -------
+    pw_file_string : str
+        formatted output file as a string
+    """
     qe_options = {
         'control': {
             'prefix': 'scf',
@@ -105,7 +161,20 @@ def qe_pw_file(symm_symbols, symm_positions, cell_mat_m, computation_dict):
     output.insert(0, '\n'.join(lines))
     return '\n\n'.join(output) + '\n\n'
 
-def qe_pp_file(computation_dict):
+def qe_pp_file(computation_dict: Dict[str, Any]) -> str:
+    """Creates an input file for pp.x 
+
+    Parameters
+    ----------
+    computation_dict : Dict[Any]
+        Dictionary with the calculation options, see calc_f0j function for
+        options
+
+    Returns
+    -------
+    pp_file_string : str
+        a pp.x input file as string
+    """
     qe_options = {
         'inputpp': {
             'prefix': 'scf',
@@ -134,7 +203,37 @@ def qe_pp_file(computation_dict):
         lines.append('/')
     return '\n'.join(lines) + '\n\n'
     
-def qe_density(symm_symbols, symm_positions, cell_mat_m, computation_dict):
+def qe_density(
+    symm_symbols: List[str],
+    symm_positions: np.ndarray,
+    cell_mat_m: np.ndarray,
+    computation_dict: Dict[str, Any]
+) -> np.ndarray:
+    """
+    Performs the wavefunction calculation with quantum espresso, generates the
+    density cube file with or without the core density and finally loads the
+    density with cubetools.
+
+    Parameters
+    ----------
+    symm_symbols : List[str]
+        Atom Type indicators for the symmetry expanded atoms in the unit cell
+    symm_positions : np.ndarray
+        atomic positions in fractional coordinates for the symmetry expanded 
+        atoms in the unit cell.
+    cell_mat_m : np.ndarray
+        size (3, 3) array with the unit cell vectors as row vectors, only used 
+        if ibrav != 0 
+    computation_dict : Dict[str, Any]
+        Dictionary with the calculation options, see calc_f0j function for
+        options
+
+    Returns
+    -------
+    density : np.ndarray
+        Numpy array containing the density. The overall sum of the array is 
+        normalised to the number of electrons.
+    """
     with open('pw.in', 'w') as fo:
         fo.write(qe_pw_file(symm_symbols, symm_positions, cell_mat_m, computation_dict))
     with open('pp.in', 'w') as fo:
@@ -166,7 +265,38 @@ def qe_density(symm_symbols, symm_positions, cell_mat_m, computation_dict):
         n_elec -= sum([computation_dict['core_electrons'][symb] for symb in symm_symbols])
     return density * n_elec / density.sum()
 
-def qe_atomic_density(symm_symbols, symm_positions, cell_mat_m, computation_dict):
+def qe_atomic_density(
+    symm_symbols: List[str],
+    symm_positions: np.ndarray,
+    cell_mat_m: np.ndarray,
+    computation_dict: Dict[str, Any]
+) -> np.ndarray:
+    """
+    Generates the atomic function needed for Hirshfeld partitioning by
+    setting the quantum espresso options to 0 calculation steps and 
+    initialisation to atomic. Subsequently, generates the density cube file 
+    with or without the core density and finally loads the
+    density with cubetools.
+
+    Parameters
+    ----------
+    symm_symbols : List[str]
+        Atom Type indicators for the evaluated atom(s)
+    symm_positions : np.ndarray
+        atomic positions in fractional coordinates for the evaluated atom(s)
+    cell_mat_m : np.ndarray
+        size (3, 3) array with the unit cell vectors as row vectors, only used 
+        if ibrav != 0 
+    computation_dict : Dict[str, Any]
+        Dictionary with the calculation options, see calc_f0j function for
+        options
+
+    Returns
+    -------
+    atomic_density : np.ndarray
+        Numpy array containing the atomic_density. The overall sum of the array
+        is normalised to the number of electrons.
+    """
     at_computation_dict = deepcopy(computation_dict)
     if 'electrons' not in at_computation_dict:
         at_computation_dict['electrons'] = {}
@@ -178,12 +308,82 @@ def qe_atomic_density(symm_symbols, symm_positions, cell_mat_m, computation_dict
     at_computation_dict['electrons']['scf_must_converge'] = False
     return qe_density(symm_symbols, symm_positions, cell_mat_m, at_computation_dict)
 
+def calc_f0j(
+    cell_mat_m: np.ndarray,
+    element_symbols: List[str],
+    positions: np.ndarray,
+    index_vec_h: np.ndarray,
+    symm_mats_vecs: Tuple[np.ndarray, np.ndarray],
+    computation_dict: Dict[str, Any],
+    restart: bool = True,
+    explicit_core: bool = True
+)-> np.ndarray:
+    """Calculate the atomic form factor or atomic valence form factors using 
+    Quantum espresso. 
 
+    Parameters
+    ----------
+    cell_mat_m : np.ndarray
+        size (3, 3) array with the unit cell vectors as row vectors
+    element_symbols : List[str]
+        element symbols (i.e. 'Na') for all the atoms within the asymmetric unit
+    positions : np.ndarray
+        atomic positions in fractional coordinates for all the atoms within
+        the asymmetric unit
+    index_vec_h : np.ndarray
+        size (H) vector containing Miller indicees of the measured reflections
+    symm_mats_vecs : Tuple[np.ndarray, np.ndarray]
+        size (K, 3, 3) array of symmetry  matrices and (K, 3) array of
+        translation vectors for all symmetry elements in the unit cell
+    computation_dict : Dict[str, Any]
+        contains options for the atomic form factor calculation. The function
+        will use and exclude the following options from the dictionary and write
+        the rest into the quantum-espresso pw.x output file without further
+        check
+          - mpicores (Union[str, int]): The number of cores used for the pw.x
+            and pp.x calculation in Quantum Espresso, 'auto' will mpiexec let
+            select this option. However sometimes it has proven faster to
+            choose a lower number of cores manually
 
-def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs, computation_dict=None, restart=None, explicit_core=True, save=None):
-    """
-    Calculate the aspherical atomic form factors from a density grid in the python package gpaw
-    for each reciprocal lattice vector present in index_vec_h.
+          - symm_equiv (str): The atomic form factors of symmetry equivalent
+            atoms can be calculated individually for each atom ('individually')
+            or they can be calculated once for each atom in the asymmetric unit
+            and expanded to the other atoms ('once'), finally they can be 
+            averaged between symmetry equivalent atoms and expanded afterwards
+            ('averaged'). Once should be sufficient for most structures and 
+            saves time. Try one of the other options if you suspect problems,
+            by default 'once'
+
+          - skip_symm (Dict[int, List[int]]): Can used to prevent the
+            expansion of the atom(s) with the index(es) given as dictionary keys
+            as given in the construction_instructions with the symmetry
+            operations of the indexes given in the list, which correspond to the
+            indexes in the symm_mats_vecs object. This has proven to be
+            successful for the calculation of atoms disordered on special 
+            positions. Can not be used with if symm_equiv is 'individually',
+            by default {} 
+
+        K-points are organised into their own entry 'k_points' which is a dict
+        'mode' is the selection mode, and 'input' is the output after the 
+        K_POINTS entry in the pw.x output file.
+
+        The other options are organised as subdicts with the naming of the
+        section in the pw.x input file in lowercase.
+        For these options consult the pw.x file format documentation at:
+        https://www.quantum-espresso.org/Doc/INPUT_PW.html
+
+    restart : bool, optional
+        If true, the DFT calculation will be restarted from a previous calculation
+    explicit_core : bool, optional
+        If True the frozen core density is assumed to be calculated separately, 
+        therefore only the valence density will be split up, by default True
+
+    Returns
+    -------
+    f0j : np.ndarray
+        size (K, N, H) array of atomic form factors for all reflections and symmetry
+        generated atoms within the unit cells. Atoms on special positions are 
+        present multiple times and have the atomic form factor of the full atom.
     """
     assert computation_dict is not None, 'there is no default computation_dict for the qe_source'
     computation_dict = deepcopy(computation_dict)
@@ -205,8 +405,6 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
             computation_dict['electrons'] = {}
         computation_dict['electrons']['startingwfc'] = 'file'
 
-
-    #assert not (not average_symmequiv and not do_not_move)
     symm_positions, symm_symbols, f0j_indexes, magmoms_symm = expand_symm_unique(element_symbols,
                                                                                  np.array(positions),
                                                                                  np.array(cell_mat_m),
@@ -273,23 +471,46 @@ def calc_f0j(cell_mat_m, element_symbols, positions, index_vec_h, symm_mats_vecs
                     already_known[symm_atom_index] = (symm_index, atom_index)
     return f0j
 
+def calc_f0j_core(
+    cell_mat_m: np.ndarray,
+    element_symbols: List[str],
+    index_vec_h: np.ndarray,
+    computation_dict: Dict[str, Any]
+) -> Tuple[np.ndarray, Dict[str, Any]]:
+    """Reads the .upf files given in the computation_dict and fourier transforms
+    the core charges on the grid given in that file. A direct space transform 
+    will be used to add the number of core_electrons to the returned
+    computation_dict for correct normalisation of densities in the calc_f0j
+    function
 
-def f_core_from_spline(spline, g_k, k=13):
-    r_max = spline.get_cutoff()
-    r = np.zeros(2**k + 1)
-    r[1:] = np.exp(-1 * np.linspace(1.25 * k, 0.0 , 2**k)) * r_max
-    #r[0] = 0
-    gr = r[None,:] * g_k[:,None]
-    j0 = np.zeros_like(gr)
-    j0[gr != 0] = np.sin(2 * np.pi * gr[gr != 0]) / (2 * np.pi * gr[gr != 0])
-    j0[gr == 0] = 1
-    y00_factor = 0.5 * np.pi**(-0.5)
-    int_me = 4 * np.pi * r**2  * spline.map(r) * j0
-    return simps(int_me, x=r) * y00_factor
+    Parameters
+    ----------
+    cell_mat_m : np.ndarray
+        size (3, 3) array with the unit cell vectors as row vectors
+    element_symbols : List[str]
+        element symbols (i.e. 'Na') for all the atoms within the asymmetric unit
+    index_vec_h : np.ndarray
+        size (H) vector containing Miller indicees of the measured reflections
+    computation_dict : Dict[str, Any]
+        contains options for the calculation. The custom options will be ignored
+        and everything else is passed on to GPAW for initialisation. The only
+        option that makes a difference here is which setups are used. (Need to
+        be same as in calc_f0j)
 
+    Returns
+    -------
+    f0j_core : np.ndarray, 
+        size (N, H) array of atomic core form factors calculated separately
+    computation_dict: Dict[str, Any]
+        original computation dict with added core electrons.
 
-def calc_f0j_core(cell_mat_m, element_symbols, index_vec_h, computation_dict):
-    ang_per_bohr = 0.529177210903
+    Raises
+    ------
+    ValueError
+        No core electron entry found
+    ValueError
+        No grid entry found
+    """
     cell_mat_f = np.linalg.inv(cell_mat_m).T
     g_k3 = np.einsum('xy, zy -> zx', cell_mat_f, index_vec_h)
     g_k = np.linalg.norm(g_k3, axis=-1) * ang_per_bohr
@@ -322,3 +543,40 @@ def calc_f0j_core(cell_mat_m, element_symbols, index_vec_h, computation_dict):
         core_factors_element[element_symbol] = simps(int_me, x=r)
     computation_dict['core_electrons'] = core_electrons
     return np.array([core_factors_element[symbol] for symbol in element_symbols]), computation_dict
+
+
+def generate_cif_output(
+    computation_dict: Dict[str, Any]
+) -> str:
+    """Generates at string, that details the computation options for use in the 
+    cif generation routine.
+
+    Parameters
+    ----------
+    computation_dict : Dict[str, Any]
+        contains options for the calculation.
+
+    Returns
+    -------
+    str
+        The string that will be added to the cif-file
+    """
+    strings = []
+    for key, val in computation_dict.items():
+        if type(val) is dict:
+            strings.append(f'      {key}:')
+            for key2, val2 in val.items():
+                strings.append(f'         {key2}: {val2}')
+        else:
+            strings.append(f'      {key}: {val}')
+    value_strings = '\n'.join(strings)
+    addition = f"""  - Refinement was done using structure factors
+    derived from theoretically calculated atomic densities
+  - Density calculation was done with Quantum Espresso using the
+    following settings
+{value_strings}
+  - Afterwards density was interpolated on a rectangular grid and partitioned
+    according to the Hirshfeld scheme, using atomic densities from Quantum
+    Espresso.
+  - Atomic form factors were calculated using FFT from the numpy package"""
+    return addition

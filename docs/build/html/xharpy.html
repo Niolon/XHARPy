@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>xharpy package &mdash; xHARPy 0.1.1 documentation</title>
+  <title>xharpy package &mdash; XHARPy 0.1.1 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -26,7 +26,8 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> xHARPy
+            <a href="index.html" class="icon icon-home"> XHARPy
+            <img src="_static/XHARPy_logo.svg" class="logo" alt="Logo"/>
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -40,8 +41,8 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="commandline.html">Command Line Interface</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="library/library_index.html">Scripting with xHARPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="modules.html">xharpy</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">xharpy package</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#subpackages">Subpackages</a><ul>
@@ -88,7 +89,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">xHARPy</a>
+          <a href="index.html">XHARPy</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -633,11 +634,11 @@ cif format</p></li>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="xharpy.core.UEquivConstraint">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xharpy.core.</span></span><span class="sig-name descname"><span class="pre">UEquivConstraint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bound_atom</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multiplicator</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.core.UEquivConstraint" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xharpy.core.</span></span><span class="sig-name descname"><span class="pre">UEquivConstraint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bound_atom_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multiplicator</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.core.UEquivConstraint" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="xharpy.core.UEquivConstraint.bound_atom">
-<span class="sig-name descname"><span class="pre">bound_atom</span></span><a class="headerlink" href="#xharpy.core.UEquivConstraint.bound_atom" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="xharpy.core.UEquivConstraint.bound_atom_name">
+<span class="sig-name descname"><span class="pre">bound_atom_name</span></span><a class="headerlink" href="#xharpy.core.UEquivConstraint.bound_atom_name" title="Permalink to this definition"></a></dt>
 <dd><p>Alias for field number 0</p>
 </dd></dl>
 
@@ -1974,6 +1975,28 @@ list of refined parameters</p></li>
 <li><p><strong>parameters</strong> (<em>jnp.ndarray</em>) – final refined parameters</p></li>
 <li><p><strong>wavelength</strong> (<em>float</em>) – Measurement wavelength in Angstroem</p></li>
 </ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="xharpy.io.xd_hkl2pd">
+<span class="sig-prename descclassname"><span class="pre">xharpy.io.</span></span><span class="sig-name descname"><span class="pre">xd_hkl2pd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.core.frame.DataFrame</span></span></span><a class="headerlink" href="#xharpy.io.xd_hkl2pd" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the reflection intensity DataFrame from an XD hkl file.
+Currently, only F^2 with NDAT 7 is implemented as format</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>path</strong> (<em>str</em>) – Path to hkl file</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>hkl</strong> – Dataframe with named columns: ‘h’, ‘k’, ‘l’, ‘dataset’, ‘intensity’,
+‘esd_int’, ‘scale’</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>NotImplementedError</strong> – Format of xd.hkl currently not implemented.</p>
 </dd>
 </dl>
 </dd></dl>

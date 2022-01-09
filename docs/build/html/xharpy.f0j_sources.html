@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>xharpy.f0j_sources package &mdash; xHARPy 0.1.1 documentation</title>
+  <title>xharpy.f0j_sources package &mdash; XHARPy 0.1.1 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -26,7 +26,8 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> xHARPy
+            <a href="index.html" class="icon icon-home"> XHARPy
+            <img src="_static/XHARPy_logo.svg" class="logo" alt="Logo"/>
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -40,8 +41,8 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="commandline.html">Command Line Interface</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="library/library_index.html">Scripting with xHARPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="modules.html">xharpy</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="xharpy.html">xharpy package</a><ul class="current">
 <li class="toctree-l3 current"><a class="reference internal" href="xharpy.html#subpackages">Subpackages</a><ul class="current">
@@ -121,7 +122,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">xHARPy</a>
+          <a href="index.html">XHARPy</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -510,19 +511,22 @@ factor by which the grid from the wave function will be interpolated
 for the calculation of atomic form factors with FFT. This can be
 reduced if you run out of memory for this step. Allowed values are
 1, 2, and 4, by default 4</p></li>
-<li><p>average_symmequiv (bool): If True will first calculate the atomic
-form factors of symmetry equivalent atoms and than average them
-(taking symmetry into account) before then assigning the symmetry
-transformed average value to all atoms. Is slower and not necessary
-for most cases, but might be helpful with numerical stability for
-small grids, by default False</p></li>
+<li><p>symm_equiv (str): The atomic form factors of symmetry equivalent
+atoms can be calculated individually for each atom (‘individually’)
+or they can be calculated once for each atom in the asymmetric unit
+and expanded to the other atoms (‘once’), finally they can be
+averaged between symmetry equivalent atoms and expanded afterwards
+(‘averaged’). Once should be sufficient for most structures and
+saves time. Try one of the other options if you suspect problems,
+by default ‘once’</p></li>
 <li><p>skip_symm (Dict[int, List[int]]): Can used to prevent the
 expansion of the atom(s) with the index(es) given as dictionary keys
 as given in the construction_instructions with the symmetry
 operations of the indexes given in the list, which correspond to the
 indexes in the symm_mats_vecs object. This has proven to be
 successful for the calculation of atoms disordered on special
-positions. Can only be used with average_symmequiv, by default {}</p></li>
+positions. Can not be used with if symm_equiv is ‘individually’,
+by default {}</p></li>
 <li><p>magmoms (np.ndarray): Experimental: starting values for magnetic
 moments of atoms. These will be expanded to atoms in the unit cell
 by just applying the same magnetic moment to all symmetry equivalent
@@ -714,19 +718,22 @@ factor by which the grid from the wave function will be interpolated
 for the calculation of atomic form factors with FFT. This can be
 reduced if you run out of memory for this step. Allowed values are
 1, 2, and 4, by default 4</p></li>
-<li><p>average_symmequiv (bool): If True will first calculate the atomic
-form factors of symmetry equivalent atoms and than average them
-(taking symmetry into account) before then assigning the symmetry
-transformed average value to all atoms. Is slower and not necessary
-for most cases, but might be helpful with numerical stability for
-small grids, by default False</p></li>
+<li><p>symm_equiv (str): The atomic form factors of symmetry equivalent
+atoms can be calculated individually for each atom (‘individually’)
+or they can be calculated once for each atom in the asymmetric unit
+and expanded to the other atoms (‘once’), finally they can be
+averaged between symmetry equivalent atoms and expanded afterwards
+(‘averaged’). Once should be sufficient for most structures and
+saves time. Try one of the other options if you suspect problems,
+by default ‘once’</p></li>
 <li><p>skip_symm (Dict[int, List[int]]): Can used to prevent the
 expansion of the atom(s) with the index(es) given as dictionary keys
 as given in the construction_instructions with the symmetry
 operations of the indexes given in the list, which correspond to the
 indexes in the symm_mats_vecs object. This has proven to be
 successful for the calculation of atoms disordered on special
-positions. Can only be used with average_symmequiv, by default {}</p></li>
+positions. Can not be used with if symm_equiv is ‘individually’,
+by default {}</p></li>
 <li><p>magmoms (np.ndarray): Experimental: starting values for magnetic
 moments of atoms. These will be expanded to atoms in the unit cell
 by just applying the same magnetic moment to all symmetry equivalent
@@ -1012,45 +1019,249 @@ cif generation routine.</p>
 <span id="xharpy-f0j-sources-qe-source-module"></span><h2>xharpy.f0j_sources.qe_source module<a class="headerlink" href="#module-xharpy.f0j_sources.qe_source" title="Permalink to this headline"></a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="xharpy.f0j_sources.qe_source.calc_f0j">
-<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">calc_f0j</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_symbols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_vec_h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symm_mats_vecs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restart</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">explicit_core</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.calc_f0j" title="Permalink to this definition"></a></dt>
-<dd><p>Calculate the aspherical atomic form factors from a density grid in the python package gpaw
-for each reciprocal lattice vector present in index_vec_h.</p>
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">calc_f0j</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_symbols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_vec_h</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symm_mats_vecs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restart</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">explicit_core</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.calc_f0j" title="Permalink to this definition"></a></dt>
+<dd><p>Calculate the atomic form factor or atomic valence form factors using
+Quantum espresso.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cell_mat_m</strong> (<em>np.ndarray</em>) – size (3, 3) array with the unit cell vectors as row vectors</p></li>
+<li><p><strong>element_symbols</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – element symbols (i.e. ‘Na’) for all the atoms within the asymmetric unit</p></li>
+<li><p><strong>positions</strong> (<em>np.ndarray</em>) – atomic positions in fractional coordinates for all the atoms within
+the asymmetric unit</p></li>
+<li><p><strong>index_vec_h</strong> (<em>np.ndarray</em>) – size (H) vector containing Miller indicees of the measured reflections</p></li>
+<li><p><strong>symm_mats_vecs</strong> (<em>Tuple</em><em>[</em><em>np.ndarray</em><em>, </em><em>np.ndarray</em><em>]</em>) – size (K, 3, 3) array of symmetry  matrices and (K, 3) array of
+translation vectors for all symmetry elements in the unit cell</p></li>
+<li><p><strong>computation_dict</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – <p>contains options for the atomic form factor calculation. The function
+will use and exclude the following options from the dictionary and write
+the rest into the quantum-espresso pw.x output file without further
+check</p>
+<blockquote>
+<div><ul>
+<li><p>mpicores (Union[str, int]): The number of cores used for the pw.x
+and pp.x calculation in Quantum Espresso, ‘auto’ will mpiexec let
+select this option. However sometimes it has proven faster to
+choose a lower number of cores manually</p></li>
+<li><p>symm_equiv (str): The atomic form factors of symmetry equivalent
+atoms can be calculated individually for each atom (‘individually’)
+or they can be calculated once for each atom in the asymmetric unit
+and expanded to the other atoms (‘once’), finally they can be
+averaged between symmetry equivalent atoms and expanded afterwards
+(‘averaged’). Once should be sufficient for most structures and
+saves time. Try one of the other options if you suspect problems,
+by default ‘once’</p></li>
+<li><p>skip_symm (Dict[int, List[int]]): Can used to prevent the
+expansion of the atom(s) with the index(es) given as dictionary keys
+as given in the construction_instructions with the symmetry
+operations of the indexes given in the list, which correspond to the
+indexes in the symm_mats_vecs object. This has proven to be
+successful for the calculation of atoms disordered on special
+positions. Can not be used with if symm_equiv is ‘individually’,
+by default {}</p></li>
+</ul>
+</div></blockquote>
+<p>K-points are organised into their own entry ‘k_points’ which is a dict
+‘mode’ is the selection mode, and ‘input’ is the output after the
+K_POINTS entry in the pw.x output file.</p>
+<p>The other options are organised as subdicts with the naming of the
+section in the pw.x input file in lowercase.
+For these options consult the pw.x file format documentation at:
+<a class="reference external" href="https://www.quantum-espresso.org/Doc/INPUT_PW.html">https://www.quantum-espresso.org/Doc/INPUT_PW.html</a></p>
+</p></li>
+<li><p><strong>restart</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, the DFT calculation will be restarted from a previous calculation</p></li>
+<li><p><strong>explicit_core</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True the frozen core density is assumed to be calculated separately,
+therefore only the valence density will be split up, by default True</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>f0j</strong> – size (K, N, H) array of atomic form factors for all reflections and symmetry
+generated atoms within the unit cells. Atoms on special positions are
+present multiple times and have the atomic form factor of the full atom.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xharpy.f0j_sources.qe_source.calc_f0j_core">
-<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">calc_f0j_core</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_symbols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_vec_h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.calc_f0j_core" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">calc_f0j_core</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element_symbols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_vec_h</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.calc_f0j_core" title="Permalink to this definition"></a></dt>
+<dd><p>Reads the .upf files given in the computation_dict and fourier transforms
+the core charges on the grid given in that file. A direct space transform
+will be used to add the number of core_electrons to the returned
+computation_dict for correct normalisation of densities in the calc_f0j
+function</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cell_mat_m</strong> (<em>np.ndarray</em>) – size (3, 3) array with the unit cell vectors as row vectors</p></li>
+<li><p><strong>element_symbols</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – element symbols (i.e. ‘Na’) for all the atoms within the asymmetric unit</p></li>
+<li><p><strong>index_vec_h</strong> (<em>np.ndarray</em>) – size (H) vector containing Miller indicees of the measured reflections</p></li>
+<li><p><strong>computation_dict</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – contains options for the calculation. The custom options will be ignored
+and everything else is passed on to GPAW for initialisation. The only
+option that makes a difference here is which setups are used. (Need to
+be same as in calc_f0j)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>f0j_core</strong> (<em>np.ndarray,</em>) – size (N, H) array of atomic core form factors calculated separately</p></li>
+<li><p><strong>computation_dict</strong> (<em>Dict[str, Any]</em>) – original computation dict with added core electrons.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ValueError</strong> – No core electron entry found</p></li>
+<li><p><strong>ValueError</strong> – No grid entry found</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="xharpy.f0j_sources.qe_source.f_core_from_spline">
-<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">f_core_from_spline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spline</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">g_k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">13</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.f_core_from_spline" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dt class="sig sig-object py" id="xharpy.f0j_sources.qe_source.generate_cif_output">
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">generate_cif_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.generate_cif_output" title="Permalink to this definition"></a></dt>
+<dd><p>Generates at string, that details the computation options for use in the
+cif generation routine.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>computation_dict</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – contains options for the calculation.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The string that will be added to the cif-file</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xharpy.f0j_sources.qe_source.qe_atomic_density">
-<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">qe_atomic_density</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">symm_symbols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symm_positions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.qe_atomic_density" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">qe_atomic_density</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">symm_symbols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symm_positions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.qe_atomic_density" title="Permalink to this definition"></a></dt>
+<dd><p>Generates the atomic function needed for Hirshfeld partitioning by
+setting the quantum espresso options to 0 calculation steps and
+initialisation to atomic. Subsequently, generates the density cube file
+with or without the core density and finally loads the
+density with cubetools.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>symm_symbols</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – Atom Type indicators for the evaluated atom(s)</p></li>
+<li><p><strong>symm_positions</strong> (<em>np.ndarray</em>) – atomic positions in fractional coordinates for the evaluated atom(s)</p></li>
+<li><p><strong>cell_mat_m</strong> (<em>np.ndarray</em>) – size (3, 3) array with the unit cell vectors as row vectors, only used
+if ibrav != 0</p></li>
+<li><p><strong>computation_dict</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Dictionary with the calculation options, see calc_f0j function for
+options</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>atomic_density</strong> – Numpy array containing the atomic_density. The overall sum of the array
+is normalised to the number of electrons.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xharpy.f0j_sources.qe_source.qe_density">
-<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">qe_density</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">symm_symbols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symm_positions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.qe_density" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">qe_density</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">symm_symbols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symm_positions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">numpy.ndarray</span></span></span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.qe_density" title="Permalink to this definition"></a></dt>
+<dd><p>Performs the wavefunction calculation with quantum espresso, generates the
+density cube file with or without the core density and finally loads the
+density with cubetools.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>symm_symbols</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – Atom Type indicators for the symmetry expanded atoms in the unit cell</p></li>
+<li><p><strong>symm_positions</strong> (<em>np.ndarray</em>) – atomic positions in fractional coordinates for the symmetry expanded
+atoms in the unit cell.</p></li>
+<li><p><strong>cell_mat_m</strong> (<em>np.ndarray</em>) – size (3, 3) array with the unit cell vectors as row vectors, only used
+if ibrav != 0</p></li>
+<li><p><strong>computation_dict</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Dictionary with the calculation options, see calc_f0j function for
+options</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>density</strong> – Numpy array containing the density. The overall sum of the array is
+normalised to the number of electrons.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xharpy.f0j_sources.qe_source.qe_entry_string">
-<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">qe_entry_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">string_sign</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.qe_entry_string" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">qe_entry_string</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">string_sign</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.qe_entry_string" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a formatted string for output in a quantum-espresso input file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – Name of the option</p></li>
+<li><p><strong>value</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>float</em><em>, </em><em>int</em><em>, </em><em>bool</em><em>]</em>) – The value of the option</p></li>
+<li><p><strong>string_sign</strong> (<em>bool</em><em>, </em><em>optional</em>) – If the value is a string this value determines, whether the entry,
+will have ‘’ as an indicator of the type, by default True</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Formatted string</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>NotImplementedError</strong> – The type of value is currently not implemented</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xharpy.f0j_sources.qe_source.qe_pp_file">
-<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">qe_pp_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.qe_pp_file" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">qe_pp_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.qe_pp_file" title="Permalink to this definition"></a></dt>
+<dd><p>Creates an input file for pp.x</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>computation_dict</strong> (<em>Dict</em><em>[</em><em>Any</em><em>]</em>) – Dictionary with the calculation options, see calc_f0j function for
+options</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>pp_file_string</strong> – a pp.x input file as string</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xharpy.f0j_sources.qe_source.qe_pw_file">
-<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">qe_pw_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">symm_symbols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symm_positions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.qe_pw_file" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">xharpy.f0j_sources.qe_source.</span></span><span class="sig-name descname"><span class="pre">qe_pw_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">symm_symbols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">symm_positions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell_mat_m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computation_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#xharpy.f0j_sources.qe_source.qe_pw_file" title="Permalink to this definition"></a></dt>
+<dd><p>Creates an input file for pw.x for the density calculation</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>symm_symbols</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – Atom Type indicators for the symmetry expanded atoms in the unit cell</p></li>
+<li><p><strong>symm_positions</strong> (<em>np.ndarray</em>) – atomic positions in fractional coordinates for the symmetry expanded
+atoms in the unit cell.</p></li>
+<li><p><strong>cell_mat_m</strong> (<em>np.ndarray</em>) – size (3, 3) array with the unit cell vectors as row vectors, only used
+if ibrav != 0</p></li>
+<li><p><strong>computation_dict</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Dictionary with the calculation options, see calc_f0j function for
+options</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>pw_file_string</strong> – formatted output file as a string</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
 
 </div>
 <div class="section" id="module-xharpy.f0j_sources.real_spher_harm">

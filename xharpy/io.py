@@ -1673,7 +1673,7 @@ def write_cif(
     source_cif = ciflike_to_dict(source_cif_path, source_dataset)
 
     crystal_system = shelx_cif['space_group_crystal_system']
-
+    hkl = hkl.copy()
     hkl['strong_condition'] = hkl['intensity'] / hkl['esd_int'] > 2
     index_vec_h = hkl[['h', 'k', 'l']].values
     intensity = hkl['intensity'].values
@@ -1706,6 +1706,8 @@ def write_cif(
         from .f0j_sources.gpaw_mpi_source import generate_cif_output
     elif f0j_source == 'gpaw_spherical':
         from .f0j_sources.gpaw_spherical_source import generate_cif_output
+    elif f0j_source == 'qe':
+        from .f0j_sources.qe_source import generate_cif_output
     else:
         raise NotImplementedError('This f0j source has not implemented "generate_cif_output" method')
 

@@ -5,6 +5,7 @@
 
 *.gpw
 **/doctrees
+**/scratch
 **/xharpy_output
 **/.vscode
 
@@ -17,3 +18,10 @@ core_r_values.pic
 step2.py
 step2_values.pic
 f0j.pic
+
+# Files of qe
+pp.in 
+pp.out 
+pw.in 
+pw.out
+tmp.pp

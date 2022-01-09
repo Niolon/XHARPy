@@ -199,11 +199,11 @@ Writing data to disk
 --------------------
 
 Finally we want to export our structures. There are three kinds of files that we
-can write at the moment, and three functions that we need to import
+can write at the moment, and four functions that we need to import
     
 .. code-block:: python
 
-    from xharpy import write_cif, write_res, write_fcf
+    from xharpy import write_cif, write_res, write_fcf, add_density_entries_from_fcf
 
 The *crystallographic information file* is a standard format for exchanging and
 depositing crystallographic data. We can write such a file with:
@@ -211,7 +211,7 @@ depositing crystallographic data. We can write such a file with:
 .. code-block:: python
 
     write_cif(
-        output_cif_path='xharpy.cif'),
+        output_cif_path='xharpy.cif',
         cif_dataset='xharpy',
         shelx_cif_path='iam.cif',
         shelx_dataset=0,
@@ -271,13 +271,21 @@ Both outputs will correct for extinction, but only fcf6 will correct the
 observed reflections for dispersion effects. If you want to access the corrected
 values for validation. Both functions return a pandas DataFrame.
 
+XHARPy currently has no means of evaluating the difference electron density by 
+itself. For this reason we need to use an additional function with a cctbx module
+to add the missing entries to the cif file. 
+
+.. code-block:: python
+
+    add_density_entries_from_fcf('xharpy.cif', 'xharpy_6.fcf')
+
 For visualisation of the structure and the difference electron density is is
 also helpful to write a SHELXL .res file. This can be done by: 
 
 .. code-block:: python
 
     write_res(
-        out_res_path='xharpy_6.res'),
+        out_res_path='xharpy_6.res',
         in_res_path='iam.lst',
         cell=cell,
         cell_esd=cell_esd,

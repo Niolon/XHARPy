@@ -107,9 +107,9 @@ ConstrainedValues = namedtuple('ConstrainedValues', [
 ], defaults=[[], [], [], False])
 
 UEquivConstraint = namedtuple('UEquivConstraint', [
-    'bound_atom', # Name of the bound atom
-    'multiplicator' # Multiplicator for UEquiv Constraint
-                    # (Usually nonterminal: 1.2, terminal 1.5)
+    'bound_atom_name', # Name of the bound atom
+    'multiplicator'    # Multiplicator for UEquiv Constraint
+                       # (Usually nonterminal: 1.2, terminal 1.5)
 ])
 
 TrigonalPositionConstraint = namedtuple('TrigonalPositionConstraint', [
@@ -692,7 +692,7 @@ def create_construction_instructions(
                     )
                     current_index += n_pars
                 elif type(constraint).__name__ == 'UEquivConstraint':
-                    bound_index = names.index(constraint.bound_atom)
+                    bound_index = names.index(constraint.bound_atom_name)
                     adp_instructions = UEquivCalculated(atom_index=bound_index, multiplicator=constraint.multiplicator)
                 else:
                     raise NotImplementedError('Unknown Uij Constraint')
@@ -704,7 +704,7 @@ def create_construction_instructions(
             if atom['label'] in constraint_dict.keys() and 'uij' in constraint_dict[atom['label']].keys():
                 constraint = constraint_dict[atom['label']]['uij']
                 if type(constraint).__name__ == 'UEquivConstraint':
-                        bound_index = names.index(constraint.bound_atom)
+                        bound_index = names.index(constraint.bound_atom_name)
                         adp_instructions = UEquivCalculated(atom_index=bound_index, multiplicator=constraint.multiplicator)
             else:
                 adp_instructions = UIso(uiso=RefinedParameter(par_index=int(current_index), multiplicator=1.0))

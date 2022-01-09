@@ -517,7 +517,7 @@ def calc_f0j_core(
     computation_dict = computation_dict.copy()
     non_gpaw_keys = [
         'gridinterpolation',
-        'average_symmequiv',
+        'symm_equiv',
         'skip_symm',
         'magmoms',
         'save_file'

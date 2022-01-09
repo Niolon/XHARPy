@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Basic Use &mdash; xHARPy 0.1.1 documentation</title>
+  <title>Basic Use &mdash; XHARPy 0.1.1 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -26,7 +26,8 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> xHARPy
+            <a href="../index.html" class="icon icon-home"> XHARPy
+            <img src="../_static/XHARPy_logo.svg" class="logo" alt="Logo"/>
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -40,7 +41,6 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../commandline.html">Command Line Interface</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../examples.html">Examples</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="library_index.html">Scripting with xHARPy</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Basic Use</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#loading-your-data">Loading your data</a></li>
@@ -53,6 +53,7 @@
 <li class="toctree-l2"><a class="reference internal" href="library_refinement_dict.html">Refinement Options</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../examples.html">Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../modules.html">xharpy</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../xharpy.html">xharpy package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../xharpy.f0j_sources.html">xharpy.f0j_sources package</a></li>
@@ -64,7 +65,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../index.html">xHARPy</a>
+          <a href="../index.html">XHARPy</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -248,14 +249,14 @@ form factor values or the shifts at the last step).</p>
 <div class="section" id="writing-data-to-disk">
 <h2>Writing data to disk<a class="headerlink" href="#writing-data-to-disk" title="Permalink to this headline"></a></h2>
 <p>Finally we want to export our structures. There are three kinds of files that we
-can write at the moment, and three functions that we need to import</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">xharpy</span> <span class="kn">import</span> <span class="n">write_cif</span><span class="p">,</span> <span class="n">write_res</span><span class="p">,</span> <span class="n">write_fcf</span>
+can write at the moment, and four functions that we need to import</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">xharpy</span> <span class="kn">import</span> <span class="n">write_cif</span><span class="p">,</span> <span class="n">write_res</span><span class="p">,</span> <span class="n">write_fcf</span><span class="p">,</span> <span class="n">add_density_entries_from_fcf</span>
 </pre></div>
 </div>
 <p>The <em>crystallographic information file</em> is a standard format for exchanging and
 depositing crystallographic data. We can write such a file with:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">write_cif</span><span class="p">(</span>
-    <span class="n">output_cif_path</span><span class="o">=</span><span class="s1">&#39;xharpy.cif&#39;</span><span class="p">),</span>
+    <span class="n">output_cif_path</span><span class="o">=</span><span class="s1">&#39;xharpy.cif&#39;</span><span class="p">,</span>
     <span class="n">cif_dataset</span><span class="o">=</span><span class="s1">&#39;xharpy&#39;</span><span class="p">,</span>
     <span class="n">shelx_cif_path</span><span class="o">=</span><span class="s1">&#39;iam.cif&#39;</span><span class="p">,</span>
     <span class="n">shelx_dataset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
@@ -311,10 +312,16 @@ to the new one.</p>
 <p>Both outputs will correct for extinction, but only fcf6 will correct the
 observed reflections for dispersion effects. If you want to access the corrected
 values for validation. Both functions return a pandas DataFrame.</p>
+<p>XHARPy currently has no means of evaluating the difference electron density by
+itself. For this reason we need to use an additional function with a cctbx module
+to add the missing entries to the cif file.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">add_density_entries_from_fcf</span><span class="p">(</span><span class="s1">&#39;xharpy.cif&#39;</span><span class="p">,</span> <span class="s1">&#39;xharpy_6.fcf&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
 <p>For visualisation of the structure and the difference electron density is is
 also helpful to write a SHELXL .res file. This can be done by:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">write_res</span><span class="p">(</span>
-    <span class="n">out_res_path</span><span class="o">=</span><span class="s1">&#39;xharpy_6.res&#39;</span><span class="p">),</span>
+    <span class="n">out_res_path</span><span class="o">=</span><span class="s1">&#39;xharpy_6.res&#39;</span><span class="p">,</span>
     <span class="n">in_res_path</span><span class="o">=</span><span class="s1">&#39;iam.lst&#39;</span><span class="p">,</span>
     <span class="n">cell</span><span class="o">=</span><span class="n">cell</span><span class="p">,</span>
     <span class="n">cell_esd</span><span class="o">=</span><span class="n">cell_esd</span><span class="p">,</span>

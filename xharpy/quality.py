@@ -48,6 +48,7 @@ def calculate_quality_indicators(
         Dictionary with different quality indicators.
     """
     cell_mat_m = np.array(cell_constants_to_M(*cell))
+    hkl = hkl.copy()
 
     index_vec_h = hkl[['h', 'k', 'l']].values
     intensities = hkl['intensity'].values

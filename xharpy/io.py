@@ -428,7 +428,7 @@ def lst2constraint_dict(filename: str) -> Dict[str, Dict[str, ConstrainedValues]
     """Helper function to create a constraint dict for the refinement if atoms 
     on special positions are present. Make sure that atoms on special positions
     are actually refined in SHELXL as you plan to refine them  in the refinement
-    in xHARPy. Use AFIX 1 if hydrogen atoms are located on special positions,
+    in XHARPy. Use AFIX 1 if hydrogen atoms are located on special positions,
     but you want to refine them anisotropically in the Hirshfeld refinement or 
     add the ConstraintValues variables manually. As SHELXL cannot refine Gram-
     Charlier parameters, these need to be added manually for the time being.
@@ -492,7 +492,7 @@ def lst2constraint_dict(filename: str) -> Dict[str, Dict[str, ConstrainedValues]
 
 def shelxl_hkl2pd(hkl_name: str) -> pd.DataFrame:
     """Helper function to read in a shelx-style .hkl file as dataframe. Note
-    that xHARPy does expect a merged hkl file, using an unmerged file will 
+    that XHARPy does expect a merged hkl file, using an unmerged file will 
     be very slow and lead to unexpected esd values.
 
     Parameters
@@ -1102,7 +1102,7 @@ def cif2atom_type_table_string(
     versionminor : int
         Minor xharpy version number
     ishar : bool, optional
-        refinement is a Hirshfeld Atom Refinement in xHarpy, by default True
+        refinement is a Hirshfeld Atom Refinement in XHARPy, by default True
 
     Returns
     -------
@@ -1111,7 +1111,7 @@ def cif2atom_type_table_string(
     """
     table = next(loop for loop in cif['loops'] if 'atom_type_symbol' in loop.columns)
     if ishar:
-        table['atom_type_scat_source'] = f'HAR in xHARPy {versionmajor}.{versionminor}'
+        table['atom_type_scat_source'] = f'HAR in XHARPy {versionmajor}.{versionminor}'
     else:
         table['atom_type_scat_source'] = 'International Tables Vol C Tables 4.2.6.8 and 6.1.1.4'
     columns = [column for column in table.columns if not column.endswith('_esd')]

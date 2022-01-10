@@ -1,5 +1,5 @@
 """These modules provide the possibility to generate atomic form factors for the
-use in xHARPy. 
+use in XHARPy. 
 
 Usage
 -----

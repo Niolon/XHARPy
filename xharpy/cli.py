@@ -216,7 +216,7 @@ def cli(**kwargs):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Run a Hirshfeld atom refinement with xHARPy from Command Line')
+    parser = argparse.ArgumentParser(description='Run a Hirshfeld atom refinement with XHARPy from Command Line')
     parser.add_argument('--cif_name', nargs=1, help='Name of input cif file. Is assumed to be generated with shelxl')
     parser.add_argument('--cif_index', nargs=1, help='Name or index of dataset in cif file (indexing starts with 0)')
     parser.add_argument('--lst_name', nargs=1, help='Name of shelxl .lst file for generation of symmetry constaints. Use "None" for no constraints')

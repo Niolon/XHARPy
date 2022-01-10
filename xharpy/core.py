@@ -1459,7 +1459,7 @@ def refine(
         if core_io == 'save':
             with open(core_file, 'wb') as fo:
                 pickle.dump(f0j_core, fo)
-            print('  saved core atomic form factors from disk')
+            print('  saved core atomic form factors to disk')
         f0j_core += f_dash[:, None]
 
     elif core == 'combine':

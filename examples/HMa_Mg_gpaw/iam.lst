@@ -1,0 +1,1219 @@
+
+ +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ +  SHELXL -  CRYSTAL STRUCTURE REFINEMENT  -   MULTI-CPU VERSION  +
+ +  Copyright(C) George M. Sheldrick 1993-2018     Version 2018/3  +
+ +  iam                        started at 17:59:47 on 31-Mar-2021  +
+ +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ Command line parameters: iam -a50000 -b3000 -c624 -g0 -m0 -t8
+
+ -a sets the approximate maximum number of atoms including hydrogens.
+ -b sets the maximum number of full-matrix parameters (not used by CGLS).
+ For example -b9000 allows refinement of 1000 anisotropic atoms or 3000
+ with BLOC 1. For a 32-bit version, -b times the square root of the
+ number of threads should not exceed about 65500. -c sets the reflection
+ buffer size. This depends on the CPU cache size but will rarely
+ need changing.
+
+ -g sets the number of reflection groups used for calculating R_complete,
+ This must be greater than 1 but not greater than the total number of
+ reflections for refinement. -m sets the current reflection group number.
+ This may not be less than 1 nor greater than the number set by -g. These
+ command line flags override other ways of defining free-R reflections.
+ The -m value is also used as a seed for the WIGL pseudo-random shifts.
+
+ -t sets the number of threads, otherwise it is set to the apparent
+ number of CPUs. For optimal performance on hyperthreading systems,
+ -t should be set to a little more than half the number of CPUs;
+ e.g. -t4 or -t5 for an Intel i7 processor.
+
+ Running  8 threads on  8 processors
+
+ TITL Mg_HAR_neuP 1 21/c 1   R = 0.02
+     iam.res
+     created by SHELXL-2018/3 at 17:58:19 on 31-Mar-2021
+ CELL  0.35320   10.1950   11.7590    6.6206    90.000   103.670    90.000
+ ZERR        2    0.0020    0.0020    0.0013     0.000     0.030     0.000
+ LATT   1
+ SYMM             - X ,    0.50000 + Y ,    0.50000 - Z
+ SFAC  C  H Mg  O
+ DISP $C -0.00054  0.00034  4.56231!source kissel
+ DISP $H -0.00003  0.00000  0.62726!source kissel
+ DISP $Mg  0.00850  0.00831 25.67455!source kissel
+ DISP $O  0.00042  0.00129  8.21819!source kissel
+ UNIT    16   36   2  28
+
+ V =      771.21     F(000) =     380.0     Mu =   0.05 mm-1      Cell Wt =      725.07    Rho =  1.561
+
+ LIST 6 ! automatically inserted. Change 6 to 4 for CHECKCIF!!
+ TEMP  -258
+ L.S. 10
+ FMAP 2
+ PLAN -20
+ ACTA
+ BOND $H
+ CONF
+ WGHT    0.000000
+ FVAR       0.82999
+ O1    4    0.097246    0.091849    0.872564    11.00000    0.00521    0.00537 =
+          0.01344    0.00000    0.00200   -0.00072
+ H1    2   -0.016148    0.117113    0.827771    11.00000   -1.50000
+ O2    4   -0.138492    0.140526    0.783309    11.00000    0.00541    0.00555 =
+          0.01574    0.00003    0.00207   -0.00029
+ O3    4    0.292951    0.179973    0.918684    11.00000    0.00441    0.00760 =
+          0.01288    0.00021    0.00181   -0.00020
+ O4    4   -0.264883    0.295398    0.716903    11.00000    0.00507    0.00819 =
+          0.01289   -0.00076    0.00133    0.00115
+ C1    1    0.167274    0.183356    0.887313    11.00000    0.00483    0.00588 =
+          0.00730    0.00007    0.00147   -0.00024
+ C2    1    0.101218    0.297790    0.869524    11.00000    0.00548    0.00558 =
+          0.00937   -0.00004    0.00170   -0.00036
+ AFIX  43
+ H2    2    0.161408    0.360649    0.895235    11.00000   -1.20000
+ AFIX   0
+ C3    1   -0.030837    0.324851    0.822495    11.00000    0.00570    0.00563 =
+          0.00968   -0.00002    0.00167   -0.00004
+ AFIX  43
+ H3    2   -0.049653    0.403997    0.821705    11.00000   -1.20000
+ AFIX   0
+ C4    1   -0.152899    0.249406    0.771137    11.00000    0.00494    0.00641 =
+          0.00761   -0.00033    0.00187    0.00011
+ MG1   3    0.500000    0.500000    1.000000    10.50000    0.00410    0.00498 =
+          0.00691   -0.00036    0.00153   -0.00017
+ O5    4    0.509581    0.326651    1.012967    11.00000    0.00611    0.00566 =
+          0.01520    0.00036    0.00104   -0.00026
+ H4    2    0.579034    0.290538    1.078849    11.00000    0.02959
+ H5    2    0.438312    0.282376    0.980153    11.00000    0.02517
+ O6    4    0.649553    0.507785    1.269844    11.00000    0.00972    0.01225 =
+          0.01147   -0.00470   -0.00281    0.00449
+ H6    2    0.662074    0.555524    1.370571    11.00000    0.02050
+ H7    2    0.716658    0.463822    1.294028    11.00000    0.03499
+ O7    4    0.649435    0.499724    0.835037    11.00000    0.01124    0.00803 =
+          0.01425    0.00172    0.00815    0.00184
+ H8    2    0.660287    0.550348    0.744505    11.00000    0.02287
+ H9    2    0.672821    0.441478    0.791474    11.00000    0.03897
+  
+ HKLF 4
+
+
+
+ Covalent radii and connectivity table for  Mg_HAR_neuP 1 21/c 1   R = 0.02                                            
+ C      0.770
+ H      0.320
+ MG     1.600
+ O      0.660
+
+ O1 - C1
+ O2 - C4
+ O3 - C1
+ O4 - C4
+ C1 - O3 O1 C2
+ C2 - C3 C1
+ C3 - C2 C4
+ C4 - O4 O2 C3
+ Mg1 - O5_$1 O5 O6_$1 O6 O7 O7_$1
+ O5 - Mg1
+ O6 - Mg1
+ O7 - Mg1
+
+
+ Operators for generating equivalent atoms:
+ $1   -x+1, -y+1, -z+2
+
+
+    12589  Reflections read, of which       0  rejected
+
+ -25 =< h =< 24,      0 =< k =< 29,      0 =< l =< 16,   Max. 2-theta =   52.40
+
+        0  Systematic absence violations (I>3sig(I)) before merging
+ 
+ ** WARNING: Input data appear to be merged: CIF file will be incomplete **
+
+        0  Inconsistent equivalents
+
+    12589  Unique reflections, of which       0  suppressed
+
+ R(int) = 0.0000     R(sigma) = 0.0088      Friedel opposites merged
+
+ Maximum memory for data reduction =     1356 /   125084
+
+
+ Reflection statistics for all twin components combined (TWST 0 set)
+ Number of data for d > 0.400A (CIF: max) and d > 0.833A (CIF: full)
+ (ignoring systematic absences):
+ Unique reflections found (point group)      12589    1386
+ Unique reflections possible (point group)   12628    1386
+ Unique reflections found (Laue group)       12589    1386
+ Unique reflections possible (Laue group)    12628    1386
+
+ Special position constraints for Mg1
+ x =  0.5000   y =  0.5000   z =  1.0000   sof = 0.50000   
+ Input constraints retained (at least in part) for  sof
+
+
+ Default effective X-H and X-D distances for T = -258.0C 
+ AFIX m =    1     2     3     4   4[N]  3[N]  15[B]  8[O]   9   9[N]   16
+ d(X-H) =  1.00  0.99  0.98  0.95  0.88  0.91  1.12  0.84  0.95  0.88  0.95
+
+ Note that these distances are chosen to give the best fit to the X-ray data
+ and so avoid the introduction of systematic error.  The true internuclear
+ distances are longer and do not vary with temperature!  The apparent
+ variation with temperature is caused by libration.
+
+
+ Least-squares cycle   1   Maximum vector length =  623   Memory required =     35 /   1687 /   202930
+
+ wR2 =  0.0686 before cycle   1 for   12589 data and    133 /    133 parameters
+
+ GooF = S =     6.024;     Restrained GooF =      6.024 for       0 restraints
+
+ Weight = 1 / [ sigma^2(Fo^2) + ( 0.0000 * P )^2 +   0.00 * P ]   where  P = ( Max ( Fo^2, 0 ) + 2 * Fc^2 ) / 3
+
+
+     N      value        esd    shift/esd  parameter
+
+     1     0.82998     0.00048    -0.024    OSF
+
+ Mean shift/esd =   0.030  Maximum =    -0.148 for  U23 Mg1      
+
+ Max. shift = 0.000 A for H1        Max. dU = 0.000 for H6         
+
+
+ Least-squares cycle   2   Maximum vector length =  623   Memory required =     35 /   1687 /   202930
+
+ wR2 =  0.0687 before cycle   2 for   12589 data and    133 /    133 parameters
+
+ GooF = S =     6.027;     Restrained GooF =      6.027 for       0 restraints
+
+ Weight = 1 / [ sigma^2(Fo^2) + ( 0.0000 * P )^2 +   0.00 * P ]   where  P = ( Max ( Fo^2, 0 ) + 2 * Fc^2 ) / 3
+
+
+     N      value        esd    shift/esd  parameter
+
+     1     0.82999     0.00048     0.022    OSF
+
+ Mean shift/esd =   0.010  Maximum =    -0.049 for  U23 Mg1      
+
+ Max. shift = 0.000 A for H9        Max. dU = 0.000 for H5         
+
+
+ Least-squares cycle   3   Maximum vector length =  623   Memory required =     35 /   1687 /   202930
+
+ wR2 =  0.0686 before cycle   3 for   12589 data and    133 /    133 parameters
+
+ GooF = S =     6.026;     Restrained GooF =      6.026 for       0 restraints
+
+ Weight = 1 / [ sigma^2(Fo^2) + ( 0.0000 * P )^2 +   0.00 * P ]   where  P = ( Max ( Fo^2, 0 ) + 2 * Fc^2 ) / 3
+
+
+     N      value        esd    shift/esd  parameter
+
+     1     0.82999     0.00048     0.000    OSF
+
+ Mean shift/esd =   0.000  Maximum =     0.002 for   z  O5       
+
+ Max. shift = 0.000 A for H4        Max. dU = 0.000 for H9         
+
+
+ Least-squares cycle   4   Maximum vector length =  623   Memory required =     35 /   1687 /   202930
+
+ wR2 =  0.0686 before cycle   4 for   12589 data and    133 /    133 parameters
+
+ GooF = S =     6.022;     Restrained GooF =      6.022 for       0 restraints
+
+ Weight = 1 / [ sigma^2(Fo^2) + ( 0.0000 * P )^2 +   0.00 * P ]   where  P = ( Max ( Fo^2, 0 ) + 2 * Fc^2 ) / 3
+
+
+     N      value        esd    shift/esd  parameter
+
+     1     0.82999     0.00048     0.000    OSF
+
+ Mean shift/esd =   0.000  Maximum =     0.001 for   z  O6       
+
+ Max. shift = 0.000 A for H1        Max. dU = 0.000 for H9         
+
+
+ Least-squares cycle   5   Maximum vector length =  623   Memory required =     35 /   1687 /   202930
+
+ wR2 =  0.0686 before cycle   5 for   12589 data and    133 /    133 parameters
+
+ GooF = S =     6.024;     Restrained GooF =      6.024 for       0 restraints
+
+ Weight = 1 / [ sigma^2(Fo^2) + ( 0.0000 * P )^2 +   0.00 * P ]   where  P = ( Max ( Fo^2, 0 ) + 2 * Fc^2 ) / 3
+
+
+     N      value        esd    shift/esd  parameter
+
+     1     0.82999     0.00048     0.000    OSF
+
+ Mean shift/esd =   0.000  Maximum =    -0.002 for   z  O5       
+
+ Max. shift = 0.000 A for H1        Max. dU = 0.000 for H9         
+
+
+ Least-squares cycle   6   Maximum vector length =  623   Memory required =     35 /   1687 /   202930
+
+ wR2 =  0.0686 before cycle   6 for   12589 data and    133 /    133 parameters
+
+ GooF = S =     6.025;     Restrained GooF =      6.025 for       0 restraints
+
+ Weight = 1 / [ sigma^2(Fo^2) + ( 0.0000 * P )^2 +   0.00 * P ]   where  P = ( Max ( Fo^2, 0 ) + 2 * Fc^2 ) / 3
+
+
+     N      value        esd    shift/esd  parameter
+
+     1     0.82999     0.00048     0.000    OSF
+
+ Mean shift/esd =   0.000  Maximum =    -0.002 for   z  O5       
+
+ Max. shift = 0.000 A for H1        Max. dU = 0.000 for H9         
+
+
+ Least-squares cycle   7   Maximum vector length =  623   Memory required =     35 /   1687 /   202930
+
+ wR2 =  0.0686 before cycle   7 for   12589 data and    133 /    133 parameters
+
+ GooF = S =     6.024;     Restrained GooF =      6.024 for       0 restraints
+
+ Weight = 1 / [ sigma^2(Fo^2) + ( 0.0000 * P )^2 +   0.00 * P ]   where  P = ( Max ( Fo^2, 0 ) + 2 * Fc^2 ) / 3
+
+
+     N      value        esd    shift/esd  parameter
+
+     1     0.82999     0.00048     0.000    OSF
+
+ Mean shift/esd =   0.000  Maximum =    -0.002 for   z  O5       
+
+ Max. shift = 0.000 A for H1        Max. dU = 0.000 for H4         
+
+
+ Least-squares cycle   8   Maximum vector length =  623   Memory required =     35 /   1687 /   202930
+
+ wR2 =  0.0687 before cycle   8 for   12589 data and    133 /    133 parameters
+
+ GooF = S =     6.027;     Restrained GooF =      6.027 for       0 restraints
+
+ Weight = 1 / [ sigma^2(Fo^2) + ( 0.0000 * P )^2 +   0.00 * P ]   where  P = ( Max ( Fo^2, 0 ) + 2 * Fc^2 ) / 3
+
+
+     N      value        esd    shift/esd  parameter
+
+     1     0.82999     0.00048     0.000    OSF
+
+ Mean shift/esd =   0.000  Maximum =    -0.002 for   z  O5       
+
+ Max. shift = 0.000 A for H6        Max. dU = 0.000 for H8         
+
+
+ Least-squares cycle   9   Maximum vector length =  623   Memory required =     35 /   1687 /   202930
+
+ wR2 =  0.0687 before cycle   9 for   12589 data and    133 /    133 parameters
+
+ GooF = S =     6.027;     Restrained GooF =      6.027 for       0 restraints
+
+ Weight = 1 / [ sigma^2(Fo^2) + ( 0.0000 * P )^2 +   0.00 * P ]   where  P = ( Max ( Fo^2, 0 ) + 2 * Fc^2 ) / 3
+
+
+     N      value        esd    shift/esd  parameter
+
+     1     0.82999     0.00048     0.000    OSF
+
+ Mean shift/esd =   0.000  Maximum =    -0.002 for   z  O5       
+
+ Max. shift = 0.000 A for H7        Max. dU = 0.000 for H9         
+
+
+ Least-squares cycle  10   Maximum vector length =  623   Memory required =     35 /   1687 /   202930
+
+ wR2 =  0.0686 before cycle  10 for   12589 data and    133 /    133 parameters
+
+ GooF = S =     6.025;     Restrained GooF =      6.025 for       0 restraints
+
+ Weight = 1 / [ sigma^2(Fo^2) + ( 0.0000 * P )^2 +   0.00 * P ]   where  P = ( Max ( Fo^2, 0 ) + 2 * Fc^2 ) / 3
+
+
+     N      value        esd    shift/esd  parameter
+
+     1     0.82999     0.00048     0.000    OSF
+
+ Mean shift/esd =   0.000  Maximum =    -0.002 for   z  O5       
+
+ Max. shift = 0.000 A for H9        Max. dU = 0.000 for H9         
+
+ No correlation matrix elements larger than  0.500
+
+
+
+ Idealized hydrogen atom generation before cycle  11
+
+ Name     x       y       z    AFIX  d(X-H)  shift  Bonded to  Conformation determined by
+ H2    0.1614  0.3606  0.8952   43   0.950   0.000   C2            C3  C1  
+ H3   -0.0497  0.4040  0.8217   43   0.950   0.000   C3            C2  C4  
+
+
+
+  Mg_HAR_neuP 1 21/c 1   R = 0.02                                            
+
+ ATOM           x        y        z         sof        U11      U22      U33      U23      U13      U12       Ueq
+
+ O1          0.09725  0.09185  0.87256    1.00000    0.00521  0.00537  0.01344  0.00000  0.00200 -0.00072   0.00804
+   0.00028   0.00002  0.00002  0.00003    0.00000    0.00004  0.00003  0.00005  0.00003  0.00004  0.00003   0.00002
+
+ H1         -0.01615  0.11711  0.82777    1.00000    0.01207
+   0.00926   0.00048  0.00044  0.00082    0.00000    0.00000
+
+ O2         -0.13849  0.14053  0.78331    1.00000    0.00541  0.00555  0.01574  0.00003  0.00207 -0.00029   0.00897
+   0.00029   0.00002  0.00002  0.00003    0.00000    0.00004  0.00004  0.00006  0.00004  0.00004  0.00003   0.00002
+
+ O3          0.29295  0.17997  0.91868    1.00000    0.00441  0.00760  0.01288  0.00021  0.00181 -0.00020   0.00834
+   0.00029   0.00002  0.00002  0.00003    0.00000    0.00004  0.00004  0.00005  0.00004  0.00004  0.00003   0.00002
+
+ O4         -0.26488  0.29540  0.71690    1.00000    0.00507  0.00819  0.01289 -0.00076  0.00133  0.00115   0.00885
+   0.00029   0.00002  0.00002  0.00003    0.00000    0.00004  0.00004  0.00005  0.00004  0.00004  0.00003   0.00002
+
+ C1          0.16727  0.18336  0.88731    1.00000    0.00483  0.00588  0.00730  0.00007  0.00147 -0.00024   0.00600
+   0.00032   0.00002  0.00002  0.00003    0.00000    0.00005  0.00004  0.00005  0.00004  0.00004  0.00004   0.00002
+
+ C2          0.10122  0.29779  0.86952    1.00000    0.00548  0.00558  0.00937 -0.00004  0.00170 -0.00036   0.00682
+   0.00033   0.00002  0.00002  0.00003    0.00000    0.00005  0.00004  0.00005  0.00004  0.00004  0.00004   0.00002
+
+ H2          0.16141  0.36065  0.89523    1.00000    0.00818
+                                          0.00000    0.00000
+
+ C3         -0.03084  0.32485  0.82249    1.00000    0.00570  0.00563  0.00968 -0.00002  0.00167 -0.00004   0.00703
+   0.00034   0.00002  0.00002  0.00003    0.00000    0.00005  0.00004  0.00005  0.00004  0.00004  0.00004   0.00002
+
+ H3         -0.04965  0.40400  0.82170    1.00000    0.00843
+                                          0.00000    0.00000
+
+ C4         -0.15290  0.24941  0.77114    1.00000    0.00494  0.00641  0.00761 -0.00033  0.00187  0.00011   0.00626
+   0.00032   0.00002  0.00002  0.00003    0.00000    0.00005  0.00004  0.00005  0.00004  0.00004  0.00004   0.00002
+
+ Mg1         0.50000  0.50000  1.00000    0.50000    0.00410  0.00498  0.00691 -0.00036  0.00153 -0.00017   0.00529
+   0.00000   0.00000  0.00000  0.00000    0.00000    0.00003  0.00003  0.00003  0.00002  0.00003  0.00002   0.00002
+
+ O5          0.50958  0.32665  1.01297    1.00000    0.00611  0.00566  0.01520  0.00036  0.00104 -0.00026   0.00924
+   0.00029   0.00002  0.00002  0.00003    0.00000    0.00005  0.00004  0.00006  0.00004  0.00004  0.00003   0.00002
+
+ H4          0.57903  0.29054  1.07885    1.00000    0.02959
+   0.01270   0.00068  0.00059  0.00114    0.00000    0.00158
+
+ H5          0.43831  0.28238  0.98015    1.00000    0.02517
+   0.01210   0.00063  0.00056  0.00105    0.00000    0.00141
+
+ O6          0.64955  0.50779  1.26984    1.00000    0.00972  0.01225  0.01147 -0.00470 -0.00281  0.00449   0.01203
+   0.00031   0.00002  0.00002  0.00003    0.00000    0.00006  0.00005  0.00005  0.00004  0.00004  0.00004   0.00003
+
+ H6          0.66207  0.55552  1.37057    1.00000    0.02050
+   0.01054   0.00055  0.00053  0.00091    0.00000    0.00128
+
+ H7          0.71666  0.46382  1.29403    1.00000    0.03499
+   0.01278   0.00071  0.00061  0.00114    0.00000    0.00169
+
+ O7          0.64944  0.49972  0.83504    1.00000    0.01124  0.00803  0.01425  0.00172  0.00815  0.00184   0.01032
+   0.00036   0.00002  0.00002  0.00003    0.00000    0.00006  0.00004  0.00006  0.00004  0.00005  0.00004   0.00002
+
+ H8          0.66029  0.55035  0.74450    1.00000    0.02287
+   0.01133   0.00059  0.00057  0.00099    0.00000    0.00135
+
+ H9          0.67282  0.44148  0.79147    1.00000    0.03897
+   0.01486   0.00075  0.00072  0.00129    0.00000    0.00175
+
+
+
+ Final Structure Factor Calculation for  Mg_HAR_neuP 1 21/c 1   R = 0.02                                            
+
+ Total number of l.s. parameters =   133  Maximum vector length =  623   Memory required =     35 /   1554 /    28035
+
+ wR2 =  0.0687 before cycle  11 for   12589 data and      0 /    133 parameters
+
+ GooF = S =     6.027;     Restrained GooF =      6.027 for       0 restraints
+
+ Weight = 1 / [ sigma^2(Fo^2) + ( 0.0000 * P )^2 +   0.00 * P ]   where  P = ( Max ( Fo^2, 0 ) + 2 * Fc^2 ) / 3
+
+ wR2 = 0.0687, GooF = S = 6.027, Restrained GooF = 6.027 for all data
+ R1 = 0.0242 for 11715 Fo > 4sig(Fo) and 0.0260 for all 12589 data
+
+ Occupancy sum of asymmetric unit =    11.50 for non-hydrogen and     9.00 for H and D atoms
+
+
+
+ Principal mean square atomic displacements U
+
+   0.0136   0.0060   0.0045   O1  
+   0.0160   0.0058   0.0051   O2  
+   0.0131   0.0076   0.0043   O3  
+   0.0135   0.0084   0.0047   O4  
+   0.0073   0.0059   0.0047   C1  
+   0.0094   0.0059   0.0051   C2  
+   0.0098   0.0057   0.0056   C3  
+   0.0077   0.0064   0.0047   C4  
+   0.0070   0.0049   0.0040   Mg1  
+   0.0160   0.0062   0.0055   O5  
+   0.0228   0.0072   0.0061   O6  
+   0.0176   0.0076   0.0057   O7  
+
+     0  atoms may be split and     0  atoms NPD
+
+
+
+ Analysis of variance for reflections employed in refinement      K = Mean[Fo^2] / Mean[Fc^2]  for group
+
+
+ Fc/Fc(max)       0.000    0.006    0.011    0.017    0.024    0.031    0.039    0.050    0.066    0.098    1.000
+
+ Number in group      1447.    1135.    1265.    1339.    1246.    1203.    1269.    1218.    1228.    1239.
+
+            GooF      2.849    4.335    5.029    4.992    6.079    6.457    6.368    6.988    7.268    8.366
+
+             K        1.409    1.070    1.028    1.005    1.000    0.999    0.996    1.002    1.006    1.032
+
+
+ Resolution(A)    0.40     0.41     0.43     0.45     0.47     0.50     0.54     0.60     0.68     0.86     inf
+
+ Number in group      1261.    1271.    1268.    1252.    1253.    1256.    1247.    1259.    1252.    1270.
+
+            GooF      2.371    2.430    2.564    2.740    2.751    2.750    2.985    3.439    7.178   15.758
+
+             K        0.996    0.998    1.003    1.001    1.003    1.008    1.015    1.012    1.007    1.037
+
+             R1       0.041    0.040    0.031    0.028    0.023    0.019    0.018    0.016    0.021    0.032
+
+
+ Recommended weighting scheme:  WGHT    0.0418    0.0437
+
+
+ Most Disagreeable Reflections (* if suppressed or used for Rfree).
+ Error/esd is calculated as sqrt(wD^2/<wD^2>) where w is given by the weight
+ formula, D = Fo^2-Fc^2 and <> refers to the average over all reflections.
+
+     h   k   l          Fo^2          Fc^2    Error/esd  Fc/Fc(max)  Resolution(A)
+
+     6   5   0          8.06         13.32      15.12       0.031       1.35
+     5   2   0         33.11         11.67      14.49       0.029       1.88
+    10   1   0         25.30         39.14      12.24       0.054       0.99
+    -4   5   1          5.04          0.85      12.02       0.008       1.72
+    -2   3   4         23.56         14.42      10.50       0.033       1.52
+     5   4   0          2.86          0.23      10.09       0.004       1.64
+     1   8   1         15.87         24.62      10.06       0.043       1.41
+    -2   7   1          6.78          3.32       9.95       0.016       1.57
+    -8   7   1          4.89          0.58       9.92       0.007       1.01
+     5   7   2         81.10         93.79       9.72       0.083       1.13
+     1   4   2         29.47         40.21       9.49       0.055       2.05
+     2   3   2          5.25          8.47       9.22       0.025       2.08
+     1   1   2         65.42         49.51       9.15       0.061       2.79
+     5   7   3         25.64         18.73       8.81       0.037       1.03
+     8   5   1         22.11         31.29       8.79       0.048       1.04
+     0   2   2         13.96         22.96       8.61       0.041       2.82
+     3   9   1         19.09         26.56       8.58       0.044       1.18
+    -6   2   1          0.74          0.00       8.45       0.001       1.63
+     6   7   0         83.03        111.54       8.40       0.091       1.18
+     3   3   3          5.59          1.97       8.31       0.012       1.51
+    -1   5   1         89.74         59.44       8.10       0.066       2.19
+     8   0   2          9.58         19.33       8.00       0.038       1.07
+     3   5   1         83.22         62.33       7.74       0.068       1.77
+    -7  10   1          8.99         13.64       7.64       0.032       0.91
+     8   3   2        131.29        153.01       7.56       0.107       1.04
+    -5   3   5          2.64          5.27       7.54       0.020       1.16
+     4   5   2         54.47         60.88       7.37       0.067       1.41
+    -6   3   1          7.19         12.77       7.13       0.031       1.56
+   -11   1   2         12.08          7.14       7.10       0.023       0.92
+    -2   4   2        237.02        290.87       7.03       0.147       2.12
+     4   7   2         26.84         37.23       7.02       0.053       1.22
+     4  10   2          8.46          4.25       6.91       0.018       0.98
+     4   4   0         14.12          9.92       6.91       0.027       1.89
+     5  10   2          3.61          7.13       6.74       0.023       0.93
+     1  11   0         26.22         32.00       6.65       0.049       1.06
+    -4   2   5         11.89          7.88       6.58       0.024       1.24
+    -3   9   1          4.22          7.06       6.51       0.023       1.21
+    -1  12   1         57.79         64.59       6.51       0.069       0.97
+     2   8   0         43.87         52.25       6.42       0.062       1.41
+    11   0   0          4.28          9.30       6.41       0.026       0.90
+    -1   3   4         88.55         62.96       6.39       0.068       1.52
+    -3  14   1         18.36         14.03       6.22       0.032       0.81
+     0   4   1        409.72        341.08       6.21       0.159       2.67
+     5   8   2        251.10        290.34       6.18       0.147       1.06
+     2  14   1         40.15         45.97       6.08       0.058       0.82
+     5   4   2         39.79         47.68       6.04       0.060       1.36
+     7   1   0         32.82         39.61       6.00       0.054       1.41
+     1   9   1         87.87         74.84       5.99       0.075       1.26
+    -2   4   6         21.86         28.58       5.94       0.046       1.03
+    -5   2   4          6.08          8.64       5.87       0.025       1.38
+
+
+
+ Bond lengths and angles
+
+ O1 -            Distance        Angles
+ C1        1.2822 (0.0003) 
+ H1        1.1622 (0.0048)  107.90 (0.25)
+                 O1              C1           
+
+ O2 -            Distance        Angles
+ C4        1.2891 (0.0003) 
+ H1        1.2428 (0.0048)  109.15 (0.24)
+                 O2              C4           
+
+ O3 -            Distance        Angles
+ C1        1.2492 (0.0004) 
+                 O3             
+
+ O4 -            Distance        Angles
+ C4        1.2374 (0.0003) 
+                 O4             
+
+ C1 -            Distance        Angles
+ O3        1.2492 (0.0004) 
+ O1        1.2822 (0.0003)  121.11 (0.02)
+ C2        1.4969 (0.0003)  117.80 (0.02) 121.09 (0.02)
+                 C1              O3            O1           
+
+ C2 -            Distance        Angles
+ C3        1.3463 (0.0004) 
+ C1        1.4969 (0.0003)  129.60 (0.02)
+ H2        0.9500           115.20        115.20       
+                 C2              C3            C1           
+
+ C3 -            Distance        Angles
+ C2        1.3463 (0.0004) 
+ C4        1.5004 (0.0004)  130.03 (0.02)
+ H3        0.9500           114.99        114.99       
+                 C3              C2            C4           
+
+ C4 -            Distance        Angles
+ O4        1.2374 (0.0003) 
+ O2        1.2891 (0.0003)  122.41 (0.02)
+ C3        1.5004 (0.0004)  117.79 (0.02) 119.80 (0.02)
+                 C4              O4            O2           
+
+ Mg1 -           Distance        Angles
+ O5_$1     2.0416 (0.0004) 
+ O5        2.0416 (0.0004)  180.00       
+ O6_$1     2.0585 (0.0008)   89.41 (0.01)  90.59 (0.01)
+ O6        2.0585 (0.0008)   90.59 (0.01)  89.41 (0.01) 180.00       
+ O7        2.0737 (0.0005)   90.76 (0.01)  89.24 (0.01)  91.63 (0.02)  88.37 (0.02)
+ O7_$1     2.0737 (0.0005)   89.24 (0.01)  90.76 (0.01)  88.37 (0.02)  91.63 (0.02) 180.00 (0.01)
+                 Mg1             O5_$1         O5            O6_$1         O6            O7           
+
+ O5 -            Distance        Angles
+ Mg1       2.0416 (0.0004) 
+ H4        0.8520 (0.0067)  123.02 (0.46)
+ H5        0.8784 (0.0064)  123.56 (0.42) 111.71 (0.69)
+                 O5              Mg1           H4           
+
+ O6 -            Distance        Angles
+ Mg1       2.0585 (0.0008) 
+ H6        0.8579 (0.0061)  130.35 (0.37)
+ H7        0.8421 (0.0071)  122.65 (0.48) 106.80 (0.62)
+                 O6              Mg1           H6           
+
+ O7 -            Distance        Angles
+ Mg1       2.0737 (0.0005) 
+ H8        0.8702 (0.0068)  126.19 (0.42)
+ H9        0.8010 (0.0085)  120.61 (0.60) 103.88 (0.78)
+                 O7              Mg1           H8           
+
+
+
+ Selected torsion angles
+
+   174.96 ( 0.02)  O3 - C1 - C2 - C3
+    -5.61 ( 0.03)  O1 - C1 - C2 - C3
+    -0.72 ( 0.04)  C1 - C2 - C3 - C4
+  -174.40 ( 0.02)  C2 - C3 - C4 - O4
+     5.21 ( 0.03)  C2 - C3 - C4 - O2
+
+
+ FMAP and GRID set by program
+
+ FMAP   2   1  46
+ GRID    -1.163  24  -2     1.163   1   2
+
+ R1 =  0.0260 for  12589 unique reflections after merging for Fourier
+
+
+ Electron density synthesis with coefficients Fo-Fc
+
+ Highest peak    0.76  at  0.3851  0.5091  0.2152  [  0.44 A from O7 ]
+ Deepest hole   -0.68  at  0.0145  0.6215  0.6773  [  0.07 A from H1 ]
+ 
+ Molecule  1     scale 0.573 inches = 1.454 cm per Angstrom
+  
+                                              O1
+  
+  
+  
+  
+  
+  
+                                                               O3
+  
+  
+               O1
+  
+                   O2 Q14
+  
+  
+  
+                                O3
+                                           O6
+                                         Q10
+  
+                                           Q18
+  
+                             O7Q20
+            O4  Q15                                   ***O5
+      Q16                   Q1
+    O4
+  
+                                           MG1
+  
+                                                                                  O4
+                                                         Q1
+                               Q**7
+                             O5                       Q20O7
+  
+                                          Q18
+  
+                                            Q10
+                                          O6
+  
+  
+  
+  
+                                                                  O2
+  
+  
+                             Q13
+                   O6
+                       Q11 O3
+  
+  
+                              Q2
+  
+ O7                                           C2
+                                 C1   Q7
+  
+                                Q6                Q4                     O1
+  
+  
+                          Q8                          C3
+                              O1
+  
+  
+  
+                                                      Q9
+  
+  
+                                                      C4
+                                                 Q5                                    O7
+                                                         Q3
+                                             O2                  Q16
+                                          Q19
+                                           Q14                O4
+  
+                                                             Q15                                     MG1
+  
+  
+  
+  
+  
+  
+  
+  
+  
+                                             O6
+  
+  
+                                                           O5
+  
+  
+  
+  
+  
+                                              MG1
+ 
+
+
+ Atom      Peak    x       y       z     Sof  Height Code/Atom   Distances and Angles
+
+ O1        0.62  0.0972  0.0918  0.8726 1.000  1.35   0 H1       1.162
+                                                      0 C1       1.282 107.9
+                                                      0 Q8       0.432 133.4 118.5
+                                                      0 Q6       0.672 108.4   1.3 118.1
+                                                      0 Q7       1.632  89.4  18.7 137.2  19.0
+                                                      0 Q2       1.638 125.5  17.8 100.8  17.5  36.4
+                                                     12 H3       2.544  91.9 143.4  47.2 144.2 151.3 131.2
+                                                     24 H6       2.669 155.9  71.0  55.8  70.1  86.8  56.2 102.7
+                                                     32 H8       2.803 149.7  69.9  55.3  70.1  87.0  54.1  77.5  53.9
+                                                     26 H7       2.960 138.1  97.1  42.5  96.0 110.6  83.5  87.0  27.4  70.5
+                                                     21 O6       3.218 147.4  82.3  50.5  81.3  96.8  68.5  97.4  12.9  62.8  14.9
+
+ H1        0.00 -0.0161  0.1171  0.8278 1.000  1.48   0 O1       1.162
+                                                      0 O2       1.243 177.7
+                                                      0 Q19      1.343 158.3  22.5
+                                                      0 Q14      1.420 163.0  15.0  24.5
+                                                      0 Q8       1.492  12.2 165.8 153.0 150.9
+                                                      0 Q6       1.514  24.9 157.1 150.0 172.0  37.0
+                                                      0 Q5       1.590 157.1  24.9  34.2  39.9 169.3 132.2
+
+ O2        0.52 -0.1385  0.1405  0.7833 1.000  1.59   0 H1       1.243
+                                                      0 C4       1.289 109.1
+                                                      0 Q14      0.389 109.3 141.0
+                                                      0 Q19      0.515  89.7  93.4  80.5
+                                                      0 Q5       0.699 106.5   2.6 143.6  93.6
+                                                      0 Q3       1.645 126.5  17.5 123.6  91.0  20.0
+                                                      0 Q9       1.673  90.4  18.8 159.7  95.1  16.2  36.3
+                                                     27 H7       1.934 125.7 123.8  24.0  98.1 126.3 107.2 141.4
+                                                     22 O6       2.762 127.0 123.3  22.3  94.4 125.8 106.3 141.4   3.8
+                                                     14 MG1      4.070 140.2 107.3  34.1  72.5 109.8  90.1 125.7  31.0  27.4
+
+ O3        0.56  0.2930  0.1800  0.9187 1.000  1.72   0 C1       1.249
+                                                      0 H2       2.498  56.5
+                                                      0 O5       2.755 138.9  82.6
+                                                      0 H5       1.878 137.9  81.5   1.2
+                                                      0 Q11      0.407 118.6 173.5 101.8 102.9
+                                                      0 Q13      0.470 108.9  52.4  30.3  29.2 132.1
+                                                      0 Q2       0.678   1.8  58.2 140.7 139.6 116.9 110.6
+                                                      0 Q7       1.637  17.7  38.8 121.3 120.3 136.2  91.2  19.4
+                                                      0 Q6       1.647  18.6  75.1 156.9 156.0 100.0 127.3  16.9  36.2
+                                                     32 H8       1.990 107.6 144.3 108.7 109.3  38.9 130.6 105.9 121.5  93.0
+                                                     24 H6       1.999 101.3 134.2 105.1 106.2  40.2 125.7 100.4 113.7  86.9  76.9
+                                                     21 O6       2.850  99.8 131.7 105.3 106.4  42.7 124.8  98.9 111.7  85.8  79.3
+                                                     30 O7       2.850 105.8 141.1 109.5 110.0  42.0 130.0 104.1 119.2  91.8   3.2
+                                                     37 Q12      2.960 132.5  76.1   6.6   5.5 108.4  23.7 134.2 114.9 150.7 113.5
+
+ O4        0.44 -0.2649  0.2954  0.7169 1.000  2.26   0 H3       2.491
+                                                      0 C4       1.237  56.8
+                                                      0 Q16      0.462  50.3 107.0
+                                                      0 Q15      0.467 158.2 101.7 151.3
+                                                      0 Q3       0.672  59.2   2.9 109.3  99.4
+                                                      0 Q9       1.627  37.4  19.3  87.7 121.0  21.7
+                                                      0 Q5       1.653  73.7  17.0 123.9  84.7  14.7  36.3
+                                                     18 H4       1.924 167.6 120.7 129.8  25.1 118.0 139.1 104.4
+                                                     33 H9       1.935  78.1 130.5  34.9 120.3 133.4 113.2 144.5 107.6
+                                                     28 O7       2.733  77.9 129.5  35.6 120.2 132.4 112.5 143.2 108.3   1.8
+                                                     16 O5       2.775 167.0 121.1 129.2  25.9 118.4 139.4 104.8   0.8 107.4 108.0
+                                                     13 MG1      4.144  98.2 135.7  61.7  96.4 138.1 125.5 140.0  91.0  27.1  26.1
+
+ C1        0.35  0.1673  0.1834  0.8873 1.000  1.71   0 O1       1.282
+                                                      0 O3       1.249 121.1
+                                                      0 C2       1.497 121.1 117.8
+                                                      0 Q2       0.572 119.1   2.1 119.8
+                                                      0 Q7       0.586 116.8 122.0   4.6 124.1
+                                                      0 Q6       0.611   1.4 120.7 121.5 118.7 117.1
+                                                      0 Q13      1.470 138.6  17.6 100.2  19.7 104.5 138.2
+                                                      0 Q11      1.488 107.2  13.9 131.7  11.9 135.9 106.8  31.4
+                                                      0 Q8       1.536  14.3 106.8 135.4 104.8 131.1  14.0 124.3  92.9
+                                                      0 Q4       1.997 105.1 133.8  16.0 135.9  12.0 105.4 116.3 147.7 119.4
+
+ C2        0.28  0.1012  0.2978  0.8695 1.000  2.13   0 C1       1.497
+                                                      0 H2       0.950 115.2
+                                                      0 C3       1.346 129.6 115.2
+                                                      0 Q4       0.695 127.4 117.3   3.5
+                                                      0 Q7       0.914   2.9 117.8 127.0 124.7
+                                                      0 Q2       1.849  15.6  99.7 145.1 142.9  18.3
+                                                      0 Q6       1.889  16.0 131.1 113.7 111.4  13.3  31.6
+                                                      0 Q9       2.026 109.8 135.0  19.8  17.9 107.2 125.3  93.9
+
+ H2        0.00  0.1614  0.3606  0.8952 1.000  2.34   0 O3       2.498
+                                                      0 C2       0.950  70.4
+                                                      0 MG1      3.735  84.4 154.7
+                                                      0 Q4       1.411  96.3  25.9 178.4
+                                                     29 O7       2.824 100.3 151.8  33.3 147.6
+                                                     20 O6       2.881  94.8 144.3  33.2 145.2  60.6
+
+ C3        0.41 -0.0308  0.3249  0.8225 1.000  2.26   0 C2       1.346
+                                                      0 H3       0.950 115.0
+                                                      0 C4       1.500 130.0 115.0
+                                                      0 Q4       0.654   3.8 117.2 127.7
+                                                      0 Q9       0.885 129.2 115.8   1.0 126.9
+                                                      0 Q5       1.844 113.4 131.6  16.7 111.1  15.8
+                                                      0 Q3       1.854 145.1  99.8  15.3 143.0  16.2  31.9
+                                                      0 Q7       2.032  21.1 136.0 109.0  18.9 108.2  92.4 124.1
+
+ H3        0.00 -0.0497  0.4040  0.8217 1.000  2.54   0 O4       2.491
+                                                      0 C3       0.950  70.3
+                                                      0 Q4       1.378  95.3  25.0
+                                                      0 Q9       1.555  39.5  30.9  55.8
+                                                      1 O1       2.544 104.7 150.2 143.7 137.6
+
+ C4        0.29 -0.1529  0.2494  0.7711 1.000  2.02   0 O2       1.289
+                                                      0 O4       1.237 122.4
+                                                      0 C3       1.500 119.8 117.8
+                                                      0 Q3       0.567 119.6   3.4 120.5
+                                                      0 Q5       0.592   3.1 125.5 116.7 122.7
+                                                      0 Q9       0.615 118.6 119.0   1.5 121.8 115.5
+                                                      0 Q15      1.408 103.5  18.9 136.7  16.3 106.5 137.9
+                                                      0 Q19      1.417  21.3 118.1 119.3 114.8  21.7 118.6 100.8
+                                                      0 Q16      1.442 140.3  17.9  99.9  20.7 143.3 101.1  36.8 134.1
+                                                      0 Q14      1.610   8.7 113.7 128.5 110.9  11.8 127.3  94.8  21.3 131.6
+                                                      0 Q4       1.970 104.6 133.0  15.2 135.7 101.5  14.1 152.0 105.2 115.2 113.3
+
+ MG1       0.52  0.5000  0.5000  1.0000 0.500  2.86   0 H2       3.735
+                                                      0 O5       2.042  66.6
+                                                      0 O6       2.058 130.0  89.4
+                                                      0 O7       2.074 131.6  89.2  88.4
+                                                      0 Q12      1.658 115.1 178.3  89.2  89.7
+                                                     37 Q12      1.658  64.9   1.7  90.8  90.3 180.0
+                                                      0 Q18      1.737  56.3  95.1 173.5  87.0  86.2  93.8
+                                                     42 Q18      1.737 123.7  84.9   6.5  93.0  93.8  86.2 180.0
+                                                      0 Q20      1.763  42.8  88.1  96.6 174.3  93.1  86.9  88.2  91.8
+                                                     43 Q20      1.763 137.2  91.9  83.4   5.7  86.9  93.1  91.8  88.2 180.0
+                                                      0 Q10      1.798  37.9  85.9 167.7 102.9  95.7  84.3  18.5 161.5  71.9 108.1
+                                                     36 Q10      1.798 142.1  94.1  12.3  77.1  84.3  95.7 161.5  18.5 108.1  71.9
+                                                      0 Q17      2.009  64.8  12.7  82.3  99.5 167.3  12.7 102.9  77.1  78.5 101.5
+                                                     41 Q17      2.009 115.2 167.3  97.7  80.5  12.7 167.3  77.1 102.9 101.5  78.5
+                                                     15 O5       2.042 113.4 180.0  90.6  90.8   1.7 178.3  84.9  95.1  91.9  88.1
+                                                      0 Q1       2.050  59.8  93.0  79.8 167.9  87.7  92.3 104.6  75.4  17.7 162.3
+                                                     35 Q1       2.050 120.2  87.0 100.2  12.1  92.3  87.7  75.4 104.6 162.3  17.7
+                                                     20 O6       2.058  50.0  90.6 180.0  91.6  90.8  89.2   6.5 173.5  83.4  96.6
+                                                     29 O7       2.074  48.4  90.8  91.6 180.0  90.3  89.7  93.0  87.0   5.7 174.3
+                                                     34 H9       2.576  59.8 106.0  89.0 164.5  74.9 105.1  94.2  85.8  19.6 160.4
+
+ O5        0.48  0.5096  0.3267  1.0130 1.000  2.18   0 O3       2.755
+                                                      0 MG1      2.042 126.0
+                                                      0 H4       0.852 109.2 123.0
+                                                      0 H5       0.878   2.5 123.6 111.7
+                                                      0 H7       2.944 154.6  60.0  64.2 155.4
+                                                      0 H9       2.810 136.4  61.7  89.1 135.5  69.0
+                                                     37 Q12      0.387 118.7   7.3 130.1 116.2  66.6  66.1
+                                                      0 Q17      0.448  91.6  79.5  86.5  91.7  64.2 129.8  79.4
+                                                     10 O4       2.775 108.3 124.2   1.8 110.8  65.7  88.7 131.4  88.1
+                                                     40 Q16      3.411 121.0  89.0  72.5 121.4  81.7  27.3  93.2 145.3  71.5
+
+ H4        0.15  0.5790  0.2905  1.0788 1.000  1.90   0 O5       0.852
+                                                      0 O6       2.866  82.7
+                                                      0 Q17      0.938  28.5  69.0
+                                                     37 Q12      1.141  15.0  68.2  27.7
+                                                     39 Q15      1.514 174.9  92.2 148.3 160.0
+                                                     10 O4       1.924 177.4  99.5 153.8 166.7   7.5
+                                                     42 Q18      2.616  76.8   6.2  62.9  62.5  98.0 105.4
+                                                     36 Q10      2.856  78.7   9.8  69.5  63.7  96.3 103.3  10.9
+                                                     38 Q14      2.903 126.5  49.3 118.3 111.7  49.0  55.0  55.4  49.9
+                                                     43 Q20      2.992  65.0  51.6  76.8  53.3 112.0 115.4  50.9  41.8  66.5
+
+ H5        0.00  0.4383  0.2824  0.9802 1.000  2.05   0 O3       1.878
+                                                      0 O5       0.878 176.3
+                                                      0 Q17      0.998 152.8  26.7
+                                                     37 Q12      1.105 165.2  18.3  28.9
+                                                      0 Q13      1.486   8.9 174.5 150.2 156.4
+                                                     39 Q15      2.842 127.0  49.3  52.1  67.0 135.2
+
+ O6        0.48  0.6496  0.5078  1.2698 1.000  2.18   0 MG1      2.058
+                                                      0 H4       2.866  61.3
+                                                      0 H6       0.858 130.3 154.4
+                                                      0 H7       0.842 122.7  69.2 106.8
+                                                     42 Q18      0.386  30.5  46.7 128.6 115.8
+                                                     36 Q10      0.487  51.8  84.0 121.4  97.8  80.7
+                                                      5 O2       2.762 114.4  64.2 114.6   8.9 110.7  89.8
+                                                      6 O3       2.850 130.0 160.0   5.9 106.2 132.2 116.0 113.6
+                                                     11 H2       2.881  96.9 115.6  87.3  79.4 126.6  45.9  76.3  81.5
+                                                      2 O1       3.218 162.4 132.3  44.0  64.8 165.6 113.7  71.6  42.1  67.8
+                                                     39 Q15      3.292  87.9  27.4 137.3  43.0  73.1  96.0  39.8 140.3 108.7 104.9
+
+ H6        0.00  0.6621  0.5555  1.3706 1.000  2.05   0 O6       0.858
+                                                     42 Q18      1.139  15.3
+                                                     36 Q10      1.186  20.5  28.3
+                                                      6 O3       1.999 171.5 168.1 151.6
+                                                      2 O1       2.669 123.1 137.6 121.6  54.1
+                                                     38 Q14      2.866  50.0  64.0  56.9 127.7  73.6
+
+ H7        0.20  0.7167  0.4638  1.2940 1.000  2.00   0 O5       2.944
+                                                      0 O6       0.842  77.7
+                                                     36 Q10      1.028  72.8  28.0
+                                                     42 Q18      1.068  58.9  19.0  31.5
+                                                     38 Q14      1.586  95.7 163.6 135.8 152.0
+                                                      5 O2       1.934  94.0 167.3 140.3 152.0   5.7
+                                                     43 Q20      2.714  57.8  69.9  43.4  63.6  93.8  97.6
+                                                     39 Q15      2.737  49.0 124.9 120.5 106.0  54.4  50.4  89.1
+                                                     37 Q12      2.812   7.3  71.1  65.5  52.4 101.3 100.0  53.4  56.2
+                                                      2 O1       2.960 171.0 100.3 109.5 118.5  88.5  89.4 130.0 129.9 169.6
+
+ O7        0.54  0.6494  0.4997  0.8350 1.000  3.52   0 MG1      2.074
+                                                      0 H8       0.870 126.2
+                                                      0 H9       0.801 120.6 103.9
+                                                     43 Q20      0.365  28.8 121.5 134.6
+                                                     35 Q1       0.436  80.9  81.3  77.1 108.4
+                                                      8 O4       2.733 118.4 107.6   4.3 130.8  80.0
+                                                     11 H2       2.824  98.2  81.9 120.5  69.5 158.2 118.4
+                                                      7 O3       2.850 126.1   7.2 107.7 117.4  88.2 111.1  74.7
+                                                     38 Q14      3.351  84.1 136.1  79.1  68.4 139.8  74.9  60.8 130.0
+
+ H8        0.00  0.6603  0.5503  0.7445 1.000  4.01   0 O7       0.870
+                                                     35 Q1       0.912  28.2
+                                                     43 Q20      1.105  16.3  36.0
+                                                      7 O3       1.990 169.6 161.6 156.4
+                                                     41 Q17      2.630  81.0  81.1  65.6  96.2
+                                                     40 Q16      2.694  59.4  58.8  75.7 124.7 138.9
+                                                      3 O1       2.803 125.0 139.1 132.7  51.4 136.5  80.7
+                                                     36 Q10      3.060  37.0  59.1  23.3 133.8  56.4  91.9 121.7
+
+ H9        0.24  0.6728  0.4415  0.7915 1.000  3.46   0 O5       2.810
+                                                      0 O7       0.801  87.7
+                                                     35 Q1       0.822  82.0  31.1
+                                                     43 Q20      1.089  75.2  13.8  36.5
+                                                     40 Q16      1.578  98.1 170.9 156.6 165.6
+                                                      8 O4       1.935  88.7 173.9 152.7 160.6   9.6
+                                                     37 Q12      2.677   7.6  80.3  74.8  68.1 105.6  96.2
+                                                     36 Q10      2.913  58.9  45.8  67.5  33.4 132.4 128.1  54.4
+
+ Q1        0.76  0.3851  0.5091  1.2152 1.000  2.11   0 MG1      2.050
+                                                     29 O7       0.436  87.0
+                                                      0 Q20      0.650  55.3  32.1
+                                                     34 H9       0.822 121.4  71.8  94.6
+                                                     31 H8       0.912 125.2  70.5  88.4  98.6
+
+ Q2        0.71  0.2247  0.1801  0.9007 1.000  1.71   0 O1       1.638
+                                                      0 O3       0.678 140.6
+                                                      0 C1       0.572  43.2 176.1
+                                                      0 C2       1.849  87.8 131.6  44.6
+                                                      0 Q11      0.936 117.7  22.8 160.8 154.4
+                                                      0 Q13      0.951 167.7  27.5 148.6 104.1  50.3
+                                                      0 Q6       1.018  11.4 151.9  31.8  76.4 129.1 176.3
+                                                      0 Q7       1.023  71.5 147.9  28.3  16.3 170.3 120.4  60.1
+                                                      0 Q8       1.771  13.9 126.7  57.0 101.6 103.9 154.0  25.3  85.3
+
+ Q3        0.71 -0.2052  0.2683  0.7429 1.000  2.13   0 O2       1.645
+                                                      0 O4       0.672 142.1
+                                                      0 C3       1.854  87.1 130.7
+                                                      0 C4       0.567  42.9 173.7  44.2
+                                                      0 Q15      0.878 110.5  31.6 162.2 153.2
+                                                      0 Q16      0.933 169.9  27.9 102.8 146.8  59.5
+                                                      0 Q5       1.017  13.6 155.7  73.5  29.3 124.1 175.7
+                                                      0 Q9       1.034  73.3 144.3  13.8  30.4 174.8 116.5  59.7
+                                                      0 Q19      1.733  17.3 138.3  89.1  47.9 108.5 160.8  23.3  76.3
+                                                      0 Q14      1.889   9.9 132.3  97.0  52.8 100.7 160.2  23.5  83.2  18.2
+
+ Q4        0.71  0.0326  0.3095  0.8501 1.000  2.17   0 C1       1.997
+                                                      0 C2       0.695  36.6
+                                                      0 H2       1.411  73.3  36.7
+                                                      0 C3       0.654 147.7 172.7 138.6
+                                                      0 H3       1.378 174.0 137.6 101.0  37.8
+                                                      0 C4       1.970 110.8 147.1 175.0  37.0  74.8
+                                                      0 Q9       1.381 117.0 153.3 169.3  30.8  68.6   6.2
+                                                      0 Q7       1.429   4.9  31.7  68.4 152.5 169.4 115.7 121.9
+
+ Q5        0.67 -0.1431  0.1998  0.7780 1.000  1.82   0 H1       1.590
+                                                      0 O2       0.699  48.5
+                                                      0 O4       1.653 173.9 136.8
+                                                      0 C3       1.844  90.6 139.1  84.2
+                                                      0 C4       0.592 137.1 174.3  37.6  46.6
+                                                      0 Q19      0.894  57.6  35.1 124.2 130.5 144.2
+                                                      0 Q3       1.017 164.6 146.3   9.6  74.6  28.0 130.0
+                                                      0 Q9       1.021 104.3 152.7  70.5  13.7  32.9 139.0  60.9
+                                                      0 Q14      1.038  61.2  12.9 124.0 151.8 161.5  34.7 133.5 165.5
+                                                      0 Q15      1.676 168.8 120.7  16.1 100.3  53.7 112.2  25.7  86.6 107.9
+                                                      0 Q16      1.949 163.2 148.1  11.4  72.8  26.2 132.0   2.1  59.2 135.3  27.4
+
+ Q6        0.65  0.1344  0.1396  0.8825 1.000  1.53   0 O1       0.672
+                                                      0 H1       1.514  46.7
+                                                      0 O3       1.647 140.0 171.6
+                                                      0 C1       0.611 177.4 132.2  40.7
+                                                      0 C2       1.889 136.7  90.0  83.2  42.5
+                                                      0 Q8       0.955  23.5  70.2 116.5 157.2 160.2
+                                                      0 Q2       1.018 151.1 161.2  11.2  29.5  72.1 127.7
+                                                      0 Q7       1.021 148.6 101.9  71.3  30.7  11.9 172.1  60.2
+                                                      0 Q11      1.764 126.9 172.2  13.1  53.8  96.3 103.4  24.3  84.5
+                                                      0 Q13      1.968 150.9 162.0  10.9  29.9  72.3 127.4   1.8  60.5  24.0
+
+ Q7        0.61  0.1377  0.2264  0.8821 1.000  1.86   0 O1       1.632
+                                                      0 O3       1.637  84.8
+                                                      0 C1       0.586  44.5  40.3
+                                                      0 C2       0.914 142.5 132.7 172.5
+                                                      0 C3       2.032 110.5 164.2 154.6  32.0
+                                                      0 Q6       1.021  12.4  72.4  32.2 154.8 122.9
+                                                      0 Q2       1.023  72.1  12.7  27.6 145.3 174.9  59.7
+                                                      0 Q4       1.429 118.9 156.2 163.2  23.6   8.5 131.3 168.7
+                                                      0 Q13      1.713 100.7  15.9  56.2 116.8 148.7  88.3  28.6 140.4
+                                                      0 Q11      1.952  76.5   8.3  32.1 141.0 172.3  64.1   4.6 164.5  24.2
+                                                      0 Q8       1.971   8.6  76.2  36.0 151.0 119.1   3.8  63.5 127.5  92.1  67.9
+
+ Q8        0.59  0.1181  0.0596  0.8793 1.000  1.23   0 O1       0.432
+                                                      0 H1       1.492  34.5
+                                                      0 C1       1.536  47.2  81.5
+                                                      0 Q6       0.955  38.3  72.8   8.9
+                                                      0 Q2       1.771  65.4  99.7  18.2  27.1
+                                                      0 Q7       1.971  34.3  68.7  12.9   4.1  31.1
+
+ Q9        0.54 -0.1021  0.2795  0.7939 1.000  2.11   0 O2       1.673
+                                                      0 O4       1.627  84.3
+                                                      0 C2       2.026 108.5 166.7
+                                                      0 C3       0.885 139.5 136.3  31.0
+                                                      0 H3       1.555 172.4 103.0  64.4  33.4
+                                                      0 C4       0.615  42.6  41.7 150.9 177.5 144.7
+                                                      0 Q5       1.021  11.0  73.2 119.5 150.5 175.8  31.5
+                                                      0 Q3       1.034  70.4  13.9 175.2 150.1 117.0  27.8  59.3
+                                                      0 Q4       1.381 117.2 158.5   8.9  22.3  55.6 159.7 128.2 172.0
+                                                      0 Q16      1.674 100.3  16.0 151.0 120.2  87.0  57.7  89.2  29.9 142.5
+                                                      0 Q19      1.794  16.6  83.3 107.8 137.3 164.4  43.9  19.1  69.7 116.6  98.7
+                                                      0 Q15      1.910  72.2  12.1 176.8 148.4 115.1  29.6  61.1   2.4 170.6  28.1
+
+ Q10       0.51  0.3482  0.4806  0.7998 1.000  3.27   0 MG1      1.798
+                                                     20 O6       0.487 115.9
+                                                      0 Q18      0.570  74.7  41.9
+                                                     25 H7       1.028 133.1  54.3  78.1
+                                                     23 H6       1.186 127.8  38.1  71.3  75.7
+
+ Q11       0.51  0.3116  0.1491  0.9265 1.000  1.60   0 O3       0.407
+                                                      0 C1       1.488  47.5
+                                                      0 Q13      0.802  25.8  73.0
+                                                      0 Q2       0.936  40.2   7.3  65.8
+                                                      0 Q6       1.764  66.8  19.4  92.4  26.6
+                                                      0 Q7       1.952  35.5  12.1  61.0   5.0  31.4
+
+ Q12       0.50  0.4972  0.6410  0.9923 1.000  3.41   0 MG1      1.658
+                                                     15 O5       0.387 171.0
+                                                     41 Q17      0.535 124.2  55.4
+                                                     19 H5       1.105 143.6  45.5  64.4
+                                                     17 H4       1.141 136.4  34.8  54.6  79.2
+
+ Q13       0.49  0.3099  0.2173  0.9271 1.000  1.85   0 O3       0.470
+                                                      0 C1       1.470  53.5
+                                                      0 H5       1.486 142.0 164.0
+                                                      0 Q11      0.802  22.2  75.5 119.8
+                                                      0 Q2       0.951  41.9  11.7 175.0  63.9
+                                                      0 Q7       1.713  72.9  19.3 144.9  94.9  31.0
+                                                      0 Q6       1.968  41.7  11.9 173.7  63.6   1.9  31.2
+
+ Q14       0.46 -0.1594  0.1126  0.7714 1.000  1.50   0 H1       1.420
+                                                      0 O2       0.389  55.7
+                                                      0 C4       1.610  85.6  30.2
+                                                      0 Q19      0.592  70.5  59.1  60.6
+                                                      0 Q5       1.038  78.9  23.5   6.7  59.2
+                                                     27 H7       1.586 142.1 150.3 126.8 139.0 132.7
+                                                      0 Q3       1.889 101.8  46.5  16.3  65.8  23.0 112.0
+
+ Q15       0.44 -0.2937  0.2640  0.7068 1.000  2.14   0 O4       0.467
+                                                      0 C4       1.408  59.4
+                                                      0 Q3       0.878  49.0  10.5
+                                                      0 Q16      0.900  14.3  73.6  63.3
+                                                     18 H4       1.514 147.4 142.7 149.9 135.7
+                                                      0 Q5       1.676  79.2  19.8  30.2  93.4 125.0
+                                                      0 Q9       1.910  46.9  12.5   2.8  61.2 152.8  32.3
+
+ Q16       0.43 -0.2576  0.3342  0.7183 1.000  2.40   0 O4       0.462
+                                                      0 C4       1.442  55.2
+                                                      0 Q15      0.900  14.4  69.6
+                                                      0 Q3       0.933  42.8  12.4  57.2
+                                                     33 H9       1.578 135.5 147.0 123.6 152.9
+                                                      0 Q9       1.674  76.3  21.1  90.7  33.5 132.7
+                                                      0 Q5       1.949  44.7  10.4  59.1   2.3 151.3  31.6
+
+ Q17       0.43  0.5017  0.3344  1.0753 1.000  2.00   0 MG1      2.009
+                                                      0 O5       0.448  87.8
+                                                      0 H4       0.938 119.8  65.0
+                                                      0 H5       0.998 118.1  61.6  95.4
+                                                     37 Q12      0.535  43.1  45.3  97.7  86.7
+
+ Q18       0.42  0.3839  0.5052  0.7613 1.000  3.52   0 MG1      1.737
+                                                     20 O6       0.386 143.0
+                                                      0 Q10      0.570  86.9  57.4
+                                                     25 H7       1.068 135.8  45.2  70.4
+                                                     23 H6       1.139 138.1  36.0  80.4  76.3
+
+ Q19       0.38 -0.1394  0.1362  0.7056 1.000  1.82   0 H1       1.343
+                                                      0 O2       0.515  67.7
+                                                      0 C4       1.417  96.7  65.3
+                                                      0 Q14      0.592  85.0  40.4  98.1
+                                                      0 Q5       0.894  88.2  51.3  14.1  86.2
+                                                      0 Q3       1.733 113.8  71.7  17.3  96.0  26.7
+                                                      0 Q9       1.794  82.2  68.3  17.5 106.5  21.9  34.0
+
+ Q20       0.35  0.3629  0.4925  1.1195 1.000  2.32   0 MG1      1.763
+                                                     29 O7       0.365 145.5
+                                                      0 Q1       0.650 107.0  39.5
+                                                     34 H9       1.089 127.6  31.6  48.8
+                                                     31 H8       1.105 137.2  42.2  55.6  73.8
+
+
+ Code/Atom         x       y       z   Height  Symmetry Transformation
+
+   1 O1        -0.0972  0.5918  0.6274   3.8   0.0000-X    0.5000+Y    1.5000-Z  
+   2 O1         0.9028  0.5919  1.6274   1.6   1.0000-X    0.5000+Y    2.5000-Z  
+   3 O1         0.9028  0.5919  0.6274   4.8   1.0000-X    0.5000+Y    1.5000-Z  
+   4 O2         0.1385  0.6405  0.7167   3.9   0.0000-X    0.5000+Y    1.5000-Z  
+   5 O2         0.8615  0.3595  1.2833   1.8   1.0000+X    0.5000-Y    0.5000+Z  
+   6 O3         0.7070  0.6800  1.5813   1.9   1.0000-X    0.5000+Y    2.5000-Z  
+   7 O3         0.7070  0.6800  0.5813   5.0   1.0000-X    0.5000+Y    1.5000-Z  
+   8 O4         0.7351  0.2954  0.7169   3.2   1.0000+X    0.0000+Y    0.0000+Z  
+   9 O4         0.2649  0.7046  1.2831   2.5   0.0000-X    1.0000-Y    2.0000-Z  
+  10 O4         0.7351  0.2046  1.2169   1.3   1.0000+X    0.5000-Y    0.5000+Z  
+  11 H2         0.8386  0.6394  1.1048   3.4   1.0000-X    1.0000-Y    2.0000-Z  
+  12 H3         0.0497 -0.0960  0.6783   1.2   0.0000-X   -0.5000+Y    1.5000-Z  
+  13 MG1       -0.5000  0.5000  1.0000   1.9  -1.0000+X    0.0000+Y    0.0000+Z  
+  14 MG1       -0.5000  0.0000  0.5000   1.6   0.0000-X   -0.5000+Y    1.5000-Z  
+  15 O5         0.4904  0.6733  0.9870   3.5   1.0000-X    1.0000-Y    2.0000-Z  
+  16 O5        -0.4904  0.1734  0.5130   2.2  -1.0000+X    0.5000-Y   -0.5000+Z  
+  17 H4         0.4210  0.7095  0.9212   3.8   1.0000-X    1.0000-Y    2.0000-Z  
+  18 H4        -0.4210  0.2095  0.5788   2.2  -1.0000+X    0.5000-Y   -0.5000+Z  
+  19 H5         0.5617  0.7176  1.0198   3.7   1.0000-X    1.0000-Y    2.0000-Z  
+  20 O6         0.3504  0.4922  0.7302   3.5   1.0000-X    1.0000-Y    2.0000-Z  
+  21 O6         0.3505  0.0078  1.2302   0.2   1.0000-X   -0.5000+Y    2.5000-Z  
+  22 O6        -0.3505 -0.0078  0.7698   0.9  -1.0000+X    0.5000-Y   -0.5000+Z  
+  23 H6         0.3379  0.4445  0.6294   3.7   1.0000-X    1.0000-Y    2.0000-Z  
+  24 H6         0.3379  0.0555  1.1294   0.6   1.0000-X   -0.5000+Y    2.5000-Z  
+  25 H7         0.2833  0.5362  0.7060   3.7   1.0000-X    1.0000-Y    2.0000-Z  
+  26 H7         0.2833 -0.0362  1.2060   0.0   1.0000-X   -0.5000+Y    2.5000-Z  
+  27 H7        -0.2833  0.0362  0.7940   1.0  -1.0000+X    0.5000-Y   -0.5000+Z  
+  28 O7        -0.3506  0.4997  0.8350   2.6  -1.0000+X    0.0000+Y    0.0000+Z  
+  29 O7         0.3506  0.5003  1.1650   2.2   1.0000-X    1.0000-Y    2.0000-Z  
+  30 O7         0.3506 -0.0003  0.6650   1.9   1.0000-X   -0.5000+Y    1.5000-Z  
+  31 H8         0.3397  0.4497  1.2555   1.7   1.0000-X    1.0000-Y    2.0000-Z  
+  32 H8         0.3397  0.0503  0.7555   1.8   1.0000-X   -0.5000+Y    1.5000-Z  
+  33 H9        -0.3272  0.4415  0.7915   2.5  -1.0000+X    0.0000+Y    0.0000+Z  
+  34 H9         0.3272  0.5585  1.2085   2.3   1.0000-X    1.0000-Y    2.0000-Z  
+  35 Q1         0.6149  0.4909  0.7848   3.6   1.0000-X    1.0000-Y    2.0000-Z  
+  36 Q10        0.6518  0.5194  1.2002   2.4   1.0000-X    1.0000-Y    2.0000-Z  
+  37 Q12        0.5028  0.3590  1.0077   2.3   1.0000-X    1.0000-Y    2.0000-Z  
+  38 Q14        0.8406  0.3874  1.2714   1.9   1.0000+X    0.5000-Y    0.5000+Z  
+  39 Q15        0.7063  0.2360  1.2068   1.4   1.0000+X    0.5000-Y    0.5000+Z  
+  40 Q16        0.7424  0.3342  0.7183   3.4   1.0000+X    0.0000+Y    0.0000+Z  
+  41 Q17        0.4983  0.6656  0.9247   3.7   1.0000-X    1.0000-Y    2.0000-Z  
+  42 Q18        0.6161  0.4948  1.2387   2.2   1.0000-X    1.0000-Y    2.0000-Z  
+  43 Q20        0.6371  0.5075  0.8805   3.4   1.0000-X    1.0000-Y    2.0000-Z  
+
+
+ Time profile in seconds
+ -----------------------
+
+      0.00: Read and process instructions
+      0.00: Fit rigid groups
+      0.00: Interpret restraints etc.
+      0.00: Generate connectivity array
+      0.00: Analyse DFIX and DANG restraints
+      0.00: Analyse SAME, SADI and NCSY restraints
+      0.00: Generate CHIV restraints
+      0.00: Check if bonds in residues restrained
+      0.00: Generate DELU and RIGU restraints
+      0.00: Generate SIMU restraints
+      0.00: Generate ISOR restraints
+      0.00: Analyse electron density
+      0.00: Analyse other restraints etc.
+      0.02: Read intensity data, sort/merge etc.
+      0.00: Set up constraints
+      0.00: OSF, H-atoms from difference map
+      0.00: Set up l.s. refinement
+      0.00: Generate idealized H-atoms
+      0.14: Structure factors and derivatives
+      0.05: Sum l.s. matrices
+      0.00: Generate and apply antibumping restraints
+      0.00: Apply other restraints
+      0.16: Solve l.s. equations
+      0.00: Generate HTAB table
+      0.01: Other dependent quantities, CIF, tables
+      0.03: Analysis of variance
+      0.04: Merge reflections for Fourier and .fcf
+      0.02: Fourier summations
+      0.01: Peaksearch
+      0.00: Analyse peaklist
+
+ ** WARNING: These times are only approximate for multiple threads.
+             To get better estimates run with -t1 **
+
+   Please cite: G.M. Sheldrick (2015) "Crystal structure refinement with
+   SHELXL", Acta Cryst., C71, 3-8 (Open Access) if SHELXL proves useful.
+
+ +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ +  iam           finished at 17:59:48   Total elapsed time:      0.50 secs  +
+ +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

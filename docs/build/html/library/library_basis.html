@@ -18,7 +18,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Constraints" href="library_symm_con.html" />
-    <link rel="prev" title="Scripting with xHARPy" href="library_index.html" /> 
+    <link rel="prev" title="Scripting with XHARPy" href="library_index.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -41,7 +41,7 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../commandline.html">Command Line Interface</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="library_index.html">Scripting with xHARPy</a><ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="library_index.html">Scripting with XHARPy</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Basic Use</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#loading-your-data">Loading your data</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#setting-options">Setting options</a></li>
@@ -73,7 +73,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="library_index.html">Scripting with xHARPy</a> &raquo;</li>
+          <li><a href="library_index.html">Scripting with XHARPy</a> &raquo;</li>
       <li>Basic Use</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/library/library_basis.rst.txt" rel="nofollow"> View page source</a>
@@ -86,14 +86,14 @@
              
   <div class="section" id="basic-use">
 <h1>Basic Use<a class="headerlink" href="#basic-use" title="Permalink to this headline"></a></h1>
-<p>This is a commented step-by-step guide for the usage of xHARPy as a python
+<p>This is a commented step-by-step guide for the usage of XHARPy as a python
 library. I try to also give some understanding what is happening. If you just
 want results fast, I would suggest you adapt the L-alanin_gpaw example to your
 structure. The examples folder is also very useful to look at applications after
 you have a basic understanding of what is happening.</p>
 <p>The imports here are split up according to the section, but of you would usually
 still put all of them at the top of a .py or .ipynb file.</p>
-<p>The usage of xHARPy as a to write refinement scripts can be split into four
+<p>The usage of XHARPy as a to write refinement scripts can be split into four
 distinct steps: Loading your data, setting refinement and computation options,
 refinement and writing your data to disk.</p>
 <div class="section" id="loading-your-data">
@@ -183,7 +183,7 @@ There are more options for the <code class="docutils literal notranslate"><span 
 are directly passed on to the routines that we loaded with the f0j_source. An
 example the selected GPAW source and a molecular structure might look like this:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">computation_dict</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="c1"># options for the xHARPy implementation</span>
+    <span class="c1"># options for the XHARPy implementation</span>
     <span class="s1">&#39;save_file&#39;</span><span class="p">:</span> <span class="s1">&#39;gpaw_result.gpw&#39;</span><span class="p">,</span> <span class="c1"># Where are results saved and loaded</span>
     <span class="s1">&#39;gridinterpolation&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="c1"># density interpolation to use for Hirshfeld and FFT</span>
 
@@ -198,7 +198,7 @@ example the selected GPAW source and a molecular structure might look like this:
 </pre></div>
 </div>
 <p>As you can see the function of the GPAW source will read the options that are
-specific to the xHARPy GPAW plugin and remove it from the dictionary. All options
+specific to the XHARPy GPAW plugin and remove it from the dictionary. All options
 that are not known will be passed on to the GPAW calculator without any further
 checks. Options for the calc_f0j function can be found in the specific docstrings or
 here in the xharpy.f0j_sources page. GPAW options can be found in the
@@ -210,7 +210,7 @@ here in the xharpy.f0j_sources page. GPAW options can be found in the
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">xharpy</span> <span class="kn">import</span> <span class="n">create_construction_instructions</span><span class="p">,</span> <span class="n">refine</span>
 </pre></div>
 </div>
-<p>As mentioned on the introduction xHARPy uses JAX to automatically generate
+<p>As mentioned on the introduction XHARPy uses JAX to automatically generate
 gradients. However, we want to have one object that can map an array of
 parameters to the properties of the atoms within the unit cell. Because of the
 implementation in JAX, using just-in-time compiling, that object has to be
@@ -331,7 +331,7 @@ also helpful to write a SHELXL .res file. This can be done by:</p>
 <span class="p">)</span>
 </pre></div>
 </div>
-<p>Again we need a template res or lst file. Currently xHARPy has no way to divide
+<p>Again we need a template res or lst file. Currently XHARPy has no way to divide
 symmetry cards into those generated by a lattice centring or inversion symmetry
 and those generated by other symmetry elements. Which would be necessary for
 writing these files on its own.</p>
@@ -342,7 +342,7 @@ writing these files on its own.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="library_index.html" class="btn btn-neutral float-left" title="Scripting with xHARPy" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="library_index.html" class="btn btn-neutral float-left" title="Scripting with XHARPy" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="library_symm_con.html" class="btn btn-neutral float-right" title="Constraints" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

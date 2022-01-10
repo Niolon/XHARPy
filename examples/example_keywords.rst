@@ -1,0 +1,1 @@
+.. include:: ../docs/source/examples.rst

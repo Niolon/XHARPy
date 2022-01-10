@@ -2,7 +2,7 @@
 Command Line Interface
 ======================
 
-There is a basic command line interface for using xHARPy with GPAW starting from 
+There is a basic command line interface for using XHARPy with GPAW starting from 
 a SHELXL refinement. After you have installed xharpy, it is available from 
 terminal by typing:
 

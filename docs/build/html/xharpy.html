@@ -41,28 +41,9 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="commandline.html">Command Line Interface</a></li>
-<li class="toctree-l1"><a class="reference internal" href="library/library_index.html">Scripting with xHARPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="library/library_index.html">Scripting with XHARPy</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="modules.html">xharpy</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">xharpy package</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#subpackages">Subpackages</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="xharpy.f0j_sources.html">xharpy.f0j_sources package</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#submodules">Submodules</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-xharpy.cli">xharpy.cli module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-xharpy.conversion">xharpy.conversion module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-xharpy.core">xharpy.core module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-xharpy.io">xharpy.io module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-xharpy.paper">xharpy.paper module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-xharpy.quality">xharpy.quality module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-xharpy.restraints">xharpy.restraints module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-xharpy.weighting">xharpy.weighting module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-xharpy">Module contents</a></li>
-</ul>
-</li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">xharpy</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">xharpy package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#subpackages">Subpackages</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="xharpy.f0j_sources.html">xharpy.f0j_sources package</a></li>
@@ -1344,7 +1325,7 @@ entry will be marked with the . for a missing entry.</p>
 <li><p><strong>cif</strong> (<em>OrderedDict</em>) – The dictionary generated from the read in cif file</p></li>
 <li><p><strong>versionmajor</strong> (<em>int</em>) – Major xharpy version</p></li>
 <li><p><strong>versionminor</strong> (<em>int</em>) – Minor xharpy version number</p></li>
-<li><p><strong>ishar</strong> (<em>bool</em><em>, </em><em>optional</em>) – refinement is a Hirshfeld Atom Refinement in xHarpy, by default True</p></li>
+<li><p><strong>ishar</strong> (<em>bool</em><em>, </em><em>optional</em>) – refinement is a Hirshfeld Atom Refinement in XHARPy, by default True</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1777,7 +1758,7 @@ from a single atom entry in the the shelxl .lst file</p>
 <dd><p>Helper function to create a constraint dict for the refinement if atoms
 on special positions are present. Make sure that atoms on special positions
 are actually refined in SHELXL as you plan to refine them  in the refinement
-in xHARPy. Use AFIX 1 if hydrogen atoms are located on special positions,
+in XHARPy. Use AFIX 1 if hydrogen atoms are located on special positions,
 but you want to refine them anisotropically in the Hirshfeld refinement or
 add the ConstraintValues variables manually. As SHELXL cannot refine Gram-
 Charlier parameters, these need to be added manually for the time being.</p>
@@ -1799,7 +1780,7 @@ and parameters</p>
 <dt class="sig sig-object py" id="xharpy.io.shelxl_hkl2pd">
 <span class="sig-prename descclassname"><span class="pre">xharpy.io.</span></span><span class="sig-name descname"><span class="pre">shelxl_hkl2pd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hkl_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pandas.core.frame.DataFrame</span></span></span><a class="headerlink" href="#xharpy.io.shelxl_hkl2pd" title="Permalink to this definition"></a></dt>
 <dd><p>Helper function to read in a shelx-style .hkl file as dataframe. Note
-that xHARPy does expect a merged hkl file, using an unmerged file will
+that XHARPy does expect a merged hkl file, using an unmerged file will
 be very slow and lead to unexpected esd values.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>

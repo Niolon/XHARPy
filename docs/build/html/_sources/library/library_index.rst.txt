@@ -1,4 +1,4 @@
-Scripting with xHARPy
+Scripting with XHARPy
 =====================
 
 .. toctree::

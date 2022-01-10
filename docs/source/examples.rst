@@ -9,10 +9,33 @@ Calculation with GPAW
 
 L-Alanin with GPAW
 ******************
+- Folder: L-Alanin_gpaw
 - Program: GPAW
 - SCAN calculation
 - Using MPI
 - Constant Core calculation
+
+Urea with GPAW
+**************
+- Folder: Urea_gpaw
+- Program: GPAW
+- SCAN calculation
+- Using MPI
+- Constant Core calculation
+- Multi-Step refinement
+- Save core density
+- Gram-Charlier Refinement
+- Atom table from refined parameters
+
+
+Xylitol with GPAW
+*****************
+- Folder: Xylitol_gpaw_extinction
+- Program: GPAW
+- SCAN calculation
+- Using MPI
+- Constant Core calculation
+- SHELXL-style extinction correction
 
 
 CpNa with GPAW
@@ -23,6 +46,22 @@ CpNa with GPAW
 - Constant core calculation
 - Read xd.hkl
 - Disorder on special position / skip atoms
+
+Hexaqua magnesium hydrogen maleate with GPAW
+********************************************
+- Folder: HMa_Mg_gpaw
+- Program: GPAW
+- SCAN calculation
+- Using MPI
+- Constant Core calculation
+
+8-Hydroxy quinoline hydrogen maleate with GPAW
+**********************************************
+- Folder: HMa_8HQ_gpaw
+- Program: GPAW
+- SCAN calculation
+- Using MPI
+- Constant Core calculation
 
 
 Calculation with Quantum Espresso

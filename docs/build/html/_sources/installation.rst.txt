@@ -65,7 +65,7 @@ routine you can do this by
 
 This will create a .pth file in the site-packages of your conda environment.
 
-Currently xHARPy has no working possibility for calculating difference 
+Currently XHARPy has no working possibility for calculating difference 
 electron densities on its own. For this purpose we need the cctbx library. 
 The library will however run without cctbx, with some features unavailable.
 

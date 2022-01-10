@@ -44,6 +44,7 @@ environment using
    conda activate xharpy
 
 You can now start by installing python in that environment
+
 .. code-block:: console
 
    conda install -c conda-forge python=3.8

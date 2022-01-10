@@ -52,5 +52,5 @@ Documentation
 -------------
 
 With the sphinx package and the sphinx-rtd-theme installed you can compile the 
-documentation using make instal in the doc directory. A prebuild version is 
+documentation using ``make install`` in the doc directory. A prebuild version is 
 available, but might be slightly out of date.

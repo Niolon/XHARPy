@@ -95,3 +95,4 @@ L-Alanin with the Independent Atom Model and Hydrogen Constraints
 - Independent Atom Model
 - Isotropic Hydrogen Refinement
 - Position constraints for sp3 hydrogen atoms
+- U(equiv) constraints

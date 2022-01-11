@@ -456,6 +456,17 @@ def lst2constraint_dict(filename: str) -> Dict[str, Dict[str, ConstrainedValues]
     occ_names = ['sof']
     names = xyz_names + uij_names + occ_names
 
+    replace = {
+        '0.3333': 1/3,
+        '0.33333': 1/3,
+        '0.6667': 2/3,
+        '0.66667': 2/3,
+        '0.1667': 1/6,
+        '0.16667': 1/6,
+        '0.8333': 5/6,
+        '0.83333': 5/6
+    }
+
     constraint_dict = {}
     for entry in find.group(0).strip().split('\n\n'):
         lines = entry.split('\n')
@@ -475,12 +486,12 @@ def lst2constraint_dict(filename: str) -> Dict[str, Dict[str, ConstrainedValues]
                             if prod_part in names:
                                 var = prod_part
                             else:
-                                mult = float(prod_part)
+                                mult = replace.get(prod_part, float(prod_part))
                     else:
                         if sum_part in names:
                             var = sum_part
                             mult = 1
-                        add = float(sum_part)
+                        add = replace.get(sum_part, float(sum_part))
                 instructions[target] = (mult, var, add)
         constraint_dict[name] = {
             'xyz': instructions_to_constraints(xyz_names, instructions),
@@ -1190,10 +1201,10 @@ def create_atom_site_table_string(
     columns = ['atom_site_' + name for name in columns]
     string = '\nloop_\n _' + '\n _'.join(columns) + '\n'
     cell_mat_m = cell_constants_to_M(*cell)
-    constructed_xyz, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
-    constr_xyz_esd, *_ = construct_esds(var_cov_mat, construction_instructions)
+    constructed_xyz, _, _, _, constructed_occ = construct_values(parameters, construction_instructions, cell_mat_m)
+    constr_xyz_esd, _, _, _, constructed_occ_esd = construct_esds(var_cov_mat, construction_instructions)
 
-    for index, (xyz, xyz_esd, instr) in enumerate(zip(constructed_xyz, constr_xyz_esd, construction_instructions)):
+    for index, (xyz, xyz_esd, occ, occ_esd, instr) in enumerate(zip(constructed_xyz, constr_xyz_esd, constructed_occ, constructed_occ_esd, construction_instructions)):
         if type(instr.uij) is tuple:
             adp_type = 'Uani'
         elif type(instr.uij).__name__ == 'Uiso':
@@ -1203,12 +1214,22 @@ def create_atom_site_table_string(
         else:
             raise NotImplementedError('There was a currently not implemented ADP calculation type')
 
-        if instr.occupancy.special_position:
-            occupancy = 1.0
-            symmetry_order = int(1 / instr.occupancy.value)
+        if type(instr.occupancy).__name__ == 'FixedParameter':
+            if instr.occupancy.special_position:
+                occupancy = 1.0
+                symmetry_order = int(1 / instr.occupancy.value)
+            else:
+                occupancy = instr.occupancy.value
+                symmetry_order = 1
+        elif type(instr.occupancy).__name__ == 'RefinedParameter':
+            if instr.occupancy.special_position:
+                occupancy = value_with_esd(float(occ/ instr.occupancy.multiplicator), float(occ_esd / instr.occupancy.multiplicator))
+                symmetry_order = int(1 / instr.occupancy.multiplicator)
+            else:
+                occupancy = value_with_esd(float(occ), float(occ_esd))
+                symmetry_order = 1
         else:
-            occupancy = instr.occupancy.value
-            symmetry_order = 1
+            raise NotImplementedError('This type of parameter is not implemented in output routine')
 
         position_string = ' '.join(value_with_esd(xyz, xyz_esd))
         uiso, uiso_esd = u_iso_with_esd(instr.name, construction_instructions, parameters, var_cov_mat, cell, cell_esd, crystal_system)

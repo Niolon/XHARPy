@@ -1677,7 +1677,6 @@ def refine(
     if core == 'constant':
         f0j_all = f0j + f0j_core[None, :, :]
     elif core == 'scale':
-        # only flack and scaling factor can be before core parameter
         core_parameter = get_parameter_index('core', refinement_dict)
         f0j_all = parameters[core_parameter] * f0j + f0j_core[None, :, :]
     elif core == 'combine':

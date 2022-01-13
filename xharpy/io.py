@@ -1711,9 +1711,10 @@ def write_cif(
         from .f0j_sources.gpaw_spherical_source import generate_cif_output
     elif f0j_source == 'qe':
         from .f0j_sources.qe_source import generate_cif_output
+    elif f0j_source == 'tsc_file':
+        from .f0j_sources.tsc_file_source import generate_cif_output
     else:
         raise NotImplementedError('This f0j source has not implemented "generate_cif_output" method')
-
 
     refinement_string = """  - Structure optimisation was done using derivatives
     calculated with the python package JAX and
@@ -1921,3 +1922,72 @@ def add_density_entries_from_fcf(
     content = re.sub(r'(?<=_refine_diff_density_rms)\s+([\d\.\-]+)', diff_sigma, content)
     with open(cif_path, 'w') as fo:
         fo.write(content)
+
+def f0j2tsc(
+    file_name: str,
+    f0j: np.ndarray,
+    construction_instructions: List[AtomInstructions],
+    symm_mats_vecs: Tuple[np.ndarray, np.ndarray],
+    index_vec_h: np.ndarray,
+    remove_anom: bool = True
+):
+    """Write a tsc file from the atomic form factor array
+    For the format see: https://arxiv.org/pdf/1911.08847.pdf.
+
+    Parameters
+    ----------
+    file_name : str
+        Path to file, where the .tsc should be written
+    f0j : np.ndarray
+        size (K, N, H) array of atomic form factors for all reflections and symmetry
+        generated atoms within the unit cells. Atoms on special positions are 
+        present multiple times and have the atomic form factor of the full atom.
+        Can be obtained from a calc_f0j function or the information dict of a 
+        refinement
+    construction_instructions : List[AtomInstructions]
+        List of instructions for reconstructing the atomic parameters from the
+        list of refined parameters
+    symm_mats_vecs : Tuple[np.ndarray, np.ndarray]
+        size (K, 3, 3) array of symmetry  matrices and (K, 3) array of
+        translation vectors for all symmetry elements in the unit cell
+    index_vec_h : np.ndarray
+        size (H) vector containing Miller indicees of the measured reflections
+    remove_anom : bool, optional
+        Determines, whether the dispersion correction should be subtracted. 
+        Should be True if you obtained the f0j values from a refinement,
+        Should be False if you obtained them from a calc_f0j function, by
+        default True
+    """
+
+    if remove_anom:
+        dispersion_real = jnp.array([atom.dispersion_real for atom in construction_instructions])
+        dispersion_imag = jnp.array([atom.dispersion_imag for atom in construction_instructions])
+        f_dash = dispersion_real + 1j * dispersion_imag
+        f0j -= f_dash[None, :, None]
+
+    labels = [instr.name for instr in construction_instructions]
+
+    hkl_df = pd.DataFrame(columns=['refl_h', 'refl_k', 'refl_l', *labels])
+
+    for symm_matrix, _, f0j_slice in zip(*symm_mats_vecs, f0j):
+        hrot, krot, lrot = np.einsum('zx, xy -> zy', index_vec_h, symm_matrix).T.astype(np.int64)
+
+        new_df = pd.DataFrame({
+            'refl_h': hrot,
+            'refl_k': krot,
+            'refl_l': lrot
+        })
+
+        for label, column in zip(labels, f0j_slice):
+            new_df[label] = column
+            
+        hkl_df = hkl_df.append(new_df, ignore_index=True)
+        
+    hkl_df = hkl_df.drop_duplicates(ignore_index=True)
+
+    complex_entries = [' '.join([f'{np.real(val):10.8e},{np.imag(val):10.8e}' for val in row])
+                        for row in  hkl_df.iloc[:, 3:].values]
+    hkl_entries = [f'{row[0]} {row[1]} {row[2]} ' for row in hkl_df[['refl_h', 'refl_k', 'refl_l']].values]
+    out_data = '\n'.join([hkl_entry + complex_entry for hkl_entry, complex_entry in zip(hkl_entries, complex_entries)])
+    with open(file_name, 'w') as fo:
+        fo.write(out_data)

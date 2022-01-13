@@ -1505,6 +1505,8 @@ def refine(
         from .f0j_sources.qe_source import calc_f0j, calc_f0j_core
     elif f0j_source == 'gpaw_mpi':
         from .f0j_sources.gpaw_mpi_source import calc_f0j, calc_f0j_core
+    elif f0j_source == 'tsc_file':
+        from .f0j_sources.tsc_file_source import calc_f0j, calc_f0j_core
     else:
         raise NotImplementedError('Unknown type of f0j_source')
 
@@ -1556,25 +1558,15 @@ def refine(
         restart = True
     else:
         restart = False
-    if f0j_source == 'gpaw_lcorr':
-        f0j = calc_f0j(cell_mat_m,
-                       type_symbols,
-                       constructed_xyz,
-                       constructed_uij,
-                       index_vec_h,
-                       symm_mats_vecs,
-                       computation_dict=computation_dict,
-                       restart=restart,
-                       explicit_core=f0j_core is not None)
-    else:
-        f0j = calc_f0j(cell_mat_m,
-                       type_symbols,
-                       constructed_xyz,
-                       index_vec_h,
-                       symm_mats_vecs,
-                       computation_dict=computation_dict,
-                       restart=restart,
-                       explicit_core=f0j_core is not None)
+
+    f0j = calc_f0j(cell_mat_m,
+                   construction_instructions,
+                   parameters,
+                   index_vec_h,
+                   symm_mats_vecs,
+                   computation_dict=computation_dict,
+                   restart=restart,
+                   explicit_core=f0j_core is not None)
     if f0j_core is None:
         f0j += f_dash[None,:,None]
     xyz_density = constructed_xyz
@@ -1633,30 +1625,20 @@ def refine(
         #        'parameters': parameters
         #    }, fo) 
         
-        constructed_xyz, constructed_uij, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
+        constructed_xyz, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
         restart = refine >= reload_step - 1
         if np.max(np.linalg.norm(np.einsum('xy, zy -> zx', cell_mat_m, constructed_xyz - xyz_density), axis=-1)) > max_distance_diff:
             print(f'step {refine + 1}: calculating new structure factors')
             del(f0j)
-            if f0j_source == 'gpaw_lcorr':
-                f0j = calc_f0j(cell_mat_m,
-                               type_symbols,
-                               constructed_xyz,
-                               constructed_uij,
-                               index_vec_h,
-                               symm_mats_vecs,
-                               computation_dict=computation_dict,
-                               restart=restart,
-                               explicit_core=f0j_core is not None)
-            else:
-                f0j = calc_f0j(cell_mat_m,
-                               type_symbols,
-                               constructed_xyz,
-                               index_vec_h,
-                               symm_mats_vecs,
-                               computation_dict=computation_dict,
-                               restart=restart,
-                               explicit_core=f0j_core is not None)
+
+            f0j = calc_f0j(cell_mat_m,
+                           construction_instructions,
+                           parameters,
+                           index_vec_h,
+                           symm_mats_vecs,
+                           computation_dict=computation_dict,
+                           restart=restart,
+                           explicit_core=f0j_core is not None)
             if f0j_core is None:
                 f0j += f_dash[None,:,None]
             xyz_density = constructed_xyz

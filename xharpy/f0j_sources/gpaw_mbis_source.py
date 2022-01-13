@@ -1,3 +1,4 @@
+from typing import List
 import numpy as np
 import os
 
@@ -24,7 +25,7 @@ from scipy.interpolate import interp1d
 from scipy.integrate import simps
 import gpaw
 import warnings
-from ..core import expand_symm_unique
+from ..core import expand_symm_unique, construct_values, AtomInstructions
 
 from numpy.testing import assert_allclose
 from scipy.interpolate import CubicSpline
@@ -677,8 +678,8 @@ class GridPart:
 
 def calc_f0j(
     cell_mat_m,
-    element_symbols,
-    positions,
+    construction_instructions: List[AtomInstructions],
+    parameters: np.ndarray,
     index_vec_h,
     symm_mats_vecs,
     computation_dict=None,
@@ -743,6 +744,14 @@ def calc_f0j(
         del(computation_dict['denspart_density_cutoff'])
     else:
         denspart_density_cutoff = 1e-10
+
+    element_symbols = [instr.element for instr in construction_instructions]
+
+    positions, *_ = construct_values(
+        parameters,
+        construction_instructions,
+        cell_mat_m
+    )
 
     #assert not (not average_symmequiv and not do_not_move)
     symm_positions, symm_symbols, f0j_indexes, magmoms_symm = expand_symm_unique(element_symbols,
@@ -873,7 +882,7 @@ def calc_f0j(
                     pro_dens += pro_model.compute_proatom(symm_atom_index, coords + offset).reshape(density.shape)
                 atom_density = density * pro_dens / overall_prodensity
                 frac_position = symm_positions[symm_atom_index]
-                h_rot, k_rot, l_rot = np.einsum('xy, y... -> x...', symm_matrix, np.array((h, k, l))).astype(np.int64)
+                h_rot, k_rot, l_rot = np.einsum('zx, xy -> zy', index_vec_h, symm_matrix).T.astype(np.int64)
                 phase_to_zero = np.exp(-2j * np.pi * (frac_position[0] * h + frac_position[1] * k + frac_position[2] * l))
                 f0j_sum += (np.fft.ifftn(atom_density) * phase_to_zero * np.prod(h.shape))[h_rot, k_rot, l_rot]
             f0j_sum /= len(symm_atom_indexes)

@@ -10,7 +10,7 @@ from . import cubetools
 from scipy.interpolate import interp1d
 from scipy.integrate import simps
 import warnings
-from ..core import expand_symm_unique
+from ..core import expand_symm_unique, construct_values, AtomInstructions
 
 mass_dict = {
     'H': 1.008,  'He': 4.0026, 'Li': 6.9675, 'Be': 9.0122, 'B': 10.814, 'C': 12.011, 'N': 14.007, 'O': 15.999,
@@ -310,8 +310,8 @@ def qe_atomic_density(
 
 def calc_f0j(
     cell_mat_m: np.ndarray,
-    element_symbols: List[str],
-    positions: np.ndarray,
+    construction_instructions: List[AtomInstructions],
+    parameters: np.ndarray,
     index_vec_h: np.ndarray,
     symm_mats_vecs: Tuple[np.ndarray, np.ndarray],
     computation_dict: Dict[str, Any],
@@ -325,11 +325,11 @@ def calc_f0j(
     ----------
     cell_mat_m : np.ndarray
         size (3, 3) array with the unit cell vectors as row vectors
-    element_symbols : List[str]
-        element symbols (i.e. 'Na') for all the atoms within the asymmetric unit
-    positions : np.ndarray
-        atomic positions in fractional coordinates for all the atoms within
-        the asymmetric unit
+    construction_instructions : List[AtomInstructions]
+        List of instructions for reconstructing the atomic parameters from the
+        list of refined parameters
+    parameters : np.ndarray
+        Current parameter values
     index_vec_h : np.ndarray
         size (H) vector containing Miller indicees of the measured reflections
     symm_mats_vecs : Tuple[np.ndarray, np.ndarray]
@@ -385,6 +385,7 @@ def calc_f0j(
         generated atoms within the unit cells. Atoms on special positions are 
         present multiple times and have the atomic form factor of the full atom.
     """
+
     assert computation_dict is not None, 'there is no default computation_dict for the qe_source'
     computation_dict = deepcopy(computation_dict)
     if 'symm_equiv' in computation_dict:
@@ -404,6 +405,14 @@ def calc_f0j(
         if 'electrons' not in computation_dict:
             computation_dict['electrons'] = {}
         computation_dict['electrons']['startingwfc'] = 'file'
+
+    element_symbols = [instr.element for instr in construction_instructions]
+
+    positions, *_ = construct_values(
+        parameters,
+        construction_instructions,
+        cell_mat_m
+    )
 
     symm_positions, symm_symbols, f0j_indexes, magmoms_symm = expand_symm_unique(element_symbols,
                                                                                  np.array(positions),
@@ -432,7 +441,7 @@ def calc_f0j(
                 atomic_density = qe_atomic_density([symm_symbols[symm_atom_index]], symm_positions[None,symm_atom_index,:],cell_mat_m, computation_dict)
                 h_density = density * atomic_density/ overall_hdensity
                 frac_position = symm_positions[symm_atom_index]
-                h_rot, k_rot, l_rot = np.einsum('xy, y... -> x...', symm_matrix, np.array((h, k, l))).astype(np.int64)
+                h_rot, k_rot, l_rot = np.einsum('zx, xy -> zy', index_vec_h, symm_matrix).T.astype(np.int64)
                 phase_to_zero = np.exp(-2j * np.pi * (frac_position[0] * h + frac_position[1] * k + frac_position[2] * l))
                 f0j_sum += (np.fft.ifftn(h_density) * phase_to_zero * np.prod(h.shape))[h_rot, k_rot, l_rot]
             f0j_sum /= len(symm_atom_indexes)
@@ -449,7 +458,7 @@ def calc_f0j(
             phase_to_zero = np.exp(-2j * np.pi * (frac_position[0] * h + frac_position[1] * k + frac_position[2] * l))
             f0j_symm1 = np.fft.ifftn(h_density) * phase_to_zero * np.prod(h.shape)
             for symm_index, symm_matrix in enumerate(symm_mats_vecs[0]):
-                h_rot, k_rot, l_rot = np.einsum('xy, zy -> zx', symm_matrix.T, index_vec_h).astype(np.int64).T
+                h_rot, k_rot, l_rot = np.einsum('zx, xy -> zy', index_vec_h, symm_matrix).T.astype(np.int64)
                 f0j[symm_index, atom_index, :] = f0j_symm1[h_rot, k_rot, l_rot]
     elif symm_equiv == 'individually':
         #TODO Is a discrete Fourier Transform just of the hkl we need possibly faster? Can we then interpolate the density to get even better factors?

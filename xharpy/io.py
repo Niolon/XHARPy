@@ -699,29 +699,11 @@ def write_fcf(
     if fcf_mode == 6:
         dispersion_real = jnp.array([atom.dispersion_real for atom in construction_instructions])
         dispersion_imag = jnp.array([atom.dispersion_imag for atom in construction_instructions])
-        f_dash = dispersion_real + 1j * dispersion_imag
+        f_dash = dispersion_real + 1j * dispersion_imag        
 
-        f0j_corr = np.zeros_like(information['f0j_anom'])
-        f0j_corr += f_dash[None,:,None]
+        hkl['abs(f_calc)'] = np.abs(structure_factors)
 
-
-        structure_factors_corr = np.array(calc_f(
-            xyz=constructed_xyz,
-            uij=constructed_uij,
-            cijk=constructed_cijk,
-            dijkl=constructed_dijkl,
-            occupancies=constructed_occupancies,
-            index_vec_h=index_vec_h,
-            cell_mat_f=cell_mat_f,
-            symm_mats_vecs=symm_mats_vecs,
-            f0j=f0j_corr
-        ))
-
-        f_obs_sq = hkl['intensity'].values.copy()
-        f_obs_sq[f_obs_sq < 0] = 0
-        f_obs = np.sqrt(f_obs_sq)
-        f_obs = f_obs * np.exp(1j * np.angle(structure_factors))
-        hkl['intensity'] = np.abs(f_obs - structure_factors_corr)**2
+        hkl['phase_angle'] = np.angle(structure_factors, deg=True)
 
         structure_factors = np.array(calc_f(
             xyz=constructed_xyz,
@@ -735,10 +717,9 @@ def write_fcf(
             f0j=information['f0j_anom'] - f_dash[None, :, None]
         ))
 
-        hkl['abs(f_calc)'] = np.abs(structure_factors)
-        hkl['phase_angle'] = np.rad2deg(np.angle(structure_factors)) % 360
-        template = '{h:>4d}{k:>4d}{l:>4d} {intensity:13.2f} {esd_int:13.2f} {abs(f_calc):13.2f} {phase_angle:7.1f}\n'
-        #template = '{h} {k} {l} {intensity:.2f} {esd_int:.2f} {abs(f_calc):.2f} {phase_angle:.1f}\n'
+        
+        #template = '{h:>4d}{k:>4d}{l:>4d} {intensity:13.2f} {esd_int:13.2f} {abs(f_calc):13.2f} {phase_angle:7.1f}\n'
+        template = '{h} {k} {l} {intensity:.3f} {esd_int:.3f} {abs(f_calc):.3f} {phase_angle:.3f}\n'
         columns = [
             'refln_index_h',
             'refln_index_k',
@@ -926,7 +907,7 @@ LIST 6
 L.S. 0
 FMAP 2
 WGHT    0.000000
-FVAR       {parameters[0]:8.6f}
+FVAR       {np.sqrt(parameters[0]):8.6f}
 {atom_lines}
 HKLF 4
 END

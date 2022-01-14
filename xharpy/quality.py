@@ -98,12 +98,12 @@ def calculate_quality_indicators(
     f_obs_safe[f_obs_safe == 0] = 1e-20
     i_over_2sigma = intensities / esd_int > 2
 
-    r_f = np.sum(np.abs(f_obs - np.sqrt(parameters[0]) * np.abs(structure_factors))) / np.sum(np.abs(f_obs))
-    r_f_strong = np.sum(np.abs(f_obs[i_over_2sigma] - np.sqrt(parameters[0]) * np.abs(structure_factors[i_over_2sigma]))) / np.sum(np.abs(f_obs[i_over_2sigma]))
-    r_f2 = np.sum(np.abs(intensities - parameters[0] * np.abs(structure_factors)**2)) / np.sum(intensities)
-    wr2_strong  = np.sqrt(np.sum(1/esd_int[i_over_2sigma]**2 * (intensities[i_over_2sigma] - parameters[0] *  np.abs(structure_factors[i_over_2sigma])**2)**2) / np.sum(1/esd_int[i_over_2sigma]**2 * intensities[i_over_2sigma]**2))
-    wr2= np.sqrt(np.sum(1/esd_int**2 * (intensities - parameters[0] *  np.abs(structure_factors)**2)**2) / np.sum(1/esd_int**2 * intensities**2))
-    gof = np.sqrt(np.sum(1/esd_int**2 * (intensities - parameters[0] * np.abs(structure_factors)**2)**2) / (len(intensities) - len(parameters)))
+    r_f = np.sum(np.abs(f_obs - np.abs(structure_factors))) / np.sum(np.abs(f_obs))
+    r_f_strong = np.sum(np.abs(f_obs[i_over_2sigma] - np.abs(structure_factors[i_over_2sigma]))) / np.sum(np.abs(f_obs[i_over_2sigma]))
+    r_f2 = np.sum(np.abs(intensities - np.abs(structure_factors)**2)) / np.sum(intensities)
+    wr2_strong  = np.sqrt(np.sum(1/esd_int[i_over_2sigma]**2 * (intensities[i_over_2sigma] - np.abs(structure_factors[i_over_2sigma])**2)**2) / np.sum(1/esd_int[i_over_2sigma]**2 * intensities[i_over_2sigma]**2))
+    wr2= np.sqrt(np.sum(1/esd_int**2 * (intensities - np.abs(structure_factors)**2)**2) / np.sum(1/esd_int**2 * intensities**2))
+    gof = np.sqrt(np.sum(1/esd_int**2 * (intensities - np.abs(structure_factors)**2)**2) / (len(intensities) - len(parameters)))
 
     return {
             'R(F)': r_f,

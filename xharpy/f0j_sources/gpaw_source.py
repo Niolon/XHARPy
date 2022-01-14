@@ -24,7 +24,7 @@ from scipy.interpolate import interp1d
 from scipy.integrate import simps
 import gpaw
 import warnings
-from ..core import expand_symm_unique
+from ..core import expand_symm_unique, construct_values, AtomInstructions
 
 
 class HirshfeldDensity(RealSpaceDensity):
@@ -207,8 +207,8 @@ class HirshfeldPartitioning:
 
 def calc_f0j(
     cell_mat_m: np.ndarray,
-    element_symbols: List[str],
-    positions: np.ndarray,
+    construction_instructions: List[AtomInstructions],
+    parameters: np.ndarray,
     index_vec_h: np.ndarray,
     symm_mats_vecs: Tuple[np.ndarray, np.ndarray],
     computation_dict: Dict[str, Any],
@@ -222,11 +222,11 @@ def calc_f0j(
     ----------
     cell_mat_m : np.ndarray
         size (3, 3) array with the unit cell vectors as row vectors
-    element_symbols : List[str]
-        element symbols (i.e. 'Na') for all the atoms within the asymmetric unit
-    positions : np.ndarray
-        atomic positions in fractional coordinates for all the atoms within
-        the asymmetric unit
+    construction_instructions : List[AtomInstructions]
+        List of instructions for reconstructing the atomic parameters from the
+        list of refined parameters
+    parameters : np.ndarray
+        Current parameter values
     index_vec_h : np.ndarray
         size (H) vector containing Miller indicees of the measured reflections
     symm_mats_vecs : Tuple[np.ndarray, np.ndarray]
@@ -321,6 +321,14 @@ def calc_f0j(
     else:
         magmoms = None
 
+    element_symbols = [instr.element for instr in construction_instructions]
+
+    positions, *_ = construct_values(
+        parameters,
+        construction_instructions,
+        cell_mat_m
+    )
+
     #assert not (not average_symmequiv and not do_not_move)
     symm_positions, symm_symbols, f0j_indexes, magmoms_symm = expand_symm_unique(
         element_symbols,
@@ -393,7 +401,7 @@ def calc_f0j(
             for symm_matrix, symm_atom_index in zip(symm_mats_vecs[0], symm_atom_indexes):
                 h_density = density * partitioning.hdensity.get_density([symm_atom_index], gridrefinement=gridinterpolation, skip_core=explicit_core)[0] / overall_hdensity
                 frac_position = symm_positions[symm_atom_index]
-                h_rot, k_rot, l_rot = np.einsum('xy, y... -> x...', symm_matrix, np.array((h, k, l))).astype(np.int64)
+                h_rot, k_rot, l_rot = np.einsum('zx, xy -> zy', index_vec_h, symm_matrix).T.astype(np.int64)
                 phase_to_zero = np.exp(-2j * np.pi * (frac_position[0] * h + frac_position[1] * k + frac_position[2] * l))
                 f0j_sum += (np.fft.ifftn(h_density) * phase_to_zero * np.prod(h.shape))[h_rot, k_rot, l_rot]
             f0j_sum /= len(symm_atom_indexes)
@@ -409,7 +417,7 @@ def calc_f0j(
             phase_to_zero = np.exp(-2j * np.pi * (frac_position[0] * h + frac_position[1] * k + frac_position[2] * l))
             f0j_symm1 = np.fft.ifftn(h_density) * phase_to_zero * np.prod(h.shape)
             for symm_index, symm_matrix in enumerate(symm_mats_vecs[0]):
-                h_rot, k_rot, l_rot = np.einsum('xy, zy -> zx', symm_matrix.T, index_vec_h).astype(np.int64).T
+                h_rot, k_rot, l_rot = np.einsum('zx, xy -> zy', index_vec_h, symm_matrix).T.astype(np.int64)
                 f0j[symm_index, atom_index, :] = f0j_symm1[h_rot, k_rot, l_rot]    
     elif symm_equiv == 'individually':
         #TODO Is a discrete Fourier Transform just of the hkl we need possibly faster? Can we then interpolate the density to get even better factors?

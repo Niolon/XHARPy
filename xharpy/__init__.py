@@ -10,3 +10,5 @@ from .core import (
     TorsionPositionConstraint, TrigonalPositionConstraint, 
     TetrahedralPositionConstraint, refine, create_atom_table
 )
+
+from .quality import calculate_quality_indicators

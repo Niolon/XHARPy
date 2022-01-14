@@ -41,8 +41,10 @@ AtomInstructions = namedtuple('AtomInstructions', [
 RefinedParameter = namedtuple('RefinedParameter', [
     'par_index',     # index of the parameter in in the parameter array
     'multiplicator', # Multiplicator for the parameter. (default: 1.0)
-    'added_value'    # Value that is added to the parameter (e.g. for occupancies)
-], defaults=(None, 1, 0))
+    'added_value',    # Value that is added to the parameter (e.g. for occupancies)
+    'special_position' # stems from an atom on a special position, makes a
+                       # difference for output of occupancy
+], defaults=(None, 1, 0, False))
 
 
 FixedParameter = namedtuple('FixedParameter', [
@@ -95,6 +97,13 @@ TetrahedralCalculated= namedtuple('TetrahedralCalculated', [
 ])
 
 ### Objects for Use by the User
+
+CommonOccupancyParameter = namedtuple('CommonOccupancyParameter', [
+    'label'        , # any identifying label that is immutable
+    'multiplicator', # Multiplicator for the parameter value
+    'added_value',   # Value that is added to the parameter
+    'special_position'
+])
 
 ConstrainedValues = namedtuple('ConstrainedValues', [
     'variable_indexes', # 0-x (positive): variable index; -1 means 0 
@@ -171,7 +180,8 @@ def get_value_or_default(
         'min_iter': 10,
         'restraints': [],
         'flack': False,
-        'core_io': ('none', 'core.pic')
+        'core_io': ('none', 'core.pic'),
+        '3lambda': False
     }
     return refinement_dict.get(parameter_name, defaults[parameter_name])
 
@@ -199,7 +209,8 @@ def get_parameter_index(
         ('overall scaling', True),
         ('flack', get_value_or_default('flack', refinement_dict)),
         ('core', get_value_or_default('core', refinement_dict) == 'scale'),
-        ('extinction', get_value_or_default('extinction', refinement_dict) != 'none')
+        ('extinction', get_value_or_default('extinction', refinement_dict) != 'none'),
+        ('3lambda', get_value_or_default('3lambda', refinement_dict))
     ]
     index = [name for name, _ in order].index(parameter_name)
     if not order[index][1]:
@@ -568,7 +579,11 @@ def create_construction_instructions(
     extinction_index = get_parameter_index('extinction', refinement_dict)
     if extinction_index is not None:
         parameters = jax.ops.index_update(parameters, jax.ops.index[extinction_index], exti0)
-        current_index += 1            
+        current_index += 1
+    threel_index = get_parameter_index('3lambda', refinement_dict)
+    if threel_index is not None:
+        parameters = jax.ops.index_update(parameters, jax.ops.index[extinction_index], 0.0)
+        current_index += 1
     construction_instructions = []
     known_torsion_indexes = {}
     if cell is None:
@@ -576,6 +591,7 @@ def create_construction_instructions(
     else:
         cell_mat_m = cell_constants_to_M(*cell)
     names = list(atom_table['label'])
+    common_occupancy_indexes = {}
     for _, atom in atom_table.iterrows():
         xyz = atom[['fract_x', 'fract_y', 'fract_z']].values.astype(np.float64)
         if atom['label'] in constraint_dict.keys() and 'xyz' in constraint_dict[atom['label']].keys():
@@ -770,7 +786,24 @@ def create_construction_instructions(
 
         if atom['label'] in constraint_dict.keys() and 'occ' in constraint_dict[atom['label']].keys():
             constraint = constraint_dict[atom['label']]['occ']
-            occupancy = FixedParameter(value=float(constraint.added_value[0]), special_position=constraint.special_position)
+            if type(constraint).__name__ == 'ConstrainedValues':
+                occupancy = FixedParameter(value=float(constraint.added_value[0]), special_position=constraint.special_position)
+            elif type(constraint).__name__ == 'CommonOccupancyParameter':
+                if constraint.label in common_occupancy_indexes:
+                    parameter_index = common_occupancy_indexes[constraint.label]
+                else:
+                    parameter_index = current_index
+                    common_occupancy_indexes[constraint.label] = parameter_index
+                    parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], atom['occupancy'] / float(constraint.multiplicator))
+                    current_index += 1
+                occupancy = RefinedParameter(
+                    par_index=int(parameter_index),
+                    multiplicator=float(constraint.multiplicator),
+                    added_value=float(constraint.added_value),
+                    special_position=constraint.special_position
+                )
+            else:
+                raise NotImplementedError('This type of constraint is not implemented for the occupancy')
         else:
             occupancy = FixedParameter(value=float(atom['occupancy']))
 
@@ -1077,6 +1110,19 @@ def calc_lsq_factory(
         sintheta = jnp.linalg.norm(jnp.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 * wavelength
         sintwotheta = 2 * sintheta * jnp.sqrt(1 - sintheta**2)
         extinction_factors = 0.001 * wavelength**3 / sintwotheta
+
+    threelambda = get_value_or_default('3lambda', refinement_dict)
+    threelambdapar = get_parameter_index('3lambda', refinement_dict) 
+    if threelambda:
+        onel_indexes = []
+        threel_indexes = []
+        for onel_index, onel in enumerate(index_vec_h):
+            threel_matches = np.where(np.all(onel == 3 * index_vec_h, axis=1))[0]
+            if len(threel_matches) > 0:
+                onel_indexes.append(onel_index)
+                threel_indexes.append(threel_matches[0])
+        onel_indexes = jnp.array(onel_indexes)
+        threel_indexes = jnp.array(threel_indexes)
     
     construct_values_j = jax.jit(construct_values, static_argnums=(1))
 
@@ -1112,6 +1158,13 @@ def calc_lsq_factory(
             i_calc0 = jnp.abs(structure_factors)**2             
             intensities_calc = parameters[0] * i_calc0 / (1 + parameters[extinction_parameter] * i_calc0)
             #restraint_addition = 0
+
+        if threelambda:
+            intensities_calc = jax.ops.index_add(
+                intensities_calc,
+                jax.ops.index[threel_indexes],
+                parameters[threelambdapar] * intensities_calc[onel_indexes]
+            )
   
         if flack_parameter is not None:
             structure_factors2 = calc_f(
@@ -1135,6 +1188,14 @@ def calc_lsq_factory(
                 i_calc02 = jnp.abs(structure_factors2)**2             
                 intensities_calc2 = parameters[0] * i_calc02 / (1 + parameters[extinction_parameter] * i_calc02)
                 #restraint_addition = 0
+
+            if threelambda:
+                intensities_calc2 = jax.ops.index_add(
+                    intensities_calc2,
+                    jax.ops.index[threel_indexes],
+                    parameters[threelambdapar] * intensities_calc2[onel_indexes]
+                )
+
             lsq = jnp.sum(weights * (intensities_obs - parameters[flack_parameter] * intensities_calc2 - (1 - parameters[flack_parameter]) * intensities_calc)**2) 
         else:
             lsq = jnp.sum(weights * (intensities_obs - intensities_calc)**2) 
@@ -1210,6 +1271,19 @@ def calc_var_cor_mat(
         sintheta = jnp.linalg.norm(jnp.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 * wavelength
         sintwotheta = 2 * sintheta * jnp.sqrt(1 - sintheta**2)
         extinction_factors = 0.001 * wavelength**3 / sintwotheta
+
+    threelambda = get_value_or_default('3lambda', refinement_dict)
+    threelambdapar = get_parameter_index('3lambda', refinement_dict) 
+    if threelambda:
+        onel_indexes = []
+        threel_indexes = []
+        for onel_index, onel in enumerate(index_vec_h):
+            threel_matches = np.where(np.all(onel == 3 * index_vec_h, axis=1))[0]
+            if len(threel_matches) > 0:
+                onel_indexes.append(onel_index)
+                threel_indexes.append(threel_matches[0])
+        onel_indexes = jnp.array(onel_indexes)
+        threel_indexes = jnp.array(threel_indexes)
     
     construct_values_j = jax.jit(construct_values, static_argnums=(1))
 
@@ -1431,6 +1505,8 @@ def refine(
         from .f0j_sources.qe_source import calc_f0j, calc_f0j_core
     elif f0j_source == 'gpaw_mpi':
         from .f0j_sources.gpaw_mpi_source import calc_f0j, calc_f0j_core
+    elif f0j_source == 'tsc_file':
+        from .f0j_sources.tsc_file_source import calc_f0j, calc_f0j_core
     else:
         raise NotImplementedError('Unknown type of f0j_source')
 
@@ -1482,25 +1558,15 @@ def refine(
         restart = True
     else:
         restart = False
-    if f0j_source == 'gpaw_lcorr':
-        f0j = calc_f0j(cell_mat_m,
-                       type_symbols,
-                       constructed_xyz,
-                       constructed_uij,
-                       index_vec_h,
-                       symm_mats_vecs,
-                       computation_dict=computation_dict,
-                       restart=restart,
-                       explicit_core=f0j_core is not None)
-    else:
-        f0j = calc_f0j(cell_mat_m,
-                       type_symbols,
-                       constructed_xyz,
-                       index_vec_h,
-                       symm_mats_vecs,
-                       computation_dict=computation_dict,
-                       restart=restart,
-                       explicit_core=f0j_core is not None)
+
+    f0j = calc_f0j(cell_mat_m,
+                   construction_instructions,
+                   parameters,
+                   index_vec_h,
+                   symm_mats_vecs,
+                   computation_dict=computation_dict,
+                   restart=restart,
+                   explicit_core=f0j_core is not None)
     if f0j_core is None:
         f0j += f_dash[None,:,None]
     xyz_density = constructed_xyz
@@ -1542,7 +1608,7 @@ def refine(
                      jac=grad_calc_lsq,
                      method='BFGS',
                      args=(jnp.array(f0j)),
-                     options={'gtol': 1e-8 * jnp.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)})
+                     options={'gtol': 1e-13 * jnp.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)})
         
         print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)):8.6f}, number of iterations: {x.nit}')
         shift = parameters - x.x
@@ -1559,30 +1625,20 @@ def refine(
         #        'parameters': parameters
         #    }, fo) 
         
-        constructed_xyz, constructed_uij, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
+        constructed_xyz, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
         restart = refine >= reload_step - 1
         if np.max(np.linalg.norm(np.einsum('xy, zy -> zx', cell_mat_m, constructed_xyz - xyz_density), axis=-1)) > max_distance_diff:
             print(f'step {refine + 1}: calculating new structure factors')
             del(f0j)
-            if f0j_source == 'gpaw_lcorr':
-                f0j = calc_f0j(cell_mat_m,
-                               type_symbols,
-                               constructed_xyz,
-                               constructed_uij,
-                               index_vec_h,
-                               symm_mats_vecs,
-                               computation_dict=computation_dict,
-                               restart=restart,
-                               explicit_core=f0j_core is not None)
-            else:
-                f0j = calc_f0j(cell_mat_m,
-                               type_symbols,
-                               constructed_xyz,
-                               index_vec_h,
-                               symm_mats_vecs,
-                               computation_dict=computation_dict,
-                               restart=restart,
-                               explicit_core=f0j_core is not None)
+
+            f0j = calc_f0j(cell_mat_m,
+                           construction_instructions,
+                           parameters,
+                           index_vec_h,
+                           symm_mats_vecs,
+                           computation_dict=computation_dict,
+                           restart=restart,
+                           explicit_core=f0j_core is not None)
             if f0j_core is None:
                 f0j += f_dash[None,:,None]
             xyz_density = constructed_xyz
@@ -1603,7 +1659,6 @@ def refine(
     if core == 'constant':
         f0j_all = f0j + f0j_core[None, :, :]
     elif core == 'scale':
-        # only flack and scaling factor can be before core parameter
         core_parameter = get_parameter_index('core', refinement_dict)
         f0j_all = parameters[core_parameter] * f0j + f0j_core[None, :, :]
     elif core == 'combine':

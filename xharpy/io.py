@@ -343,6 +343,8 @@ def cif2data(
     atom_table.columns = [label.replace('atom_site_', '') for label in atom_table.columns]
     if 'type_symbol' not in atom_table:
         atom_table['type_symbol'] = [str(re.match(r'([A-Za-z]{1,2})\d', line['label']).groups(1)[0]) for _, line in atom_table.iterrows()]
+    if 'site_symmetry_order' in atom_table:
+        atom_table['occupancy'] /= atom_table['site_symmetry_order']
     atom_table = atom_table.rename({'thermal_displace_type': 'adp_type'}, axis=1).copy()
 
     if all(atom_table['adp_type'] == 'Uiso'):
@@ -456,6 +458,17 @@ def lst2constraint_dict(filename: str) -> Dict[str, Dict[str, ConstrainedValues]
     occ_names = ['sof']
     names = xyz_names + uij_names + occ_names
 
+    replace = {
+        '0.3333': 1/3,
+        '0.33333': 1/3,
+        '0.6667': 2/3,
+        '0.66667': 2/3,
+        '0.1667': 1/6,
+        '0.16667': 1/6,
+        '0.8333': 5/6,
+        '0.83333': 5/6
+    }
+
     constraint_dict = {}
     for entry in find.group(0).strip().split('\n\n'):
         lines = entry.split('\n')
@@ -475,12 +488,12 @@ def lst2constraint_dict(filename: str) -> Dict[str, Dict[str, ConstrainedValues]
                             if prod_part in names:
                                 var = prod_part
                             else:
-                                mult = float(prod_part)
+                                mult = replace.get(prod_part, float(prod_part))
                     else:
                         if sum_part in names:
                             var = sum_part
                             mult = 1
-                        add = float(sum_part)
+                        add = replace.get(sum_part, float(sum_part))
                 instructions[target] = (mult, var, add)
         constraint_dict[name] = {
             'xyz': instructions_to_constraints(xyz_names, instructions),
@@ -703,8 +716,7 @@ def write_fcf(
 
         hkl['abs(f_calc)'] = np.abs(structure_factors)
 
-        hkl['phase_angle'] = np.angle(structure_factors, deg=True)
-
+        # the phases are calculated without dispersion
         structure_factors = np.array(calc_f(
             xyz=constructed_xyz,
             uij=constructed_uij,
@@ -717,9 +729,9 @@ def write_fcf(
             f0j=information['f0j_anom'] - f_dash[None, :, None]
         ))
 
-        
-        #template = '{h:>4d}{k:>4d}{l:>4d} {intensity:13.2f} {esd_int:13.2f} {abs(f_calc):13.2f} {phase_angle:7.1f}\n'
-        template = '{h} {k} {l} {intensity:.3f} {esd_int:.3f} {abs(f_calc):.3f} {phase_angle:.3f}\n'
+        hkl['phase_angle'] = np.round(np.rad2deg(np.angle(structure_factors)),3) % 360
+        #template = '{h:>4d}{k:>4d}{l:>4d} {intensity:13.2f} {esd_int:13.2f} {abs(f_calc):13.2f} {phase_angle:7.3f}\n'
+        template = '{h} {k} {l} {intensity:.3f} {esd_int:.3f} {abs(f_calc):.4f} {phase_angle:.3f}\n'
         columns = [
             'refln_index_h',
             'refln_index_k',
@@ -1171,10 +1183,10 @@ def create_atom_site_table_string(
     columns = ['atom_site_' + name for name in columns]
     string = '\nloop_\n _' + '\n _'.join(columns) + '\n'
     cell_mat_m = cell_constants_to_M(*cell)
-    constructed_xyz, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
-    constr_xyz_esd, *_ = construct_esds(var_cov_mat, construction_instructions)
+    constructed_xyz, _, _, _, constructed_occ = construct_values(parameters, construction_instructions, cell_mat_m)
+    constr_xyz_esd, _, _, _, constructed_occ_esd = construct_esds(var_cov_mat, construction_instructions)
 
-    for index, (xyz, xyz_esd, instr) in enumerate(zip(constructed_xyz, constr_xyz_esd, construction_instructions)):
+    for index, (xyz, xyz_esd, occ, occ_esd, instr) in enumerate(zip(constructed_xyz, constr_xyz_esd, constructed_occ, constructed_occ_esd, construction_instructions)):
         if type(instr.uij) is tuple:
             adp_type = 'Uani'
         elif type(instr.uij).__name__ == 'Uiso':
@@ -1184,12 +1196,22 @@ def create_atom_site_table_string(
         else:
             raise NotImplementedError('There was a currently not implemented ADP calculation type')
 
-        if instr.occupancy.special_position:
-            occupancy = 1.0
-            symmetry_order = int(1 / instr.occupancy.value)
+        if type(instr.occupancy).__name__ == 'FixedParameter':
+            if instr.occupancy.special_position:
+                occupancy = 1.0
+                symmetry_order = int(1 / instr.occupancy.value)
+            else:
+                occupancy = instr.occupancy.value
+                symmetry_order = 1
+        elif type(instr.occupancy).__name__ == 'RefinedParameter':
+            if instr.occupancy.special_position:
+                occupancy = value_with_esd(float(occ/ instr.occupancy.multiplicator), float(occ_esd / instr.occupancy.multiplicator))
+                symmetry_order = int(1 / instr.occupancy.multiplicator)
+            else:
+                occupancy = value_with_esd(float(occ), float(occ_esd))
+                symmetry_order = 1
         else:
-            occupancy = instr.occupancy.value
-            symmetry_order = 1
+            raise NotImplementedError('This type of parameter is not implemented in output routine')
 
         position_string = ' '.join(value_with_esd(xyz, xyz_esd))
         uiso, uiso_esd = u_iso_with_esd(instr.name, construction_instructions, parameters, var_cov_mat, cell, cell_esd, crystal_system)
@@ -1689,9 +1711,10 @@ def write_cif(
         from .f0j_sources.gpaw_spherical_source import generate_cif_output
     elif f0j_source == 'qe':
         from .f0j_sources.qe_source import generate_cif_output
+    elif f0j_source == 'tsc_file':
+        from .f0j_sources.tsc_file_source import generate_cif_output
     else:
         raise NotImplementedError('This f0j source has not implemented "generate_cif_output" method')
-
 
     refinement_string = """  - Structure optimisation was done using derivatives
     calculated with the python package JAX and
@@ -1899,3 +1922,72 @@ def add_density_entries_from_fcf(
     content = re.sub(r'(?<=_refine_diff_density_rms)\s+([\d\.\-]+)', diff_sigma, content)
     with open(cif_path, 'w') as fo:
         fo.write(content)
+
+def f0j2tsc(
+    file_name: str,
+    f0j: np.ndarray,
+    construction_instructions: List[AtomInstructions],
+    symm_mats_vecs: Tuple[np.ndarray, np.ndarray],
+    index_vec_h: np.ndarray,
+    remove_anom: bool = True
+):
+    """Write a tsc file from the atomic form factor array
+    For the format see: https://arxiv.org/pdf/1911.08847.pdf.
+
+    Parameters
+    ----------
+    file_name : str
+        Path to file, where the .tsc should be written
+    f0j : np.ndarray
+        size (K, N, H) array of atomic form factors for all reflections and symmetry
+        generated atoms within the unit cells. Atoms on special positions are 
+        present multiple times and have the atomic form factor of the full atom.
+        Can be obtained from a calc_f0j function or the information dict of a 
+        refinement
+    construction_instructions : List[AtomInstructions]
+        List of instructions for reconstructing the atomic parameters from the
+        list of refined parameters
+    symm_mats_vecs : Tuple[np.ndarray, np.ndarray]
+        size (K, 3, 3) array of symmetry  matrices and (K, 3) array of
+        translation vectors for all symmetry elements in the unit cell
+    index_vec_h : np.ndarray
+        size (H) vector containing Miller indicees of the measured reflections
+    remove_anom : bool, optional
+        Determines, whether the dispersion correction should be subtracted. 
+        Should be True if you obtained the f0j values from a refinement,
+        Should be False if you obtained them from a calc_f0j function, by
+        default True
+    """
+
+    if remove_anom:
+        dispersion_real = jnp.array([atom.dispersion_real for atom in construction_instructions])
+        dispersion_imag = jnp.array([atom.dispersion_imag for atom in construction_instructions])
+        f_dash = dispersion_real + 1j * dispersion_imag
+        f0j -= f_dash[None, :, None]
+
+    labels = [instr.name for instr in construction_instructions]
+
+    hkl_df = pd.DataFrame(columns=['refl_h', 'refl_k', 'refl_l', *labels])
+
+    for symm_matrix, _, f0j_slice in zip(*symm_mats_vecs, f0j):
+        hrot, krot, lrot = np.einsum('zx, xy -> zy', index_vec_h, symm_matrix).T.astype(np.int64)
+
+        new_df = pd.DataFrame({
+            'refl_h': hrot,
+            'refl_k': krot,
+            'refl_l': lrot
+        })
+
+        for label, column in zip(labels, f0j_slice):
+            new_df[label] = column
+            
+        hkl_df = hkl_df.append(new_df, ignore_index=True)
+        
+    hkl_df = hkl_df.drop_duplicates(ignore_index=True)
+
+    complex_entries = [' '.join([f'{np.real(val):10.8e},{np.imag(val):10.8e}' for val in row])
+                        for row in  hkl_df.iloc[:, 3:].values]
+    hkl_entries = [f'{row[0]} {row[1]} {row[2]} ' for row in hkl_df[['refl_h', 'refl_k', 'refl_l']].values]
+    out_data = '\n'.join([hkl_entry + complex_entry for hkl_entry, complex_entry in zip(hkl_entries, complex_entries)])
+    with open(file_name, 'w') as fo:
+        fo.write(out_data)

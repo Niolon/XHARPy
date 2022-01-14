@@ -16,7 +16,7 @@ from scipy.special import spherical_jn
 import gpaw
 import warnings
 import importlib.resources as pkg_resources
-from ..core import expand_symm_unique
+from ..core import expand_symm_unique, construct_values, AtomInstructions
 from .grid.atomgrid import AtomGrid
 from .grid.onedgrid import HortonLinear
 from .grid.rtransform import PowerRTransform
@@ -26,8 +26,8 @@ from .real_spher_harm import ylm_func_dict
 
 def calc_f0j(
     cell_mat_m: np.ndarray,
-    element_symbols: List[str],
-    positions: np.ndarray,
+    construction_instructions: List[AtomInstructions],
+    parameters: np.ndarray,
     index_vec_h: np.ndarray,
     symm_mats_vecs: Tuple[np.ndarray, np.ndarray],
     computation_dict: Dict[str, Any],
@@ -41,11 +41,11 @@ def calc_f0j(
     ----------
     cell_mat_m : np.ndarray
         size (3, 3) array with the unit cell vectors as row vectors
-    element_symbols : List[str]
-        element symbols (i.e. 'Na') for all the atoms within the asymmetric unit
-    positions : np.ndarray
-        atomic positions in fractional coordinates for all the atoms within
-        the asymmetric unit
+    construction_instructions : List[AtomInstructions]
+        List of instructions for reconstructing the atomic parameters from the
+        list of refined parameters
+    parameters : np.ndarray
+        Current parameter values
     index_vec_h : np.ndarray
         size (H) vector containing Miller indicees of the measured reflections
     symm_mats_vecs : Tuple[np.ndarray, np.ndarray]
@@ -127,6 +127,14 @@ def calc_f0j(
         del(computation_dict['magmoms'])
     else:
         magmoms = None
+
+    element_symbols = [instr.element for instr in construction_instructions]
+
+    positions, *_ = construct_values(
+        parameters,
+        construction_instructions,
+        cell_mat_m
+    )
 
     symm_positions, symm_symbols, f0j_indexes, magmoms_symm = expand_symm_unique(
         element_symbols,

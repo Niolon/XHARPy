@@ -18,7 +18,8 @@ from scipy.interpolate import interp1d
 from scipy.integrate import simps
 import gpaw
 import warnings
-from ..core import expand_symm_unique
+from typing import List
+from ..core import expand_symm_unique, construct_values, AtomInstructions
 
 
 class HirshfeldDensity(RealSpaceDensity):
@@ -201,9 +202,8 @@ class HirshfeldPartitioning:
 
 def calc_f0j(
     cell_mat_m,
-    element_symbols,
-    xyz,
-    uij,
+    construction_instructions: List[AtomInstructions],
+    parameters: np.ndarray,
     index_vec_h,
     symm_mats_vecs,
     computation_dict=None,
@@ -249,6 +249,14 @@ def calc_f0j(
         del(computation_dict['magmoms'])
     else:
         magmoms = None
+
+    element_symbols = [instr.element for instr in construction_instructions]
+
+    xyz, uij, *_ = construct_values(
+        parameters,
+        construction_instructions,
+        cell_mat_m
+    )
 
     xyz = np.array(xyz)
     uij = np.array(uij)
@@ -375,7 +383,7 @@ def calc_f0j(
             for symm_matrix, symm_atom_index in zip(symm_mats_vecs[0], symm_atom_indexes):
                 h_density = density * partitioning.hdensity.get_density([symm_atom_index], gridrefinement=gridinterpolation, skip_core=explicit_core)[0] / overall_hdensity
                 frac_position = symm_positions[symm_atom_index]
-                h_rot, k_rot, l_rot = np.einsum('xy, y... -> x...', symm_matrix, np.array((h, k, l))).astype(np.int64)
+                h_rot, k_rot, l_rot = np.einsum('zx, xy -> zy', index_vec_h, symm_matrix).T.astype(np.int64)
                 phase_to_zero = np.exp(-2j * np.pi * (frac_position[0] * h + frac_position[1] * k + frac_position[2] * l))
                 f0j_sum += (np.fft.ifftn(h_density) * phase_to_zero * np.prod(h.shape))[h_rot, k_rot, l_rot]
             f0j_sum /= len(symm_atom_indexes)

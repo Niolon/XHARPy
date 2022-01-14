@@ -2,6 +2,8 @@ import numpy as np
 
 from typing import Any, Dict, List, Tuple
 
+from ..core import AtomInstructions
+
 
 element_parameters = {
     'H':     [np.array([0.493002, 0.322912, 0.140191, 0.040810]),
@@ -644,8 +646,8 @@ element_parameters = {
 
 def calc_f0j(
     cell_mat_m: np.ndarray,
-    element_symbols: List[str],
-    positions: np.ndarray,
+    construction_instructions: List[AtomInstructions],
+    parameters: np.ndarray,
     index_vec_h: np.ndarray,
     symm_mats_vecs: Tuple[np.ndarray, np.ndarray],
     computation_dict: Dict[str, Any],
@@ -659,9 +661,10 @@ def calc_f0j(
     ----------
     cell_mat_m : np.ndarray
         size (3, 3) array with the unit cell vectors as row vectors
-    element_symbols : List[str]
-        element symbols (i.e. 'Na') for all the atoms within the asymmetric unit
-    positions : np.ndarray
+    construction_instructions : List[AtomInstructions]
+        List of instructions for reconstructing the atomic parameters from the
+        list of refined parameters
+    parameters : np.ndarray
         ignored
     index_vec_h : np.ndarray
         size (H) vector containing Miller indicees of the measured reflections
@@ -682,6 +685,9 @@ def calc_f0j(
         generated atoms within the unit cells. Atoms on special positions are 
         present multiple times and have the atomic form factor of the full atom.
     """
+
+    element_symbols = [instr.element for instr in construction_instructions]
+
     cell_mat_f = np.linalg.inv(cell_mat_m)
     vec_S_norm = np.linalg.norm(np.einsum('xy, hy -> hx', cell_mat_f.T, index_vec_h), axis=-1)
     n_symm = symm_mats_vecs[0].shape[0]

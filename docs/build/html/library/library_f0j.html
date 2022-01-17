@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Options for f0j_calculations &mdash; XHARPy 0.1.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Examples" href="../examples.html" />
+    <link rel="prev" title="Refinement Options" href="library_refinement_dict.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> XHARPy
+            <img src="../_static/XHARPy_logo.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../commandline.html">Command Line Interface</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="library_index.html">Scripting with XHARPy</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="library_basis.html">Basic Use</a></li>
+<li class="toctree-l2"><a class="reference internal" href="library_symm_con.html">Constraints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="library_refinement_dict.html">Refinement Options</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Options for f0j_calculations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#gpaw-mpi">gpaw_mpi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpaw">gpaw</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpaw-spherical">gpaw_spherical</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#iam">iam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#qe">qe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tsc-file">tsc_file</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">xharpy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../xharpy.html">xharpy package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../xharpy.f0j_sources.html">xharpy.f0j_sources package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">XHARPy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="library_index.html">Scripting with XHARPy</a> &raquo;</li>
+      <li>Options for f0j_calculations</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/library/library_f0j.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="options-for-f0j-calculations">
+<h1>Options for f0j_calculations<a class="headerlink" href="#options-for-f0j-calculations" title="Permalink to this headline"></a></h1>
+<p>This section is an autogenerated list of the computation_dicts of all currently available
+f0j_sources.</p>
+<div class="section" id="gpaw-mpi">
+<h2>gpaw_mpi<a class="headerlink" href="#gpaw-mpi" title="Permalink to this headline"></a></h2>
+<p>This is the computation dict docstring (automatically copied from .py files)</p>
+<p>computation_dict : Dict[str, Any]</p>
+<p>contains options for the atomic form factor calculation. The function
+will use and exclude the following options from the dictionary and pass
+the rest onto the GPAW calculator without further checks.</p>
+<ul class="simple">
+<li><p>save_file (str): Path to the file that is used for saving and
+loading DFT results, by default ‘gpaw_result.gpw’</p></li>
+<li><p>gridinterpolation (1, 2, 4): Using GPAWs interpolation this is the
+factor by which the grid from the wave function will be interpolated
+for the calculation of atomic form factors with FFT. This can be
+reduced if you run out of memory for this step. Allowed values are
+1, 2, and 4, by default 4</p></li>
+<li><p>symm_equiv (str): The atomic form factors of symmetry equivalent
+atoms can be calculated individually for each atom (‘individually’)
+or they can be calculated once for each atom in the asymmetric unit
+and expanded to the other atoms (‘once’), finally they can be
+averaged between symmetry equivalent atoms and expanded afterwards
+(‘averaged’). Once should be sufficient for most structures and
+saves time. Try one of the other options if you suspect problems,
+by default ‘once’</p></li>
+<li><p>skip_symm (Dict[int, List[int]]): Can used to prevent the
+expansion of the atom(s) with the index(es) given as dictionary keys
+as given in the construction_instructions with the symmetry
+operations of the indexes given in the list, which correspond to the
+indexes in the symm_mats_vecs object. This has proven to be
+successful for the calculation of atoms disordered on special
+positions. Can not be used with if symm_equiv is ‘individually’,
+by default {}</p></li>
+<li><p>magmoms (np.ndarray): Experimental: starting values for magnetic
+moments of atoms. These will be expanded to atoms in the unit cell
+by just applying the same magnetic moment to all symmetry equivalent
+atoms. This is probably too simplistic and will fail.</p></li>
+<li><p>mpicores (Union[int, str]): give the number of cores used for the
+mpi calculation. If this is ‘auto’ GPAW will select the number
+itself, by default ‘auto’</p></li>
+</ul>
+<p>For the allowed options of the GPAW calculator consult:
+<a class="reference external" href="https://wiki.fysik.dtu.dk/gpaw/documentation/basic.html">https://wiki.fysik.dtu.dk/gpaw/documentation/basic.html</a></p>
+</div>
+<div class="section" id="gpaw">
+<h2>gpaw<a class="headerlink" href="#gpaw" title="Permalink to this headline"></a></h2>
+<p>This is the computation dict docstring (automatically copied from .py files)</p>
+<p>computation_dict : Dict[str, Any]</p>
+<p>contains options for the atomic form factor calculation. The function
+will use and exclude the following options from the dictionary and pass
+the rest onto the GPAW calculator without further checks.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>save_file (str): Path to the file that is used for saving and
+loading DFT results, by default ‘gpaw_result.gpw’</p></li>
+<li><p>gridinterpolation (1, 2, 4): Using GPAWs interpolation this is the
+factor by which the grid from the wave function will be interpolated
+for the calculation of atomic form factors with FFT. This can be
+reduced if you run out of memory for this step. Allowed values are
+1, 2, and 4, by default 4</p></li>
+<li><p>symm_equiv (str): The atomic form factors of symmetry equivalent
+atoms can be calculated individually for each atom (‘individually’)
+or they can be calculated once for each atom in the asymmetric unit
+and expanded to the other atoms (‘once’), finally they can be
+averaged between symmetry equivalent atoms and expanded afterwards
+(‘averaged’). Once should be sufficient for most structures and
+saves time. Try one of the other options if you suspect problems,
+by default ‘once’</p></li>
+<li><p>skip_symm (Dict[int, List[int]]): Can used to prevent the
+expansion of the atom(s) with the index(es) given as dictionary keys
+as given in the construction_instructions with the symmetry
+operations of the indexes given in the list, which correspond to the
+indexes in the symm_mats_vecs object. This has proven to be
+successful for the calculation of atoms disordered on special
+positions. Can not be used with if symm_equiv is ‘individually’,
+by default {}</p></li>
+<li><p>magmoms (np.ndarray): Experimental: starting values for magnetic
+moments of atoms. These will be expanded to atoms in the unit cell
+by just applying the same magnetic moment to all symmetry equivalent
+atoms. This is probably too simplistic and will fail.</p></li>
+</ul>
+</div></blockquote>
+<p>For the allowed options of the GPAW calculator consult:
+<a class="reference external" href="https://wiki.fysik.dtu.dk/gpaw/documentation/basic.html">https://wiki.fysik.dtu.dk/gpaw/documentation/basic.html</a></p>
+</div>
+<div class="section" id="gpaw-spherical">
+<h2>gpaw_spherical<a class="headerlink" href="#gpaw-spherical" title="Permalink to this headline"></a></h2>
+<p>This is the computation dict docstring (automatically copied from .py files)</p>
+<p>computation_dict : Dict[str, Any]</p>
+<p>contains options for the atomic form factor calculation. The function
+will use and exclude the following options from the dictionary and pass
+the rest onto the GPAW calculator without further checks.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>save_file (str): Path to the file that is used for saving and
+loading DFT results, by default ‘gpaw_result.gpw’</p></li>
+<li><p>spherical_grid (str): Can be used to select a grid. Possible options
+are: coarse, medium, fine, veryfine, ultrafine and insane, by
+by default ‘fine’</p></li>
+<li><p>skip_symm (Dict[int, List[int]]): Can used to prevent the
+expansion of the atom(s) with the index(es) given as dictionary keys
+as given in the construction_instructions with the symmetry
+operations of the indexes given in the list, which correspond to the
+indexes in the symm_mats_vecs object. This has proven to be
+successful for the calculation of atoms disordered on special
+positions. Can only be used with average_symmequiv, by default {}</p></li>
+<li><p>magmoms (np.ndarray): Experimental: starting values for magnetic
+moments of atoms. These will be expanded to atoms in the unit cell
+by just applying the same magnetic moment to all symmetry equivalent
+atoms. This is probably too simplistic and will fail.</p></li>
+</ul>
+</div></blockquote>
+<p>For the allowed options of the GPAW calculator consult:
+<a class="reference external" href="https://wiki.fysik.dtu.dk/gpaw/documentation/basic.html">https://wiki.fysik.dtu.dk/gpaw/documentation/basic.html</a></p>
+</div>
+<div class="section" id="iam">
+<h2>iam<a class="headerlink" href="#iam" title="Permalink to this headline"></a></h2>
+<p>This is the computation dict docstring (automatically copied from .py files)</p>
+<p>computation_dict : Dict[str, Any]</p>
+<p>There are no options here, will be ignored</p>
+</div>
+<div class="section" id="qe">
+<h2>qe<a class="headerlink" href="#qe" title="Permalink to this headline"></a></h2>
+<p>This is the computation dict docstring (automatically copied from .py files)</p>
+<p>computation_dict : Dict[str, Any]</p>
+<p>contains options for the atomic form factor calculation. The function
+will use and exclude the following options from the dictionary and write
+the rest into the quantum-espresso pw.x output file without further
+check</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>mpicores (Union[str, int]): The number of cores used for the pw.x
+and pp.x calculation in Quantum Espresso, ‘auto’ will mpiexec let
+select this option. However sometimes it has proven faster to
+choose a lower number of cores manually</p></li>
+<li><p>symm_equiv (str): The atomic form factors of symmetry equivalent
+atoms can be calculated individually for each atom (‘individually’)
+or they can be calculated once for each atom in the asymmetric unit
+and expanded to the other atoms (‘once’), finally they can be
+averaged between symmetry equivalent atoms and expanded afterwards
+(‘averaged’). Once should be sufficient for most structures and
+saves time. Try one of the other options if you suspect problems,
+by default ‘once’</p></li>
+<li><p>skip_symm (Dict[int, List[int]]): Can used to prevent the
+expansion of the atom(s) with the index(es) given as dictionary keys
+as given in the construction_instructions with the symmetry
+operations of the indexes given in the list, which correspond to the
+indexes in the symm_mats_vecs object. This has proven to be
+successful for the calculation of atoms disordered on special
+positions. Can not be used with if symm_equiv is ‘individually’,
+by default {}</p></li>
+</ul>
+</div></blockquote>
+<p>K-points are organised into their own entry ‘k_points’ which is a dict
+‘mode’ is the selection mode, and ‘input’ is the output after the
+K_POINTS entry in the pw.x output file.</p>
+<p>The other options are organised as subdicts with the naming of the
+section in the pw.x input file in lowercase.
+For these options consult the pw.x file format documentation at:
+<a class="reference external" href="https://www.quantum-espresso.org/Doc/INPUT_PW.html">https://www.quantum-espresso.org/Doc/INPUT_PW.html</a></p>
+</div>
+<div class="section" id="tsc-file">
+<h2>tsc_file<a class="headerlink" href="#tsc-file" title="Permalink to this headline"></a></h2>
+<p>This is the computation dict docstring (automatically copied from .py files)</p>
+<p>computation_dict : Dict[str, Any]</p>
+<p>Contains options for the .tsc source</p>
+<ul class="simple">
+<li><p>file_name (str): Path to the .tsc file, by default ‘to_xharpy.tsc’</p></li>
+<li><p>call_function (python function): If this option is not ‘none’ you can
+pass a function, which will be called in each Hirshfeld cycle. The
+function receives four arguments: labels contrains the atom label for
+each atom in the asymmetric unit, element_symbols containts the
+element symbols (e.g. H, Na), positions are the atomic positions in
+FRACTIONAL coordinates, restart is a bool, which you can check to
+trigger a start of a calculation from a precalculated density.
+(Usually you would want to start the first step with a calculation
+from scratch and then recycle for all other HAR cycles, as the
+differences in posutions get smaller). At the end of the function
+you should write a new .tsc file with the atomic form factors,
+by default ‘none’</p></li>
+<li><p>call_args (List): If you have a call_function you can use this
+option to pass additional arguments, which will be passed after
+the four default arguments, by default []</p></li>
+<li><p>call_kwargs (Dict): If you have a call_function you can use this
+option to pass additional keyword arguments, by default {}</p></li>
+<li><p>cif_addition (str): Will be added to the refinement_details section
+of the cif_file</p></li>
+</ul>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="library_refinement_dict.html" class="btn btn-neutral float-left" title="Refinement Options" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../examples.html" class="btn btn-neutral float-right" title="Examples" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, Paul Niklas Ruth.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

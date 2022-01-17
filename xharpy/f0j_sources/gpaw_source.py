@@ -239,13 +239,11 @@ def calc_f0j(
 
           - save_file (str): Path to the file that is used for saving and 
             loading DFT results, by default 'gpaw_result.gpw'
-
           - gridinterpolation (1, 2, 4): Using GPAWs interpolation this is the 
             factor by which the grid from the wave function will be interpolated
             for the calculation of atomic form factors with FFT. This can be 
             reduced if you run out of memory for this step. Allowed values are
             1, 2, and 4, by default 4
-
           - symm_equiv (str): The atomic form factors of symmetry equivalent
             atoms can be calculated individually for each atom ('individually')
             or they can be calculated once for each atom in the asymmetric unit
@@ -254,7 +252,6 @@ def calc_f0j(
             ('averaged'). Once should be sufficient for most structures and 
             saves time. Try one of the other options if you suspect problems,
             by default 'once'
-
           - skip_symm (Dict[int, List[int]]): Can used to prevent the
             expansion of the atom(s) with the index(es) given as dictionary keys
             as given in the construction_instructions with the symmetry
@@ -263,12 +260,10 @@ def calc_f0j(
             successful for the calculation of atoms disordered on special 
             positions. Can not be used with if symm_equiv is 'individually',
             by default {} 
-
           - magmoms (np.ndarray): Experimental: starting values for magnetic
             moments of atoms. These will be expanded to atoms in the unit cell 
             by just applying the same magnetic moment to all symmetry equivalent
             atoms. This is probably too simplistic and will fail.
-
 
         For the allowed options of the GPAW calculator consult: 
         https://wiki.fysik.dtu.dk/gpaw/documentation/basic.html

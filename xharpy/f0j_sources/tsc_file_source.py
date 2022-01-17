@@ -39,8 +39,8 @@ def calc_f0j(
         translation vectors for all symmetry elements in the unit cell
     computation_dict : Dict[str, Any]
         Contains options for the .tsc source
-        - file_name (str): Path to the .tsc file, by default 'to_xharpy.tsc'
 
+        - file_name (str): Path to the .tsc file, by default 'to_xharpy.tsc'
         - call_function (python function): If this option is not 'none' you can
           pass a function, which will be called in each Hirshfeld cycle. The
           function receives four arguments: labels contrains the atom label for 
@@ -53,17 +53,13 @@ def calc_f0j(
           differences in posutions get smaller). At the end of the function
           you should write a new .tsc file with the atomic form factors,
           by default 'none'
-
         - call_args (List): If you have a call_function you can use this
           option to pass additional arguments, which will be passed after
           the four default arguments, by default []
-
         - call_kwargs (Dict): If you have a call_function you can use this
           option to pass additional keyword arguments, by default {}
-
         - cif_addition (str): Will be added to the refinement_details section 
           of the cif_file
-    
     restart : bool, optional
         If true, the DFT calculation will be restarted from a previous calculation
     explicit_core : bool, optional

@@ -340,11 +340,11 @@ def calc_f0j(
         will use and exclude the following options from the dictionary and write
         the rest into the quantum-espresso pw.x output file without further
         check
+        
           - mpicores (Union[str, int]): The number of cores used for the pw.x
             and pp.x calculation in Quantum Espresso, 'auto' will mpiexec let
             select this option. However sometimes it has proven faster to
             choose a lower number of cores manually
-
           - symm_equiv (str): The atomic form factors of symmetry equivalent
             atoms can be calculated individually for each atom ('individually')
             or they can be calculated once for each atom in the asymmetric unit
@@ -353,7 +353,6 @@ def calc_f0j(
             ('averaged'). Once should be sufficient for most structures and 
             saves time. Try one of the other options if you suspect problems,
             by default 'once'
-
           - skip_symm (Dict[int, List[int]]): Can used to prevent the
             expansion of the atom(s) with the index(es) given as dictionary keys
             as given in the construction_instructions with the symmetry
@@ -362,7 +361,7 @@ def calc_f0j(
             successful for the calculation of atoms disordered on special 
             positions. Can not be used with if symm_equiv is 'individually',
             by default {} 
-
+        
         K-points are organised into their own entry 'k_points' which is a dict
         'mode' is the selection mode, and 'input' is the output after the 
         K_POINTS entry in the pw.x output file.

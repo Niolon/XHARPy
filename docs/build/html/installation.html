@@ -48,6 +48,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="commandline.html">Command Line Interface</a></li>
 <li class="toctree-l1"><a class="reference internal" href="library/library_index.html">Scripting with XHARPy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules.html">xharpy</a></li>
 <li class="toctree-l1"><a class="reference internal" href="xharpy.html">xharpy package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="xharpy.f0j_sources.html">xharpy.f0j_sources package</a></li>
@@ -95,6 +96,10 @@
 <li><p><a class="reference external" href="https://wiki.fysik.dtu.dk/ase/">ase</a> = 3.22.1</p></li>
 </ul>
 </dd>
+<dt>For atomic form factor calculation in Quantum Espresso (experimental)</dt><dd><ul class="simple">
+<li><p><a class="reference external" href="https://www.quantum-espresso.org/">qe</a> = 7.0</p></li>
+</ul>
+</dd>
 <dt>For difference electron density calculation</dt><dd><ul class="simple">
 <li><p><a class="reference external" href="https://cci.lbl.gov/cctbx_docs/index.html">cctbx</a> = 2021.11</p></li>
 </ul>
@@ -123,11 +128,10 @@ environment using</p>
 <span class="go">conda activate xharpy</span>
 </pre></div>
 </div>
-<p>You can now start by installing python in that environment
-.. code-block:: console</p>
-<blockquote>
-<div><p>conda install -c conda-forge python=3.8</p>
-</div></blockquote>
+<p>You can now start by installing python in that environment</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">conda install -c conda-forge python=3.8</span>
+</pre></div>
+</div>
 <p>Followed by installing the necessary packages</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">conda install -c conda-forge jax=0.2.26 numpy=1.20.3 scipy=1.7.3 pandas=1.3.5</span>
 </pre></div>
@@ -148,6 +152,12 @@ The library will however run without cctbx, with some features unavailable.</p>
 </div>
 <p>If you want to use gpaw as source for the atomic form factors (recommended)</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">conda install -c conda-forge ase=3.22.1 gpaw=21.6.0</span>
+</pre></div>
+</div>
+<p>If you also want to try out the atomic form factor calculation in Quantum
+Espresso. You can also install this separately of course, as long as pw.x
+and pp.x directly callable.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">conda install -c conda-forge qe=7.0</span>
 </pre></div>
 </div>
 <p>Finally, the examples are written as jupyter notebooks. It also has proven

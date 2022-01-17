@@ -14,6 +14,9 @@ For atomic form factor calculation in GPAW
  - `gpaw <https://wiki.fysik.dtu.dk/gpaw/>`_ = 21.6.0
  - `ase <https://wiki.fysik.dtu.dk/ase/>`_ = 3.22.1 
 
+For atomic form factor calculation in Quantum Espresso (experimental)
+ - `qe <https://www.quantum-espresso.org/>`_ = 7.0
+
 For difference electron density calculation
  - `cctbx <https://cci.lbl.gov/cctbx_docs/index.html>`_ = 2021.11
 
@@ -44,6 +47,7 @@ environment using
    conda activate xharpy
 
 You can now start by installing python in that environment
+
 .. code-block:: console
 
    conda install -c conda-forge python=3.8
@@ -78,6 +82,14 @@ If you want to use gpaw as source for the atomic form factors (recommended)
 .. code-block:: console
 
    conda install -c conda-forge ase=3.22.1 gpaw=21.6.0
+
+If you also want to try out the atomic form factor calculation in Quantum
+Espresso. You can also install this separately of course, as long as pw.x 
+and pp.x directly callable.
+
+.. code-block:: console
+
+   conda install -c conda-forge qe=7.0
 
 Finally, the examples are written as jupyter notebooks. It also has proven 
 to be good practice to write the refinements in jupyter, as it is easy to

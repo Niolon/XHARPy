@@ -712,7 +712,7 @@ def write_fcf(
     if fcf_mode == 6:
         dispersion_real = jnp.array([atom.dispersion_real for atom in construction_instructions])
         dispersion_imag = jnp.array([atom.dispersion_imag for atom in construction_instructions])
-        f_dash = dispersion_real + 1j * dispersion_imag
+        f_dash = dispersion_real + 1j * dispersion_imag        
 
         hkl['abs(f_calc)'] = np.abs(structure_factors)
 
@@ -919,7 +919,7 @@ LIST 6
 L.S. 0
 FMAP 2
 WGHT    0.000000
-FVAR       {parameters[0]:8.6f}
+FVAR       {np.sqrt(parameters[0]):8.6f}
 {atom_lines}
 HKLF 4
 END

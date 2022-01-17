@@ -180,8 +180,7 @@ def get_value_or_default(
         'min_iter': 10,
         'restraints': [],
         'flack': False,
-        'core_io': ('none', 'core.pic'),
-        '3lambda': False
+        'core_io': ('none', 'core.pic')
     }
     return refinement_dict.get(parameter_name, defaults[parameter_name])
 
@@ -209,8 +208,7 @@ def get_parameter_index(
         ('overall scaling', True),
         ('flack', get_value_or_default('flack', refinement_dict)),
         ('core', get_value_or_default('core', refinement_dict) == 'scale'),
-        ('extinction', get_value_or_default('extinction', refinement_dict) != 'none'),
-        ('3lambda', get_value_or_default('3lambda', refinement_dict))
+        ('extinction', get_value_or_default('extinction', refinement_dict) != 'none')
     ]
     index = [name for name, _ in order].index(parameter_name)
     if not order[index][1]:
@@ -579,10 +577,6 @@ def create_construction_instructions(
     extinction_index = get_parameter_index('extinction', refinement_dict)
     if extinction_index is not None:
         parameters = jax.ops.index_update(parameters, jax.ops.index[extinction_index], exti0)
-        current_index += 1
-    threel_index = get_parameter_index('3lambda', refinement_dict)
-    if threel_index is not None:
-        parameters = jax.ops.index_update(parameters, jax.ops.index[extinction_index], 0.0)
         current_index += 1
     construction_instructions = []
     known_torsion_indexes = {}
@@ -1111,19 +1105,6 @@ def calc_lsq_factory(
         sintwotheta = 2 * sintheta * jnp.sqrt(1 - sintheta**2)
         extinction_factors = 0.001 * wavelength**3 / sintwotheta
 
-    threelambda = get_value_or_default('3lambda', refinement_dict)
-    threelambdapar = get_parameter_index('3lambda', refinement_dict) 
-    if threelambda:
-        onel_indexes = []
-        threel_indexes = []
-        for onel_index, onel in enumerate(index_vec_h):
-            threel_matches = np.where(np.all(onel == 3 * index_vec_h, axis=1))[0]
-            if len(threel_matches) > 0:
-                onel_indexes.append(onel_index)
-                threel_indexes.append(threel_matches[0])
-        onel_indexes = jnp.array(onel_indexes)
-        threel_indexes = jnp.array(threel_indexes)
-    
     construct_values_j = jax.jit(construct_values, static_argnums=(1))
 
     def function(parameters, f0j):
@@ -1158,13 +1139,6 @@ def calc_lsq_factory(
             i_calc0 = jnp.abs(structure_factors)**2             
             intensities_calc = parameters[0] * i_calc0 / (1 + parameters[extinction_parameter] * i_calc0)
             #restraint_addition = 0
-
-        if threelambda:
-            intensities_calc = jax.ops.index_add(
-                intensities_calc,
-                jax.ops.index[threel_indexes],
-                parameters[threelambdapar] * intensities_calc[onel_indexes]
-            )
   
         if flack_parameter is not None:
             structure_factors2 = calc_f(
@@ -1188,13 +1162,6 @@ def calc_lsq_factory(
                 i_calc02 = jnp.abs(structure_factors2)**2             
                 intensities_calc2 = parameters[0] * i_calc02 / (1 + parameters[extinction_parameter] * i_calc02)
                 #restraint_addition = 0
-
-            if threelambda:
-                intensities_calc2 = jax.ops.index_add(
-                    intensities_calc2,
-                    jax.ops.index[threel_indexes],
-                    parameters[threelambdapar] * intensities_calc2[onel_indexes]
-                )
 
             lsq = jnp.sum(weights * (intensities_obs - parameters[flack_parameter] * intensities_calc2 - (1 - parameters[flack_parameter]) * intensities_calc)**2) 
         else:
@@ -1271,19 +1238,6 @@ def calc_var_cor_mat(
         sintheta = jnp.linalg.norm(jnp.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 * wavelength
         sintwotheta = 2 * sintheta * jnp.sqrt(1 - sintheta**2)
         extinction_factors = 0.001 * wavelength**3 / sintwotheta
-
-    threelambda = get_value_or_default('3lambda', refinement_dict)
-    threelambdapar = get_parameter_index('3lambda', refinement_dict) 
-    if threelambda:
-        onel_indexes = []
-        threel_indexes = []
-        for onel_index, onel in enumerate(index_vec_h):
-            threel_matches = np.where(np.all(onel == 3 * index_vec_h, axis=1))[0]
-            if len(threel_matches) > 0:
-                onel_indexes.append(onel_index)
-                threel_indexes.append(threel_matches[0])
-        onel_indexes = jnp.array(onel_indexes)
-        threel_indexes = jnp.array(threel_indexes)
     
     construct_values_j = jax.jit(construct_values, static_argnums=(1))
 
@@ -1497,10 +1451,6 @@ def refine(
         from .f0j_sources.iam_source import calc_f0j, calc_f0j_core
     elif f0j_source == 'gpaw_spherical':
         from .f0j_sources.gpaw_spherical_source import calc_f0j, calc_f0j_core
-    elif f0j_source == 'gpaw_lcorr':
-        from .f0j_sources.gpaw_lcorr_source import calc_f0j, calc_f0j_core
-    elif f0j_source == 'gpaw_mbis':
-        from .f0j_sources.gpaw_mbis_source import calc_f0j, calc_f0j_core
     elif f0j_source == 'qe':
         from .f0j_sources.qe_source import calc_f0j, calc_f0j_core
     elif f0j_source == 'gpaw_mpi':

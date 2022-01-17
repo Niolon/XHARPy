@@ -69,14 +69,11 @@ def cli(**kwargs):
         extinction = kwargs['extinction'][0]
 
     computation_dict = {
-        'xc': 'SCAN',
         'txt': 'gpaw.txt',
         'mode': 'fd',
-        'h': 0.200,
         'gridinterpolation': 4,
-        'average_symmequiv': False,
+        'symm_equiv': 'once',
         'convergence':{'density': 1e-7},
-        'kpts': {'size': (1, 1, 1), 'gamma': True},
         'symmetry': {'symmorphic': False}
     }
     if 'xc' not in kwargs:
@@ -162,10 +159,10 @@ def cli(**kwargs):
     )
 
     write_cif(
-        os.path.join(output_folder, 'xharpy.cif'),
-        'xharpy',
-        shelx_cif_name=cif_name,
-        shelx_descr=cif_index,
+        output_cif_path=os.path.join(output_folder, 'xharpy.cif'),
+        cif_dataset='xharpy',
+        shelx_cif_path=cif_name,
+        shelx_dataset=cif_index,
         cell=cell,
         cell_esd=cell_esd,
         symm_mats_vecs=symm_mats_vecs,
@@ -179,20 +176,21 @@ def cli(**kwargs):
     )
 
     write_fcf(
-        filename=os.path.join(output_folder, 'xharpy.fcf'),
+        fcf_path=os.path.join(output_folder, 'xharpy.fcf'),
         fcf_dataset='xharpy',
         fcf_mode=4,
         cell=cell,
         hkl=hkl,
         construction_instructions=construction_instructions,
         parameters=parameters,
+        wavelength=wavelength,
         refinement_dict=refinement_dict,
         symm_strings=symm_strings,
         information=information,
     )
 
     write_res(
-        filename=os.path.join(output_folder, 'xharpy_6.res'),
+        out_res_path=os.path.join(output_folder, 'xharpy_6.res'),
         in_res_path=lst_name,
         cell=cell,
         cell_esd=cell_esd,
@@ -202,13 +200,14 @@ def cli(**kwargs):
     )
 
     write_fcf(
-        filename=os.path.join(output_folder, 'xharpy_6.fcf'),
+        fcf_path=os.path.join(output_folder, 'xharpy_6.fcf'),
         fcf_dataset='xharpy_6',
         fcf_mode=6,
         cell=cell,
         hkl=hkl,
         construction_instructions=construction_instructions,
         parameters=parameters,
+        wavelength=wavelength,
         refinement_dict=refinement_dict,
         symm_strings=symm_strings,
         information=information,

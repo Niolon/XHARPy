@@ -1703,8 +1703,6 @@ def write_cif(
         from .f0j_sources.iam_source import generate_cif_output
     elif f0j_source == 'gpaw':
         from .f0j_sources.gpaw_source import generate_cif_output
-    elif f0j_source == 'gpaw_mbis':
-        from .f0j_sources.gpaw_mbis_source import generate_cif_output
     elif f0j_source == 'gpaw_mpi':
         from .f0j_sources.gpaw_mpi_source import generate_cif_output
     elif f0j_source == 'gpaw_spherical':

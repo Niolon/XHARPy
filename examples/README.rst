@@ -6,6 +6,7 @@ Calculation with GPAW
 L-Alanin with GPAW
 ******************
 - Folder: L-Alanin_gpaw
+- Original data doi: `10.1021/j100315a022 <https://doi.org/10.1021/j100315a022>`_
 - Program: GPAW
 - SCAN calculation
 - Using MPI
@@ -14,6 +15,7 @@ L-Alanin with GPAW
 Urea with GPAW
 **************
 - Folder: Urea_gpaw
+- Original data doi: `10.1107/S0108767304015120 <https://doi.org/10.1107/S0108767304015120>`_
 - Program: GPAW
 - SCAN calculation
 - Using MPI
@@ -27,6 +29,7 @@ Urea with GPAW
 Xylitol with GPAW
 *****************
 - Folder: Xylitol_gpaw_extinction
+- Original data doi: `10.1107/S0108767304018306 <https://doi.org/10.1107/S0108767304018306>`_
 - Program: GPAW
 - SCAN calculation
 - Using MPI
@@ -37,6 +40,7 @@ Xylitol with GPAW
 CpNa with GPAW
 **************
 - Folder: CpNa_gpaw_special_position
+- Original data doi: `10.1002/anie.201304498 <https://doi.org/10.1002/anie.201304498>`_
 - Program: GPAW
 - RPBE calculation
 - Constant core calculation
@@ -46,6 +50,7 @@ CpNa with GPAW
 Hexaqua magnesium hydrogen maleate with GPAW
 ********************************************
 - Folder: HMa_Mg_gpaw
+- Original data doi: `10.1039/D0CE00378F <https://doi.org/10.1039/D0CE00378F>`_
 - Program: GPAW
 - SCAN calculation
 - Using MPI
@@ -54,6 +59,7 @@ Hexaqua magnesium hydrogen maleate with GPAW
 8-Hydroxy quinoline hydrogen maleate with GPAW
 **********************************************
 - Folder: HMa_8HQ_gpaw
+- Original data doi: `10.1039/D0CE00378F <https://doi.org/10.1039/D0CE00378F>`_
 - Program: GPAW
 - SCAN calculation
 - Using MPI
@@ -67,6 +73,7 @@ L-Alanin with Quantum Espresso
 ******************************
 
 - Folder: L-Alanin\_qe
+- Original data doi: `10.1021/j100315a022 <https://doi.org/10.1021/j100315a022>`_
 - Program: Quantum Espresso
 - PBE calculation
 - Constant core calculation
@@ -76,6 +83,7 @@ Urea with Quantum Espresso
 **************************
 
 - Folder: Urea\_qe
+- Original data doi: `10.1107/S0108767304015120 <https://doi.org/10.1107/S0108767304015120>`_
 - Program: Quantum Espresso
 - B3LYP calculation from PBE files
 - Core scaling
@@ -86,12 +94,14 @@ Calculation with the Independent Atom model
 L-Alanin with the Independent Atom Model
 ****************************************
 - Folder: L-Alanin_iam
+- Original data doi: `10.1021/j100315a022 <https://doi.org/10.1021/j100315a022>`_
 - Independent Atom Model
 - Isotropic Hydrogen Refinement
 
 L-Alanin with the Independent Atom Model and Hydrogen Constraints
 *****************************************************************
 - Folder: L-Alanin_iam_HConstraints
+- Original data doi: `10.1021/j100315a022 <https://doi.org/10.1021/j100315a022>`_
 - Independent Atom Model
 - Isotropic Hydrogen Refinement
 - Position constraints for sp3 hydrogen atoms

@@ -1,3 +1,7 @@
+"""This module provides the necessary function to do use Quantum Espresso 
+as source for the atomic form factors. Still very experimental but works in
+principle."""
+
 from typing import Union, List, Dict, Any, Tuple
 import numpy as np
 from copy import deepcopy

@@ -1,3 +1,8 @@
+"""This module is the beginning of a restraint implementation for the XHARPy
+library. Does not work as it is, and is currently kept as a template for a
+working implementation."""
+
+
 from collections import namedtuple
 import jax.numpy as np
 import pandas as pd

@@ -1,3 +1,6 @@
+"""Is meant as the module for handling weights in XHARPy. Currently 
+only contains a function to calculate weights from given parameters."""
+
 from scipy.optimize import minimize
 import numpy as np
 import jax

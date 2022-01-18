@@ -1,6 +1,6 @@
 """This module provides the necessary functions for calculating atomic form
-factors using the GPAW library in single-core mode. 
-
+factors using the GPAW library in single-core mode on a rectangular grid for the
+valence density and a spherical grid for the core densities. 
 """
 
 from typing import Any, Dict, List, Tuple

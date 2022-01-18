@@ -1,3 +1,11 @@
+"""
+This module contains different functions that were used for the comparisons 
+and plots presented in the paper. I kept them here for reference and in the
+spirit of open science. However, they were written as custom code for that
+publication.
+"""
+
+from typing import Any, Callable, Dict, List, Tuple
 from .io import ciflike_to_dict
 from .conversion import ucif2ucart, cell_constants_to_M
 from scipy.optimize import minimize
@@ -11,6 +19,11 @@ from cycler import cycler
 bench_colors = cycler(color=['#011671', '#ea5900', '#b10f2e', '#357266', '#e8c547', '#437f97',
                              '#8697e0', '#ffb485', '#f58ea1', '#53b2a0', '#e8d99e', '#93bccc'])
 
+
+"""
+Correction functions with and without q-scaling to apply the correction proposed
+by Blessing     
+"""
 
 def corr_uij_tric(parameters, uij_neut):
     scale = parameters[0]
@@ -84,7 +97,14 @@ def corr_uij_cubic_nosc(parameters, uij_neut):
     add = jax.ops.index_add(add, jnp.array([0, 1, 2]), parameters[0])
     return uij_neut + add
 
-def gen_lsq(corr_func, weights):
+
+def gen_lsq(
+    corr_func: Callable,
+    weights: np.ndarray
+) -> Callable:
+    """Generates a weighted least-squares function for the given correction
+    function and weights
+    """
     def lsq(parameters, uij, uij_neut):
         return (jnp.sum(weights * (corr_func(parameters, uij_neut) - uij)**2) + 0 * (1 - parameters[0])**2) / np.sum(weights)
     return lsq
@@ -100,13 +120,69 @@ func_start = {
 }
 
 def calc_s12(mat_u1, mat_u2):
+    """Calculates the S12 between the two (3,3) anisotropic displacement 
+    matrices"""
     mat_u1_inv = np.linalg.inv(mat_u1)
     mat_u2_inv = np.linalg.inv(mat_u2)
     numerator = 2**(3.0/2.0) * np.linalg.det(mat_u1_inv @ mat_u2_inv)**0.25
     denominator = np.linalg.det(mat_u1_inv + mat_u2_inv)**0.5
     return 100 * (1 - numerator / denominator)
 
-def calculate_agreement(har_path, har_key, fcf_path,  neut_path, neut_key, rename_dict={}, adp_conversions=[]):
+def calculate_agreement(
+    har_path: str,
+    har_key: str,
+    fcf_path: str,
+    neut_path:str,
+    neut_key:str,
+    rename_dict: Dict[str, str] = {},
+    adp_conversions: List[Tuple[List[str], np.ndarray]] = []
+) -> Tuple[Dict[str, Any], pd.DataFrame, pd.DataFrame]:
+    """Will generate a comparison between two datasets. The ADPs will be
+    scaled according to Blessing, other parameters are calculated from the 
+    fcf and cif files.
+
+    Parameters
+    ----------
+    har_path : str
+        Path to the Hirshfeld Atom Refined cif file
+    har_key : str
+        Key of the dataset to use within the cif and fcf file given for the 
+        HAR dataset
+    fcf_path : str
+        Path to the fcf file resulting from the Hirshfeld Atom Refinement
+    neut_path : str
+        Path to the neutron cif file
+    neut_key : str
+        key of dataset within the neutron cif file
+    rename_dict : Dict[str, str], optional
+        If there is a difference between the naming between the two cif files,
+        the naming of the neutron cif will be adapted with key - >value,
+        by default {}
+    adp_conversions : List[Tuple[List[str], np.ndarray]], optional
+        If atoms are located on different symmetry equivalent positions this
+        keyword can be used to transform the adps from the neutron cif.
+        For each conversion there needs to be a tuple, where the first entry
+        is a list containing the names of all atoms, where conversion should be
+        applied as strings, the second entry is the symmetry matrix, that
+        converts the neutron position to the HAR position, translation vector
+        is not needed as we only turn the ADPs, by default []
+
+    Returns
+    -------
+    quality_dict : Dict[str, Any]
+        Dictionary with different aggregated quality indicators for the HAR
+        dataset and its comparison to the neutron dataset
+    bond_comparison : pd.DataFrame,
+        DataFrame containing the merged distances from both cif files inclusing
+        esd for comparison and plotting
+    adp_compparison : pd.DataFrame
+        DataFrame containing the comparison of the ADPs for each individual 
+        atom. For the comparison there are three prefixes: 
+        'nosc' means no correction according to Blessing, 'qdel' means a full 
+        correction has been applied, 'onlydel' means that no scaling but 
+        correction with Delta(Uij) has been applied. Everything is given for
+        reference and comparison. Usually one would use the qdel values.
+    """
     cell_keys = ['cell_length_a', 'cell_length_b', 'cell_length_c', 'cell_angle_alpha', 'cell_angle_beta', 'cell_angle_gamma']
     uij_keys = ['U_11', 'U_22', 'U_33', 'U_23', 'U_13','U_12']
     uij_esd_keys = [label + '_esd' for label in uij_keys]
@@ -417,12 +493,14 @@ def plot_heatmap(ax, table, columns, rows, cm, cmap_type='diverging', esds=None)
 
 
 def figure_height(n_dataset):
+    """Calculate the figure height for the plots in the paer"""
     top = 0.293
     line = 0.185
     bottom = 0.255
     return top + n_dataset * line + bottom
 
 def box_options(color, widths=0.35):
+    """Gives back the options for the box plots"""
     return dict(
         boxprops = dict(color=color, facecolor=color),
         flierprops = dict(markerfacecolor=color, markeredgecolor='none', markersize=4),

@@ -25,7 +25,7 @@
   <div class="wy-grid-for-nav">
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
+        <div class="wy-side-nav-search"  style="background: #ea5900" >
             <a href="index.html" class="icon icon-home"> XHARPy
             <img src="_static/XHARPy_logo.svg" class="logo" alt="Logo"/>
           </a>
@@ -68,7 +68,7 @@
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #ea5900" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">XHARPy</a>
       </nav>
@@ -109,8 +109,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="xharpy.f0j_sources.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="xharpy.f0j_sources.html#module-xharpy.f0j_sources.gpaw_lcorr_source">xharpy.f0j_sources.gpaw_lcorr_source module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="xharpy.f0j_sources.html#module-xharpy.f0j_sources.gpaw_mbis_source">xharpy.f0j_sources.gpaw_mbis_source module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xharpy.f0j_sources.html#module-xharpy.f0j_sources.gpaw_mpi_source">xharpy.f0j_sources.gpaw_mpi_source module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xharpy.f0j_sources.html#module-xharpy.f0j_sources.gpaw_source">xharpy.f0j_sources.gpaw_source module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xharpy.f0j_sources.html#module-xharpy.f0j_sources.gpaw_spherical_source">xharpy.f0j_sources.gpaw_spherical_source module</a></li>
@@ -127,19 +125,27 @@
 </div>
 <div class="section" id="module-xharpy.cli">
 <span id="xharpy-cli-module"></span><h2>xharpy.cli module<a class="headerlink" href="#module-xharpy.cli" title="Permalink to this headline"></a></h2>
+<p>This module contains the command line interface of XHARPy. The cli function
+should always accept all command line options as kwargs</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="xharpy.cli.cli">
 <span class="sig-prename descclassname"><span class="pre">xharpy.cli.</span></span><span class="sig-name descname"><span class="pre">cli</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.cli.cli" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Command line interface function. kwargs should only come from the
+dictionary created by argparse</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xharpy.cli.input_with_default">
-<span class="sig-prename descclassname"><span class="pre">xharpy.cli.</span></span><span class="sig-name descname"><span class="pre">input_with_default</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">question</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.cli.input_with_default" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">xharpy.cli.</span></span><span class="sig-name descname"><span class="pre">input_with_default</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">question</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="headerlink" href="#xharpy.cli.input_with_default" title="Permalink to this definition"></a></dt>
+<dd><p>Ask for a parameter value with a given default value</p>
+</dd></dl>
 
 </div>
 <div class="section" id="module-xharpy.conversion">
 <span id="xharpy-conversion-module"></span><h2>xharpy.conversion module<a class="headerlink" href="#module-xharpy.conversion" title="Permalink to this headline"></a></h2>
+<p>Contains conversions, that are needed in different parts of the library
+is not meant to import from anywhere within XHARPy so that its functions can
+be import without circular imports</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="xharpy.conversion.calc_sin_theta_ov_lambda">
 <span class="sig-prename descclassname"><span class="pre">xharpy.conversion.</span></span><span class="sig-name descname"><span class="pre">calc_sin_theta_ov_lambda</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell_mat_f</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">jax._src.numpy.lax_numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_vec_h</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">jax._src.numpy.lax_numpy.ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">jax._src.numpy.lax_numpy.ndarray</span></span></span><a class="headerlink" href="#xharpy.conversion.calc_sin_theta_ov_lambda" title="Permalink to this definition"></a></dt>
@@ -217,6 +223,8 @@ cif format</p></li>
 </div>
 <div class="section" id="module-xharpy.core">
 <span id="xharpy-core-module"></span><h2>xharpy.core module<a class="headerlink" href="#module-xharpy.core" title="Permalink to this headline"></a></h2>
+<p>This module contains the core functionality, including the refinement
+and its analysis fron the XHARPy library.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="xharpy.core.AtomInstructions">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">xharpy.core.</span></span><span class="sig-name descname"><span class="pre">AtomInstructions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">element</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion_real</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dispersion_imag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xyz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uij</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cijk</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dijkl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">occupancy</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.core.AtomInstructions" title="Permalink to this definition"></a></dt>
@@ -1151,7 +1159,7 @@ will be passed on to this method. See the individual files in
 f0j_sources for more information, by default ‘gpaw’
 Tested options: ‘gpaw’, ‘iam’, ‘gpaw_mpi’
 Some limitations: ‘gpaw_spherical’
-Still untested: ‘gpaw_lcorr’, ‘gpaw_mbis’, ‘qe’</p></li>
+Still untested: ‘qe’</p></li>
 <li><p>reload_step:
 Starting with this step the computation will try to reuse the
 density, if this is implemented in the source, by default 1</p></li>
@@ -1308,6 +1316,7 @@ Only certain values might be used, see cell_par</p></li>
 </div>
 <div class="section" id="module-xharpy.io">
 <span id="xharpy-io-module"></span><h2>xharpy.io module<a class="headerlink" href="#module-xharpy.io" title="Permalink to this headline"></a></h2>
+<p>This module containts the input/output routines for the XHARPy library</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="xharpy.io.add_density_entries_from_fcf">
 <span class="sig-prename descclassname"><span class="pre">xharpy.io.</span></span><span class="sig-name descname"><span class="pre">add_density_entries_from_fcf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cif_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fcf6_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.io.add_density_entries_from_fcf" title="Permalink to this definition"></a></dt>
@@ -2049,20 +2058,74 @@ Currently, only F^2 with NDAT 7 is implemented as format</p>
 </div>
 <div class="section" id="module-xharpy.paper">
 <span id="xharpy-paper-module"></span><h2>xharpy.paper module<a class="headerlink" href="#module-xharpy.paper" title="Permalink to this headline"></a></h2>
+<p>This module contains different functions that were used for the comparisons
+and plots presented in the paper. I kept them here for reference and in the
+spirit of open science. However, they were written as custom code for that
+publication.</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="xharpy.paper.bench_colors">
+<span class="sig-prename descclassname"><span class="pre">xharpy.paper.</span></span><span class="sig-name descname"><span class="pre">bench_colors</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">cycler('color',</span> <span class="pre">['#011671',</span> <span class="pre">'#ea5900',</span> <span class="pre">'#b10f2e',</span> <span class="pre">'#357266',</span> <span class="pre">'#e8c547',</span> <span class="pre">'#437f97',</span> <span class="pre">'#8697e0',</span> <span class="pre">'#ffb485',</span> <span class="pre">'#f58ea1',</span> <span class="pre">'#53b2a0',</span> <span class="pre">'#e8d99e',</span> <span class="pre">'#93bccc'])</span></em><a class="headerlink" href="#xharpy.paper.bench_colors" title="Permalink to this definition"></a></dt>
+<dd><p>Correction functions with and without q-scaling to apply the correction proposed
+by Blessing</p>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="xharpy.paper.box_options">
 <span class="sig-prename descclassname"><span class="pre">xharpy.paper.</span></span><span class="sig-name descname"><span class="pre">box_options</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">color</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">widths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.35</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.paper.box_options" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Gives back the options for the box plots</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xharpy.paper.calc_s12">
 <span class="sig-prename descclassname"><span class="pre">xharpy.paper.</span></span><span class="sig-name descname"><span class="pre">calc_s12</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mat_u1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mat_u2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.paper.calc_s12" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Calculates the S12 between the two (3,3) anisotropic displacement
+matrices</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xharpy.paper.calculate_agreement">
-<span class="sig-prename descclassname"><span class="pre">xharpy.paper.</span></span><span class="sig-name descname"><span class="pre">calculate_agreement</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">har_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">har_key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fcf_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neut_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neut_key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rename_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">adp_conversions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.paper.calculate_agreement" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">xharpy.paper.</span></span><span class="sig-name descname"><span class="pre">calculate_agreement</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">har_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">har_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fcf_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neut_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neut_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rename_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">adp_conversions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">pandas.core.frame.DataFrame</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">pandas.core.frame.DataFrame</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#xharpy.paper.calculate_agreement" title="Permalink to this definition"></a></dt>
+<dd><p>Will generate a comparison between two datasets. The ADPs will be
+scaled according to Blessing, other parameters are calculated from the
+fcf and cif files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>har_path</strong> (<em>str</em>) – Path to the Hirshfeld Atom Refined cif file</p></li>
+<li><p><strong>har_key</strong> (<em>str</em>) – Key of the dataset to use within the cif and fcf file given for the
+HAR dataset</p></li>
+<li><p><strong>fcf_path</strong> (<em>str</em>) – Path to the fcf file resulting from the Hirshfeld Atom Refinement</p></li>
+<li><p><strong>neut_path</strong> (<em>str</em>) – Path to the neutron cif file</p></li>
+<li><p><strong>neut_key</strong> (<em>str</em>) – key of dataset within the neutron cif file</p></li>
+<li><p><strong>rename_dict</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em><em>, </em><em>optional</em>) – If there is a difference between the naming between the two cif files,
+the naming of the neutron cif will be adapted with key - &gt;value,
+by default {}</p></li>
+<li><p><strong>adp_conversions</strong> (<em>List</em><em>[</em><em>Tuple</em><em>[</em><em>List</em><em>[</em><em>str</em><em>]</em><em>, </em><em>np.ndarray</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – If atoms are located on different symmetry equivalent positions this
+keyword can be used to transform the adps from the neutron cif.
+For each conversion there needs to be a tuple, where the first entry
+is a list containing the names of all atoms, where conversion should be
+applied as strings, the second entry is the symmetry matrix, that
+converts the neutron position to the HAR position, translation vector
+is not needed as we only turn the ADPs, by default []</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>quality_dict</strong> (<em>Dict[str, Any]</em>) – Dictionary with different aggregated quality indicators for the HAR
+dataset and its comparison to the neutron dataset</p></li>
+<li><p><strong>bond_comparison</strong> (<em>pd.DataFrame,</em>) – DataFrame containing the merged distances from both cif files inclusing
+esd for comparison and plotting</p></li>
+<li><p><strong>adp_compparison</strong> (<em>pd.DataFrame</em>) – DataFrame containing the comparison of the ADPs for each individual
+atom. For the comparison there are three prefixes:
+‘nosc’ means no correction according to Blessing, ‘qdel’ means a full
+correction has been applied, ‘onlydel’ means that no scaling but
+correction with Delta(Uij) has been applied. Everything is given for
+reference and comparison. Usually one would use the qdel values.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xharpy.paper.corr_uij_cubic">
@@ -2127,12 +2190,15 @@ Currently, only F^2 with NDAT 7 is implemented as format</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="xharpy.paper.figure_height">
 <span class="sig-prename descclassname"><span class="pre">xharpy.paper.</span></span><span class="sig-name descname"><span class="pre">figure_height</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_dataset</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.paper.figure_height" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Calculate the figure height for the plots in the paer</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xharpy.paper.gen_lsq">
-<span class="sig-prename descclassname"><span class="pre">xharpy.paper.</span></span><span class="sig-name descname"><span class="pre">gen_lsq</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">corr_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.paper.gen_lsq" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">xharpy.paper.</span></span><span class="sig-name descname"><span class="pre">gen_lsq</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">corr_func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">numpy.ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span></span></span><a class="headerlink" href="#xharpy.paper.gen_lsq" title="Permalink to this definition"></a></dt>
+<dd><p>Generates a weighted least-squares function for the given correction
+function and weights</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xharpy.paper.plot_heatmap">
@@ -2142,10 +2208,46 @@ Currently, only F^2 with NDAT 7 is implemented as format</p>
 </div>
 <div class="section" id="module-xharpy.quality">
 <span id="xharpy-quality-module"></span><h2>xharpy.quality module<a class="headerlink" href="#module-xharpy.quality" title="Permalink to this headline"></a></h2>
+<p>This module contains functions for calculating quality indicators for a
+finished refinement.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="xharpy.quality.calculate_drk">
-<span class="sig-prename descclassname"><span class="pre">xharpy.quality.</span></span><span class="sig-name descname"><span class="pre">calculate_drk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.core.frame.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">21</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">equal_sized_bins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.quality.calculate_drk" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">xharpy.quality.</span></span><span class="sig-name descname"><span class="pre">calculate_drk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pandas.core.frame.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bins</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">equal_sized_bins</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#xharpy.quality.calculate_drk" title="Permalink to this definition"></a></dt>
+<dd><p>Can calculate a DRK plot for a given pandas DataFrame</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pd.DataFrame</em>) – pandas DataFrame containing the reflection data. Can be either
+generated by the write_fcf function or generated from a written
+fcf file by extracting the table with the io.ciflike_to_dict function
+Expected columns are intensity, esd_int, either a f_calc or a
+intensity_calc function or the cif equivalents
+if no column sint/lambda is given the three columns h, k, and l are also
+needed</p></li>
+<li><p><strong>bins</strong> (<em>Union</em><em>[</em><em>List</em><em>, </em><em>int</em><em>, </em><em>float</em><em>]</em><em>, </em><em>optional</em>) – Parameter used to define the bins. If it is a loat, this is the
+step size in sin(theta)/lambda, if it is an integer, this is the number
+of bins the data is supposed to distributed into. By passing a list,
+the function will use this as inner bin borders, 0 and inf do not need to
+be given seperately, by default 0.05</p></li>
+<li><p><strong>equal_sized_bins</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true bins needs to be an integer. In that case the binning will
+create bins with an equal number of reflections instead of an equal
+range in sin(theta)/lambda, by default False</p></li>
+<li><p><strong>cell</strong> (<em>np.ndarray</em><em>, </em><em>optional</em>) – size (6) array containing the cell parameters. Needs to be passed if
+the sint/lambda column is not already in df to calculate the resolution,
+by default None</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>result_dict</strong> – Dictionary with the resulting drk_plots as keys in a dictionary</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Dict[str, Any]</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>TypeError</strong> – The function has encountered an invalid value for bins</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xharpy.quality.calculate_quality_indicators">
@@ -2180,12 +2282,40 @@ the atomic form factors will be read from this dict.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="xharpy.quality.generate_hm">
-<span class="sig-prename descclassname"><span class="pre">xharpy.quality.</span></span><span class="sig-name descname"><span class="pre">generate_hm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fcf_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">map_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.3333333333333333</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level_step</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#xharpy.quality.generate_hm" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">xharpy.quality.</span></span><span class="sig-name descname"><span class="pre">generate_hm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fcf_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">map_factor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.3333333333333333</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level_step</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.01</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#xharpy.quality.generate_hm" title="Permalink to this definition"></a></dt>
+<dd><p>Generates a Henn-Meindl or normal probability plot from the given fcf6
+file. Relies on cctbx for the calculation of the difference electron
+density.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fcf_path</strong> (<em>str</em>) – Path to the fcf6 file.</p></li>
+<li><p><strong>map_factor</strong> (<em>float</em><em>, </em><em>optional</em>) – map_factor passed to the fft_map function of cctbx, by default 1/3</p></li>
+<li><p><strong>level_step</strong> (<em>float</em><em>, </em><em>optional</em>) – step size in e/Ang^3 for the determination of the Henn-Meindl Plot,
+by default 0.01</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>results</strong> – levels and hm values as dictionary.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Dict[str, np.ndarray]</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ModuleNotFoundError</strong> – No cctbx installed</p></li>
+<li><p><strong>ValueError</strong> – fcf file is probably not fcf6 as it is missing phases</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 </div>
 <div class="section" id="module-xharpy.restraints">
 <span id="xharpy-restraints-module"></span><h2>xharpy.restraints module<a class="headerlink" href="#module-xharpy.restraints" title="Permalink to this headline"></a></h2>
+<p>This module is the beginning of a restraint implementation for the XHARPy
+library. Does not work as it is, and is currently kept as a template for a
+working implementation.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="xharpy.restraints.FixedDistanceRestrInd">
 <span class="sig-prename descclassname"><span class="pre">xharpy.restraints.</span></span><span class="sig-name descname"><span class="pre">FixedDistanceRestrInd</span></span><a class="headerlink" href="#xharpy.restraints.FixedDistanceRestrInd" title="Permalink to this definition"></a></dt>
@@ -2391,6 +2521,8 @@ the atomic form factors will be read from this dict.</p></li>
 </div>
 <div class="section" id="module-xharpy.weighting">
 <span id="xharpy-weighting-module"></span><h2>xharpy.weighting module<a class="headerlink" href="#module-xharpy.weighting" title="Permalink to this headline"></a></h2>
+<p>Is meant as the module for handling weights in XHARPy. Currently
+only contains a function to calculate weights from given parameters.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="xharpy.weighting.calc_weights">
 <span class="sig-prename descclassname"><span class="pre">xharpy.weighting.</span></span><span class="sig-name descname"><span class="pre">calc_weights</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wght_parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">jax._src.numpy.lax_numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">intensity_pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">jax._src.numpy.lax_numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i_calc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">jax._src.numpy.lax_numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">esd_int</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">jax._src.numpy.lax_numpy.ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sintheta_ov_lambda</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">jax._src.numpy.lax_numpy.ndarray</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">jax._src.numpy.lax_numpy.ndarray</span></span></span><a class="headerlink" href="#xharpy.weighting.calc_weights" title="Permalink to this definition"></a></dt>
@@ -2419,7 +2551,9 @@ to be called separately</p></li>
 </div>
 <div class="section" id="module-xharpy">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-xharpy" title="Permalink to this headline"></a></h2>
-<p>[summary]</p>
+<p>XHARPy (X-ray diffraction data Hirshfeld Atom Refinement in Python) is a
+library enabling the refinement against custom non-spherical atomic form
+factors.</p>
 </div>
 </div>
 

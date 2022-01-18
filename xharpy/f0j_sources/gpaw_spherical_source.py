@@ -1,3 +1,10 @@
+"""This module provides the possibility of calculating atomic form factors by
+expanding a GPAW LCAO density onto a spherical grid as defined by HORTON.
+I could find no improvement over the rectangular grid and LCAO mode in GPAW
+did give worse results compared to finite difference. Kept as reference, so 
+that all results in the PAW-HAR publication can be reproduced with the XHARPy
+library."""
+
 import numpy as np
 import pickle
 from typing import List, Tuple, Dict, Any

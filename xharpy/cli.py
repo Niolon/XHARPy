@@ -1,12 +1,18 @@
+"""This module contains the command line interface of XHARPy. The cli function
+should always accept all command line options as kwargs"""
+
+
 import sys
 import os
 import argparse
+from typing import Any
 from .core import refine, create_construction_instructions
 from .io import (cif2data, lst2constraint_dict, write_cif, write_fcf, 
                  shelxl_hkl2pd, write_res)
 
 
-def input_with_default(question, default):
+def input_with_default(question: str, default: Any) -> Any:
+    """Ask for a parameter value with a given default value"""
     print(question + f' [{default}]: ')
     answer = input()
     if answer.strip() == '':
@@ -18,6 +24,8 @@ def input_with_default(question, default):
 
 
 def cli(**kwargs):
+    """Command line interface function. kwargs should only come from the 
+    dictionary created by argparse"""
     if 'cif_name' not in kwargs:
         cif_name = input_with_default(
             'Give the input .cif file',

@@ -1,3 +1,8 @@
+"""This module provides the necessary functions for calculating atomic form
+factors using the GPAW library in multi-core mode on a rectangular grid for the
+valence density and a spherical grid for the core densities. 
+"""
+
 import numpy as np
 
 import subprocess
@@ -9,7 +14,6 @@ import shlex
 
 from scipy.interpolate import interp1d
 from scipy.integrate import simps
-#import gpaw
 from ..core import expand_symm_unique, construct_values, AtomInstructions
 
 

@@ -1,3 +1,5 @@
+"""This module containts the input/output routines for the XHARPy library"""
+
 from collections import OrderedDict
 import pandas as pd
 import numpy as np

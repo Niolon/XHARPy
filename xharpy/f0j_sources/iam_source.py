@@ -1,3 +1,8 @@
+"""This module will generate independent atom model atomic form factors for 
+the given atoms. Mainly kept to give the possibility to compare to other
+implementations of the independent atom model, which usually should be faster.
+"""
+
 import numpy as np
 
 from typing import Any, Dict, List, Tuple

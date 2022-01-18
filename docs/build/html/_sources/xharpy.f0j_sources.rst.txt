@@ -21,22 +21,6 @@ Subpackages
 Submodules
 ----------
 
-xharpy.f0j\_sources.gpaw\_lcorr\_source module
-----------------------------------------------
-
-.. automodule:: xharpy.f0j_sources.gpaw_lcorr_source
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-xharpy.f0j\_sources.gpaw\_mbis\_source module
----------------------------------------------
-
-.. automodule:: xharpy.f0j_sources.gpaw_mbis_source
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 xharpy.f0j\_sources.gpaw\_mpi\_source module
 --------------------------------------------
 

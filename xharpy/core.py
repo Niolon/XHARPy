@@ -1,5 +1,6 @@
-# -*- coding: utf-8 -*-
-
+"""This module contains the core functionality, including the refinement
+and its analysis fron the XHARPy library.
+"""
 
 from jax.config import config
 from jax.core import Value
@@ -1365,7 +1366,7 @@ def refine(
             f0j_sources for more information, by default 'gpaw'
             Tested options: 'gpaw', 'iam', 'gpaw_mpi'
             Some limitations: 'gpaw_spherical'
-            Still untested: 'gpaw_lcorr', 'gpaw_mbis', 'qe'
+            Still untested: 'qe'
           - reload_step:   
             Starting with this step the computation will try to reuse the 
             density, if this is implemented in the source, by default 1

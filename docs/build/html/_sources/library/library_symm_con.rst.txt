@@ -4,13 +4,18 @@ Constraints
 Special Position Constraints
 ----------------------------
 
+Atoms on special positions often need to be refined with a reduced set of
+parameters, as the atomic properties themselves need to obey the symmetry 
+elements of the special positions. This is done by introducing special
+position constraints.
+
 The easiest way to generate special position constraints is by using the 
 ``lst2constraint_dict`` function. If there is no .lst available you can also
 write the constraits by hand using the ``ConstrainedValues`` namedTuples.
 If you want to see a finished example where constraints are used for 
 Gram-Charlier parameters look at Urea\_gpaw in the examples folder.
 
-So in a first step we need to import These
+So in a first step we need to import the necessary namedTuple.
 
 .. code-block:: python
 
@@ -18,7 +23,7 @@ So in a first step we need to import These
 
 Let us say we have an atom O2 located on a two-fold axis with the special
 position ``0.5 y 0.5``. This means the position is constrained. If we do not
-have a constraint_dict we want to modify we would generate a new one.
+have a pre-existing constraint_dict to modify, we would generate a new one.
 
 .. code-block:: python
 
@@ -53,7 +58,6 @@ We will now go through the entries within the ``ConstrainedValues`` line by line
 We are currently missing the uij and occupancy constraints. We can add these
 with: 
 
-
 .. code-block:: python
 
     constraint_dict['O2']['uij'] = ConstrainedValues(
@@ -75,7 +79,7 @@ if all indexes in the tuple have been used before.
 In this case the value at this position will be generated as a combination of 
 the two parameters. The added value is still a single value in this case.
 
-Finally, the orderings of the individual parameters is as follows:
+Finally, the ordering of the individual parameters is as follows:
 
 ===== =======================================================================================================
 name  order
@@ -96,9 +100,10 @@ Position and ADP constraints
 
 In order to place hydrogen atoms three position constraints and one ADP 
 constraint are available. There constraints themselves link the values to the 
-variables of the connected atoms. This means adding a constraint will slightly 
-affect the parameters of the parent atom, even if the effects should be low, as
-hydrogen atoms do not scatter as much.
+variables of the connected atoms and refinement is done using gradients 
+resulting from both atom, whose values were linked. This means adding
+a constraint will slightly affect the parameters of the parent atom,
+even if the effects should be low, as hydrogen atoms do not scatter much. 
 
 U(equiv)-constraint
 *******************
@@ -233,3 +238,6 @@ The implementation is certainly slower than usual iam refinement routines, but
 are still available if needed. However, usually we *aim* to determine hydrogen
 positions by Hirshfeld Atom Refinement. For this determination, position
 constraints are not applicable, of course.
+
+For an example with hydrogen atoms placed by constraints look into the 
+L-Alanin_iam_HConstraints folder within the examples.

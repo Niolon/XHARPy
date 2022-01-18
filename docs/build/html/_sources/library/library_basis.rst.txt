@@ -4,13 +4,13 @@ Basic Use
 This is a commented step-by-step guide for the usage of XHARPy as a python
 library. I try to also give some understanding what is happening. If you just
 want results fast, I would suggest you adapt the L-alanin_gpaw example to your
-structure. The examples folder is also very useful to look at applications after
-you have a basic understanding of what is happening.
+structure. The examples folder is also very useful to see how the library is applied
+to different problems, after you have a basic understanding of what is happening.
 
-The imports here are split up according to the section, but of you would usually
-still put all of them at the top of a .py or .ipynb file.
+The imports in this document are split up according to the section, but of you 
+would usually still put all of them at the top of a .py or .ipynb file.
 
-The usage of XHARPy as a to write refinement scripts can be split into four
+The usage of XHARPy as a library to write refinement scripts can be split into four
 distinct steps: Loading your data, setting refinement and computation options, 
 refinement and writing your data to disk.
 
@@ -21,16 +21,17 @@ For structures without atoms on special positions you just need a .cif and an
 .hkl file. If you have atom on special positions, which require restraints, the
 easiest way is to adapt these from a SHELXL .lst file
 
-So let us import the io functions
+So let us import the io functions for input:
 
 .. code-block:: python
 
     from xharpy import shelxl_hkl2pd, cif2data, lst2constraint_dict
 
-As written before the last one is only strictly necessary if we have atoms 
+As written before, the last one is only strictly necessary if we have atoms 
 on special positions. On the other hand it will also give the correct empty 
-dictionary if there are no constaints resulting from special positions, so I 
-usually just import it anyway.
+dictionary if there are no constaints resulting from special positions, so you 
+can just import it anyway. This way you will not run into problems if you
+overlook something.
 
 Let us load the data from the cif-file using the cif2data function:
 
@@ -41,25 +42,25 @@ Let us load the data from the cif-file using the cif2data function:
 Let us first talk about the arguments of the function: The first one is simply
 the path to our cif file. The second argument can either be an integer or a 
 string and can be used to select a specific data block within the .cif file.
-We have used an integer, which the function will interpret as an index. So we 
-are selecting the first dataset. If we give a string we select the dataset by 
-name. So the string needs to match whatever is written behind ``data\_`` keyword
-in the cif file.
+We have used an integer, which the function will interpret as an index in python 
+convention. So we are selecting the first dataset. If we give a string we select
+the dataset by name. So the string needs to match whatever is written behind the
+``data\_`` keyword in the cif file.
 
-From our function we have got a number of results, we need to further process.
+From our function we have got a number of resulting objects, we need to further process.
 Most importantly we have created an ``atom_table``, which contains all our atomic 
 data in a pandas DataFrame. The columns are shortened versions of the naming in
 the loop instruction. They are shortened by omitting the common beginning that
 is unique to each table in a cif file. If values have an esd in the cif file
 is is output to ``<column_name>_esd``. Missing values are represented by a numpy 
 nan value. The ``atom_table`` can be manipulated to change values (especially the
-adp type and parameters before we start our refinemen)
+adp type and parameters before we start our refinement).
 
-cell and cell_esd are just arrays containing the cell parameters and their 
-estimated standard deviations. The wavelength is a float with the wavelength.
-``symm_mats_vecs`` is a tuple containing the symmetry matrices and translation
-vectors for the symmetry elements in the cif file. The ``symm_strings`` are
-the corresponding strings.
+``cell`` and ``cell_esd`` are just arrays containing the cell parameters and their 
+estimated standard deviations. The ``wavelength`` is a float with the wavelength 
+in Angstroems. ``symm_mats_vecs`` is a tuple containing the symmetry matrices 
+and translation vectors for the symmetry elements in the cif file. The
+``symm_strings`` are the corresponding strings.
 
 Next let us load the reflection information with:
 
@@ -108,7 +109,7 @@ You might notice that two of the options concern the computation of the
 atomic form factors. The ``f0j_source`` is used to actually select the 
 implementation of the atomic form factor calculation within the refinement 
 routine. The implementations are also unaware of the step in the refinement. 
-The refinement itself triggers the reloading of a precalculated density.
+Therefore, the refinement itself triggers the reloading of a precalculated density.
 We want to start from a new density, but after initialisation we want to reload
 previous calculation to speed things up. We also want to calculate core density
 on a separate spherical grid, as they have sharp maxima at the core positions. 
@@ -140,9 +141,11 @@ example the selected GPAW source and a molecular structure might look like this:
 As you can see the function of the GPAW source will read the options that are 
 specific to the XHARPy GPAW plugin and remove it from the dictionary. All options 
 that are not known will be passed on to the GPAW calculator without any further 
-checks. Options for the calc_f0j function can be found in the specific docstrings or 
-here in the xharpy.f0j_sources page. GPAW options can be found in the 
-`GPAW documentation <https://wiki.fysik.dtu.dk/gpaw/documentation/basic.html>`_
+checks. GPAW options can be found in the 
+GPAW documentation <https://wiki.fysik.dtu.dk/gpaw/documentation/basic.html>`_
+
+Options for the calc_f0j function can be found in the specific docstrings which
+are also output to the in the :doc:`Options for f0j_calculations <library_f0j>` page.
 
 Refinement
 ----------
@@ -153,11 +156,11 @@ For refinement we need to import two additional functions
 
     from xharpy import create_construction_instructions, refine
 
-As mentioned on the introduction XHARPy uses JAX to automatically generate
+As mentioned on the introduction page, XHARPy uses JAX to automatically generate
 gradients. However, we want to have one object that can map an array of
 parameters to the properties of the atoms within the unit cell. Because of the 
 implementation in JAX, using just-in-time compiling, that object has to be
-immutable. We get it and starting values for the parameters by calling the 
+immutable. We get this object and starting values for the parameters by calling the 
 ``create_construction_instructions`` function:
 
 .. code-block:: python
@@ -170,11 +173,14 @@ immutable. We get it and starting values for the parameters by calling the
 
 As you see we also need to pass the constraint_dict from the first section, as 
 well as our refinement_dict in order to reserve additional parameters for things
-like extinction.
+like extinction. We need to generate new construction_instructions every time 
+we change which parameters are refined. If we introduce new parameters like
+extinction for example. Some parameters might be double-booked and the 
+refinement will go to non-sensical values.
 
 Finally, we can call the refine function, to do our actual refinement:
 
-.. code-block:: Python
+.. code-block:: python
 
     parameters, var_cov_mat, information = refine(
         cell=cell, 
@@ -228,7 +234,7 @@ depositing crystallographic data. We can write such a file with:
     )
 
 You might notice that we need an original cif file (the library was developed
-wth SHELXL) to generate the new cif file. The reason is that the write-routine
+with SHELXL) to generate the new cif file. The reason is that the write-routine
 does currently not calculate all values by itself. Additional values such as 
 crystal size can also be added to the original cif file and will be then copied 
 to the new one.
@@ -267,8 +273,8 @@ Fcf files can be written as fcf mode 4 or 6 with the two commands:
         information=information,
     )
 
-Both outputs will correct for extinction, but only fcf6 will correct the
-observed reflections for dispersion effects. If you want to access the corrected
+Both outputs will correct for extinction and fcf6 will correct the
+phases for dispersion effects. If you want to access the corrected
 values for validation. Both functions return a pandas DataFrame.
 
 XHARPy currently has no means of evaluating the difference electron density by 
@@ -298,3 +304,7 @@ Again we need a template res or lst file. Currently XHARPy has no way to divide
 symmetry cards into those generated by a lattice centring or inversion symmetry 
 and those generated by other symmetry elements, which would be necessary for 
 writing these files on its own.
+
+The created .res file can be used to display the structure easily in programs like
+`shelxle <https://www.shelxle.org>`_. If you have written an fcf6 file with the same name
+you can also plot the difference electron density this way.

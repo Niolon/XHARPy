@@ -1,6 +1,8 @@
+"""Contains conversions, that are needed in different parts of the library
+is not meant to import from anywhere within XHARPy so that its functions can
+be import without circular imports"""
 
 import jax.numpy as jnp
-
 
 def ucif2ucart(cell_mat_m: jnp.ndarray, u_mats: jnp.ndarray) -> jnp.ndarray:
     """Calculate anistropic displacement matrices in the cartesian convention

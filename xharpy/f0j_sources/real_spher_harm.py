@@ -1,3 +1,8 @@
+"""This module contains automatically generated values for the real spherical
+harmonics (ylm_func_dict), and their products (ylm_yl2m2_dict). May be used 
+in a future implementation to expand even fever density onto the rectangular
+grid."""
+
 import numpy as np
 
 ylm_func_dict = {

@@ -84,7 +84,8 @@ If you want to use gpaw as source for the atomic form factors (recommended)
    conda install -c conda-forge ase=3.22.1 gpaw=21.6.0
 
 If you also want to try out the atomic form factor calculation in Quantum
-Espresso. You can also install this separately of course, as long as pw.x 
+Espresso, you need to the program. You can do this with conda.
+You can also install this separately of course, as long as pw.x 
 and pp.x directly callable.
 
 .. code-block:: console

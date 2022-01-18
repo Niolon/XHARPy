@@ -1,3 +1,6 @@
+"""This module implements the possibility to refine with atomic form factors
+read from a .tsc file as for example written by NoSpherA2"""
+
 import numpy as np
 import pandas as pd
 

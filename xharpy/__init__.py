@@ -1,4 +1,6 @@
-"""[summary]
+"""XHARPy (X-ray diffraction data Hirshfeld Atom Refinement in Python) is a 
+library enabling the refinement against custom non-spherical atomic form
+factors.
 """
 
 from .io import(

@@ -14,6 +14,18 @@ The usage of XHARPy as a library to write refinement scripts can be split into f
 distinct steps: Loading your data, setting refinement and computation options, 
 refinement and writing your data to disk.
 
+Activating a potential conda environment
+----------------------------------------
+
+If you have started a fresh console and have followed the installation instructions,
+do not forget to start the conda environment by typing;
+
+.. code-block:: console
+    
+    conda activate xharpy
+
+The following steps are most easily done in a jupyter notebook.
+
 Loading your data
 -----------------
 

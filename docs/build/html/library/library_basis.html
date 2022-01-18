@@ -43,6 +43,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../commandline.html">Command Line Interface</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="library_index.html">Scripting with XHARPy</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Basic Use</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#activating-a-potential-conda-environment">Activating a potential conda environment</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#loading-your-data">Loading your data</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#setting-options">Setting options</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#refinement">Refinement</a></li>
@@ -97,6 +98,15 @@ would usually still put all of them at the top of a .py or .ipynb file.</p>
 <p>The usage of XHARPy as a library to write refinement scripts can be split into four
 distinct steps: Loading your data, setting refinement and computation options,
 refinement and writing your data to disk.</p>
+<div class="section" id="activating-a-potential-conda-environment">
+<h2>Activating a potential conda environment<a class="headerlink" href="#activating-a-potential-conda-environment" title="Permalink to this headline"></a></h2>
+<p>If you have started a fresh console and have followed the installation instructions,
+do not forget to start the conda environment by typing;</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">conda activate xharpy</span>
+</pre></div>
+</div>
+<p>The following steps are most easily done in a jupyter notebook.</p>
+</div>
 <div class="section" id="loading-your-data">
 <h2>Loading your data<a class="headerlink" href="#loading-your-data" title="Permalink to this headline"></a></h2>
 <p>For structures without atoms on special positions you just need a .cif and an
@@ -358,7 +368,7 @@ you can also plot the difference electron density this way.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2021, Paul Niklas Ruth.</p>
+    <p>&#169; Copyright 2022, Paul Niklas Ruth.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

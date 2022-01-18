@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 # -- Project information -----------------------------------------------------
 
 project = 'XHARPy'
-copyright = '2021, Paul Niklas Ruth'
+copyright = '2022, Paul Niklas Ruth'
 author = 'Paul Niklas Ruth'
 
 # The full version, including alpha/beta/rc tags

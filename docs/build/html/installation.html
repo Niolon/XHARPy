@@ -116,14 +116,32 @@ install on Microsoft Windows Python installations. However, the library
 has been tested on the
 <a class="reference external" href="https://docs.microsoft.com/en-us/windows/wsl/install">Windows Subsystem For Linux</a>.
 This provides a full linux shell under windows and can be installed to run linux
-programs on Microsoft Windows. Afterwards you can follow the linux instruction
-from that shell.</p>
+programs on Microsoft Windows.</p>
+<p>If your Windows version is rather old, you need to follow the separate instructions
+in the provided link above. Here I will give the short version, that is possible
+in a recent Windows 10/11 version.</p>
+<p>Open a Windows PowerShell in Administrator mode. You can do this by typing PowerShell
+into your Windows Menu, right clicking on the entry and select “Run as Administrator”</p>
+<p>In this console you can now type:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">wsl --install</span>
+</pre></div>
+</div>
+<p>Afterwards, you probably need to restart your computer. Now open a new PowerShell and
+type <code class="docutils literal notranslate"><span class="pre">wsl</span></code>. If you now now have a linux console you can go to the Linux section.</p>
+<p>Sometimes it has happened that no default ubuntu installation is not present and wsl does not work.
+<strong>Only in that case</strong> you need to type:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">wsl --install -d Ubuntu</span>
+</pre></div>
+</div>
+<p>To start the installation of Ubuntu. Afterwards, start the wsl by typing the wsl command.
+You can now follow the Linux instructions from that shell.</p>
 </div>
 <div class="section" id="linux">
 <h2>Linux<a class="headerlink" href="#linux" title="Permalink to this headline"></a></h2>
 <p>The easiest way to obtain all the necessary package is within a conda
-environment. After installation of <a class="reference external" href="https://www.anaconda.com/products/individual">Anaconda</a> create and activate a new
-environment using</p>
+environment. So first you need to install <a class="reference external" href="https://www.anaconda.com/products/individual">Anaconda</a>.
+Instruction on how to do that in console only (for example in a WSL) see <a class="reference external" href="https://gist.github.com/kauffmanes/5e74916617f9993bc3479f401dfec7da">here</a>.</p>
+<p>In Anaconda create and activate a new environment using</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">conda create -n xharpy</span>
 <span class="go">conda activate xharpy</span>
 </pre></div>
@@ -207,7 +225,7 @@ follow these steps.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2021, Paul Niklas Ruth.</p>
+    <p>&#169; Copyright 2022, Paul Niklas Ruth.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

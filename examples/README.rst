@@ -1,4 +1,7 @@
-Here is the list of available examples, with connected keywords
+Here is the list of available examples, with connected keywords. All examples are written as
+jupyter notebooks. So to run them, go to the respective folder and type ``jupyter lab``. 
+If you are unfamiliar with jupyter, please consult one of the myriad tutorials on 
+Youtube or the internet in general.
 
 Calculation with GPAW 
 ---------------------

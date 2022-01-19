@@ -75,6 +75,10 @@ environment. So first you need to install Anaconda_.
 Instruction on how to do that in console only (for example in a WSL) see 
 `here <https://gist.github.com/kauffmanes/5e74916617f9993bc3479f401dfec7da>`_.
 
+Additionally note that we are playing it save for the instructions.
+Installation without the version numbers (*i.e.* using the newest version)
+should also work, at least for some time.
+
 In Anaconda create and activate a new environment using
 
 .. code-block:: console

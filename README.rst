@@ -39,7 +39,6 @@ The following packages in the following versions were used for development
 
 For atomic form factor calculation in GPAW
  - `gpaw <https://wiki.fysik.dtu.dk/gpaw/>`_ = 21.6.0
- - `ase <https://wiki.fysik.dtu.dk/ase/>`_ = 3.22.1 
 
 For difference electron density calculation
  - `cctbx <https://cci.lbl.gov/cctbx_docs/index.html>`_ = 2021.11
@@ -52,5 +51,6 @@ Documentation
 -------------
 
 With the sphinx package and the sphinx-rtd-theme installed you can compile the 
-documentation using ``make install`` in the doc directory. A prebuild version is 
+documentation using ``make install`` in the doc directory. 
+`A prebuild version <docs/build/html/index.html>`_ is 
 available, but might be slightly out of date.

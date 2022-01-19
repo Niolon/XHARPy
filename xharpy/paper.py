@@ -502,9 +502,9 @@ def figure_height(n_dataset):
 def box_options(color, widths=0.35):
     """Gives back the options for the box plots"""
     return dict(
-        boxprops = dict(color=color, facecolor=color),
-        flierprops = dict(markerfacecolor=color, markeredgecolor='none', markersize=4),
-        medianprops = dict(linewidth=1.0, color='#ffffff'),
+        boxprops = dict(color=color, facecolor=color, zorder=100),
+        flierprops = dict(markerfacecolor=color, markeredgecolor='none', markersize=3, zorder=100),
+        medianprops = dict(linewidth=1.0, color='#ffffff', zorder=200),
         patch_artist=True,
         widths=widths,
         #notch=True

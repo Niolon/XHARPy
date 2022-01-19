@@ -33,9 +33,11 @@ has been tested on the
 This provides a full linux shell under windows and can be installed to run linux
 programs on Microsoft Windows.
 
-If your Windows version is rather old, you need to follow the separate instructions 
-in the provided link above. Here I will give the short version, that is possible
-in a recent Windows 10/11 version.
+.. note::
+
+   The very short instruction given here only work on a current version of Windows 10/11,
+   which means newer than build 2004. For older versions refer to 
+   `Microsofts Manual installations steps <https://docs.microsoft.com/en-us/windows/wsl/install-manual>`_
 
 Open a Windows PowerShell in Administrator mode. You can do this by typing PowerShell 
 into your Windows Menu, right clicking on the entry and select "Run as Administrator"
@@ -49,7 +51,7 @@ In this console you can now type:
 Afterwards, you probably need to restart your computer. Now open a new PowerShell and 
 type ``wsl``. If you now now have a linux console you can go to the Linux section.
 
-Sometimes it has happened that no default ubuntu installation is not present and wsl does not work. 
+Sometimes it has happened that the default ubuntu installation is not present and wsl does not work. 
 **Only in that case** you need to type:
 
 .. code-block:: console
@@ -59,12 +61,19 @@ Sometimes it has happened that no default ubuntu installation is not present and
 To start the installation of Ubuntu. Afterwards, start the wsl by typing the wsl command. 
 You can now follow the Linux instructions from that shell.
 
+You can go to you harddrive c: by typing.
+
+.. code-block:: console
+
+   cd /mnt/c
+
 
 Linux
 -----
 The easiest way to obtain all the necessary package is within a conda
 environment. So first you need to install Anaconda_. 
-Instruction on how to do that in console only (for example in a WSL) see `here <https://gist.github.com/kauffmanes/5e74916617f9993bc3479f401dfec7da>`_.
+Instruction on how to do that in console only (for example in a WSL) see 
+`here <https://gist.github.com/kauffmanes/5e74916617f9993bc3479f401dfec7da>`_.
 
 In Anaconda create and activate a new environment using
 

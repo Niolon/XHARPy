@@ -10,8 +10,13 @@ Welcome to XHARPy's documentation!
 library that enables refinement with custom atomic form factor calculations.
 
 This is the first refinement library to implement the calculation of atomic form
-factors from periodic PAW-DFT calculations. Independent atom model for comparison
-and debugging is also available.
+factors from periodic PAW-DFT calculations. Currently the following sources for
+atomic form factors are available:
+
+- Periodic PAW with GPAW
+- Periodic PAW with Quantum Espresso
+- Independent Atom model 
+- tsc files written by other programs
 
 The library has been written with extensibility in mind. You can look at the 
 f0j_sources folder for examples how to write a new atomic form factor source.

@@ -348,7 +348,9 @@ def calc_f0j(
           - mpicores (Union[str, int]): The number of cores used for the pw.x
             and pp.x calculation in Quantum Espresso, 'auto' will mpiexec let
             select this option. However sometimes it has proven faster to
-            choose a lower number of cores manually
+            choose a lower number of cores manually. This is not the only option
+            for parallelisation: setting mpicores to 1 might still use non-MPI
+            means of multi-core calculations.
           - symm_equiv (str): The atomic form factors of symmetry equivalent
             atoms can be calculated individually for each atom ('individually')
             or they can be calculated once for each atom in the asymmetric unit
@@ -534,12 +536,12 @@ def calc_f0j_core(
         print(  f'  calculating core density for {element_symbol} from {upf_name}')
         with open(os.path.join(pseudo_folder, upf_name)) as fo:
             content = fo.read()
-        ae_nlcc_search = re.search(r'<PP_AE_NLCC>(.+)</PP_AE_NLCC>', content, flags=re.DOTALL)
+        ae_nlcc_search = re.search(r'<PP_AE_NLCC(?:\s.*?>|>)(.+)</PP_AE_NLCC>', content, flags=re.DOTALL)
         if ae_nlcc_search is not None:
             core = np.array([float(val) for val in ae_nlcc_search.group(1).strip().split()])
         else:
             raise ValueError('No all-electron core density (entry <PP_AE_NLCC>) found in upf_file')
-        mesh_search = re.search(r'<PP_R>(.+)</PP_R>', content, flags=re.DOTALL)
+        mesh_search = re.search(r'<PP_R(?:\s.*?>|>)(.+)</PP_R>', content, flags=re.DOTALL)
         if mesh_search is not None:
             r = np.array([float(val) for val in mesh_search.group(1).strip().split()])
         else:

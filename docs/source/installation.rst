@@ -35,7 +35,7 @@ programs on Microsoft Windows.
 
 .. note::
 
-   The very short instruction given here only work on a current version of Windows 10/11,
+   The very short instructions given here only work on a current version of Windows 10/11,
    which means newer than build 2004. For older versions refer to 
    `Microsofts Manual installations steps <https://docs.microsoft.com/en-us/windows/wsl/install-manual>`_
 
@@ -72,10 +72,18 @@ Linux
 -----
 The easiest way to obtain all the necessary package is within a conda
 environment. So first you need to install Anaconda_. 
-Instruction on how to do that in console only (for example in a WSL) see 
-`here <https://gist.github.com/kauffmanes/5e74916617f9993bc3479f401dfec7da>`_.
 
-Additionally note that we are playing it save for the instructions.
+The fastest way from console is installation with the following commands:
+
+.. code-block:: console
+
+   wget https://repo.anaconda.com/archive/Anaconda3-2021.11-Linux-x86_64.sh
+   bash Anaconda3-2021.11-Linux-x86_64.sh
+   # Accept licence Agreement and run conda init
+   source ~/.bashrc
+   rm Anaconda3-2021.11-Linux-x86_64.sh
+
+Note that we are playing it save for the instructions.
 Installation without the version numbers (*i.e.* using the newest version)
 should also work, at least for some time.
 
@@ -124,7 +132,7 @@ If you want to use gpaw as source for the atomic form factors (recommended)
    conda install -c conda-forge ase=3.22.1 gpaw=21.6.0
 
 If you also want to try out the atomic form factor calculation in Quantum
-Espresso, you need to the program. You can do this with conda.
+Espresso, you need to install the program. You can do this with conda.
 You can also install this separately of course, as long as pw.x 
 and pp.x directly callable.
 

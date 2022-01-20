@@ -1,6 +1,7 @@
 """This module implements the possibility to refine with atomic form factors
 read from a .tsc file as for example written by NoSpherA2"""
 
+from copy import deepcopy
 import numpy as np
 import pandas as pd
 
@@ -63,6 +64,9 @@ def calc_f0j(
           option to pass additional keyword arguments, by default {}
         - cif_addition (str): Will be added to the refinement_details section 
           of the cif_file
+        - core_file_name (str): Can be used to give a separate tsc file name
+          for the frozen core atom form factors, in case they have been 
+          determined separately.
     restart : bool, optional
         If true, the DFT calculation will be restarted from a previous calculation
     explicit_core : bool, optional
@@ -187,13 +191,53 @@ def calc_f0j(
 
 def calc_f0j_core(
     cell_mat_m: np.ndarray,
-    element_symbols: List[str],
-    positions: np.ndarray,
+    construction_instructions: List[AtomInstructions],
+    parameters: np.ndarray,
     index_vec_h: np.ndarray,
-    symm_mats_vecs: np.ndarray,
+    symm_mats_vecs: Tuple[np.ndarray, np.ndarray],
     computation_dict: Dict[str, Any]
 ) -> np.ndarray:
-    raise NotImplementedError('This is currently not implemented')
+    """Can be used to read the core density from a tsc file
+    Even if the core density is assumed to be spherically symmetric, the
+    file still must fulfill all requirements of a usual tsc file
+
+    cell_mat_m : np.ndarray
+        size (3, 3) array with the unit cell vectors as row vectors
+    construction_instructions : List[AtomInstructions]
+        List of instructions for reconstructing the atomic parameters from the
+        list of refined parameters
+    parameters : np.ndarray
+        Current parameter values
+    index_vec_h : np.ndarray
+        size (H) vector containing Miller indicees of the measured reflections
+    symm_mats_vecs : Tuple[np.ndarray, np.ndarray]
+        size (K, 3, 3) array of symmetry  matrices and (K, 3) array of
+        translation vectors for all symmetry elements in the unit cell
+    computation_dict : Dict[str, Any]
+        see calc_f0j
+    """
+    computation_dict = deepcopy(computation_dict)
+
+    computation_dict['call_function'] = 'none'
+
+
+    if 'core_file_name' in computation_dict:
+        computation_dict['file_name'] = computation_dict['core_file_name']
+    else:
+        computation_dict['file_name'] = 'to_xharpy_core.tsc'
+
+
+    f0j_core = calc_f0j(
+        cell_mat_m,
+        construction_instructions,
+        parameters,
+        index_vec_h,
+        symm_mats_vecs,
+        computation_dict,
+        False
+    )[0,:,:]
+
+    return f0j_core
 
 
 def generate_cif_output(

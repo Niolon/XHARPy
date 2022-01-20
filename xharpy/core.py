@@ -1479,10 +1479,23 @@ def refine(
                 raise ValueError('The loaded core atomic form factors do not match the number of reflections')
             print('  loaded core atomic form factors from disk')
         elif f0j_source == 'qe':
-            f0j_core, computation_dict = calc_f0j_core(cell_mat_m, type_symbols, index_vec_h, computation_dict)
+            f0j_core, computation_dict = calc_f0j_core(
+                cell_mat_m,
+                construction_instructions,
+                parameters,
+                index_vec_h,
+                computation_dict
+            )
             f0j_core = jnp.array(f0j_core)
         else:
-            f0j_core = jnp.array(calc_f0j_core(cell_mat_m, type_symbols, constructed_xyz, index_vec_h, symm_mats_vecs, computation_dict))
+            f0j_core = jnp.array(calc_f0j_core(
+                cell_mat_m,
+                construction_instructions,
+                parameters,
+                index_vec_h,
+                symm_mats_vecs,
+                computation_dict
+            ))
         if core_io == 'save':
             with open(core_file, 'wb') as fo:
                 pickle.dump(f0j_core, fo)

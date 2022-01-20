@@ -336,8 +336,8 @@ def f_core_from_spline(spline, g_k, k=13):
 
 def calc_f0j_core(
     cell_mat_m: np.ndarray,
-    element_symbols: List[str],
-    positions: np.ndarray,
+    construction_instructions: List[AtomInstructions],
+    parameters: np.ndarray,
     index_vec_h: np.ndarray,
     symm_mats_vecs: np.ndarray,
     computation_dict: Dict[str, Any]
@@ -352,11 +352,11 @@ def calc_f0j_core(
     ----------
     cell_mat_m : np.ndarray
         size (3, 3) array with the unit cell vectors as row vectors
-    element_symbols : List[str]
-        element symbols (i.e. 'Na') for all the atoms within the asymmetric unit
-    positions : np.ndarray
-        atomic positions in fractional coordinates for all the atoms within
-        the asymmetric unit
+    construction_instructions : List[AtomInstructions]
+        List of instructions for reconstructing the atomic parameters from the
+        list of refined parameters
+    parameters : np.ndarray
+        Current parameter values
     index_vec_h : np.ndarray
         size (H) vector containing Miller indicees of the measured reflections
     symm_mats_vecs : Tuple[np.ndarray, np.ndarray]
@@ -384,6 +384,15 @@ def calc_f0j_core(
     for key in non_gpaw_keys:
         if key in computation_dict:
             del computation_dict[key]
+
+
+    element_symbols = [instr.element for instr in construction_instructions]
+
+    positions, *_ = construct_values(
+        parameters,
+        construction_instructions,
+        cell_mat_m
+    )
 
     symm_positions, symm_symbols, _ = expand_symm_unique(element_symbols,
                                                                    positions,

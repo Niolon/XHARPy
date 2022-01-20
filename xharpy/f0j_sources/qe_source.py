@@ -487,7 +487,8 @@ def calc_f0j(
 
 def calc_f0j_core(
     cell_mat_m: np.ndarray,
-    element_symbols: List[str],
+    construction_instructions: List[AtomInstructions],
+    parameters: np.ndarray,
     index_vec_h: np.ndarray,
     computation_dict: Dict[str, Any]
 ) -> Tuple[np.ndarray, Dict[str, Any]]:
@@ -501,8 +502,11 @@ def calc_f0j_core(
     ----------
     cell_mat_m : np.ndarray
         size (3, 3) array with the unit cell vectors as row vectors
-    element_symbols : List[str]
-        element symbols (i.e. 'Na') for all the atoms within the asymmetric unit
+    construction_instructions : List[AtomInstructions]
+        List of instructions for reconstructing the atomic parameters from the
+        list of refined parameters
+    parameters : np.ndarray
+        Current parameter values
     index_vec_h : np.ndarray
         size (H) vector containing Miller indicees of the measured reflections
     computation_dict : Dict[str, Any]
@@ -525,6 +529,9 @@ def calc_f0j_core(
     ValueError
         No grid entry found
     """
+
+    element_symbols = [instr.element for instr in construction_instructions]
+
     cell_mat_f = np.linalg.inv(cell_mat_m).T
     g_k3 = np.einsum('xy, zy -> zx', cell_mat_f, index_vec_h)
     g_k = np.linalg.norm(g_k3, axis=-1) * ang_per_bohr

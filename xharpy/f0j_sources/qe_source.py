@@ -13,6 +13,7 @@ from . import cubetools
 
 from scipy.interpolate import interp1d
 from scipy.integrate import simps
+from scipy.ndimage import zoom
 import warnings
 from ..core import expand_symm_unique, construct_values, AtomInstructions
 
@@ -124,8 +125,9 @@ def qe_pw_file(
         }
     }
     for section, secval in computation_dict.items():
-        if section in ('paw_files', 'core_electrons', 'k_points', 'mpicores'):
-            # these are either given in tables in QE or not used
+        if section in ('paw_files', 'core_electrons', 'k_points', 
+                       'mpicores', 'density_format'):
+            # these are either given in tables in QE or not used here
             continue
         if section in qe_options:
             qe_options[section].update(secval)
@@ -196,6 +198,17 @@ def qe_pp_file(computation_dict: Dict[str, Any]) -> str:
     if 'core_electrons' in computation_dict:
         # we have precalculated core electrons -> FT(core) has been done separately
         qe_options['inputpp']['plot_num'] = 17
+
+    density_format = computation_dict.get('density_format', 'xsf') 
+    if density_format == 'xsf':
+        qe_options['plot']['output_format'] = 5
+        qe_options['plot']['fileout'] = 'density.xsf'
+    elif density_format == 'cube':
+        pass # is used as the default above
+    else:
+        raise NotImplementedError('unknown density format allowed options are: xsf, cube')
+    
+
     lines = []
     for section, sec_vals in qe_options.items():
         if len(sec_vals) == 0:
@@ -206,6 +219,43 @@ def qe_pp_file(computation_dict: Dict[str, Any]) -> str:
                 lines.append(qe_entry_string(inner_key, inner_val))
         lines.append('/')
     return '\n'.join(lines) + '\n\n'
+
+def read_xsf_density(filename: str) -> np.ndarray:
+    """Reads the density from an xsf file.
+
+    Parameters
+    ----------
+    filename : str
+        Path to the xsf file
+
+    Returns
+    -------
+    density : np.ndarray
+        density as a numpy array. Will cut off the repeated points at the edges
+        that are included in the file.
+    """
+
+    with open(filename, 'r') as fo:
+        content = fo.read()
+    
+    start_expr = r'BEGIN_DATAGRID_3D_\w+\n'
+    points_expr = r'\s*(\d+)\s+(\d+)\s+(\d+)\s*\n'
+    origin_expr = r'\s*([\d\.\-]+)\s+([\d\.\-]+)\s+([\d\.\-]+)\s*\n'
+    vec_expr = r'\s*([\d\.\-]+)\s+([\d\.\-]+)\s+([\d\.\-]+)\s*\n'
+    data_expr = r'([\n\d\.\+\-Ee\s]+)'
+    end_expr = r'END_DATAGRID_3D'
+
+    expr = start_expr + points_expr + origin_expr + 3* vec_expr + data_expr + end_expr
+
+    result = re.search(expr, content)
+    finds = result.groups()
+
+    n_points = np.array([int(val) for val in finds[:3]])
+    #origin = np.array([float(val) for val in finds[3:6]])
+    #vecs = np.array([float(val) for val in finds[6:15]]).reshape(3,3)
+    data = np.array([float(val) for val in finds[15].strip().split()])
+    density = np.reshape(data, n_points, order='F')[:-1, :-1, :-1]
+    return density.copy()
     
 def qe_density(
     symm_symbols: List[str],
@@ -261,7 +311,13 @@ def qe_density(
         subprocess.call([f'mpirun -n {n_cores} pw.x -i pw.in > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
         subprocess.call([f'mpirun -n {n_cores} pp.x -i pp.in > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
 
-    density, _ = cubetools.read_cube('density.cube')
+    density_format = computation_dict.get('density_format', 'xsf')
+    if  density_format == 'xsf':
+        density = read_xsf_density('density.xsf')
+    elif density_format == 'cube':
+        density, _ = cubetools.read_cube('density.cube')
+    else:
+        raise NotImplementedError('unknown density format allowed options are: xsf, cube')
     element_list = list(mass_dict.keys())
 
     n_elec = sum([element_list.index(symb) + 1 for symb in symm_symbols])

@@ -152,7 +152,7 @@ def generate_cluster_file(
     fragment_charges -= (np.sum(fragment_charges) - charge) / len(fragment_charges)
 
     cluster_charges = fragment_charges[new_indexes[unique_indexes]]
-    print(f'  constructed cluster, the overall charge is: {np.sum(cluster_charges)}')
+    #print(f'  constructed cluster, the overall charge is: {np.sum(cluster_charges)}')
 
     #strings = []
     #for charge, position in zip(cluster_charges, cluster_positions):

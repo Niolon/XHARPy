@@ -91,6 +91,20 @@ Urea with Quantum Espresso
 - B3LYP calculation from PBE files
 - Core scaling
 
+Calculation with NoSpherA2/ORCA
+-------------------------------
+
+L-Alanin with NoSpherA2/Orca
+********************************************
+
+- Folder: L-Alanin\_nosphera2\_orca
+- Original data doi: `10.1107/S0108767304015120 <https://doi.org/10.1107/S0108767304015120>`_
+- Program: NoSpherA2/Orca
+- B3LYP calculation
+- 8 Angstroem cluster charges
+
+
+
 Calculation with the Independent Atom model
 -------------------------------------------
 

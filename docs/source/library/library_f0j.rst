@@ -138,6 +138,50 @@ computation_dict : Dict[str, Any]
 There are no options here, will be ignored
 
 
+nosphera2_orca
+--------------
+
+This is the computation dict docstring (automatically copied from .py files)
+
+computation_dict : Dict[str, Any]
+
+Contains options for NoSpherA2/ORCA calculation
+ - orca_path (str): Path to the ORCA executable. Is required for 
+   multi-core calculations. If the path given is relative, take into
+   account that the executable will be run in the calc_folder and 
+   change the relative path accordingly, by default 'orca'
+ - nosphera2_path (str): Path to the NoSpherA2 executable. Needs to be
+   given, as with the orca_path, a relative path needs to be given
+   relative to the calc_folder, not the folder, where the script is run.
+ - nosphera2_accuracy (int): Number between 1-5 for the size of the 
+   grid nosphera2 uses for the calculation of atomic form factors,
+   by default 3
+ - calc_folder (str): Folder in which the ORCA and NoSpherA2 
+   calculations will be conducted. Mainly used to keep the main 
+   directory somewhat clean, by default 'calc'
+ - basis_set (str): if there is no newline character this string will
+   be used by ORCA to selet the basis set by name (e.g. def2-TZVPP).
+   If a newline is present, it will instead be used within ORCA's 
+   %basis keyword, with a single 'end' added at the end. This way
+   basis sets from EMSL can be used, by defailt 'def2-SVP'
+ - functional (str): Density functional as ORCA keyword, by default
+   'PBE'
+ - charge (float): Fragment charge, by default 0
+ - multiplicity (int): Fragment multiplicity, by default 1
+ - n_cores (int): number of cores used for the ORCA and NoSpherA2
+   calculations. If larger than 1, the orca path needs to be given
+   as an absolute path, by default 1.
+ - cutoff (float): Cutoff in Angstrom for the generation of cluster-
+   charges. Fragments, which have an atom within this radius will
+   be added completely to the cluster charge list, by default 0.0
+ - build_dict (Dict[str, List(str)]): Dictionary to complete a 
+   fragment before the calculation. The key string needs to be a 
+   symmetry card (e.g. -x, 1-y, 1/2-z). The following list needs to
+   contain the atom names, on which the symmetry is supposed to be 
+   applied.
+
+
+
 qe
 --
 
@@ -153,7 +197,9 @@ check
   - mpicores (Union[str, int]): The number of cores used for the pw.x
     and pp.x calculation in Quantum Espresso, 'auto' will mpiexec let
     select this option. However sometimes it has proven faster to
-    choose a lower number of cores manually
+    choose a lower number of cores manually. This is not the only option
+    for parallelisation: setting mpicores to 1 might still use non-MPI
+    means of multi-core calculations.
   - symm_equiv (str): The atomic form factors of symmetry equivalent
     atoms can be calculated individually for each atom ('individually')
     or they can be calculated once for each atom in the asymmetric unit
@@ -211,5 +257,8 @@ Contains options for the .tsc source
   option to pass additional keyword arguments, by default {}
 - cif_addition (str): Will be added to the refinement_details section 
   of the cif_file
+- core_file_name (str): Can be used to give a separate tsc file name
+  for the frozen core atom form factors, in case they have been 
+  determined separately.
 
 

@@ -648,7 +648,7 @@ def generate_cif_output(
             strings.append(f'      {key}: {val}')
     value_strings = '\n'.join(strings)
     addition = f"""  - Refinement was done using structure factors
-    derived from theoretically calculated atomic densities
+    derived from theoretically calculated densities
   - Density calculation was done with Quantum Espresso using the
     following settings
 {value_strings}

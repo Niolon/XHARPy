@@ -1713,6 +1713,8 @@ def write_cif(
         from .f0j_sources.qe_source import generate_cif_output
     elif f0j_source == 'tsc_file':
         from .f0j_sources.tsc_file_source import generate_cif_output
+    elif f0j_source == 'nosphera2_orca':
+        from .f0j_sources.nosphera2_orca_source import generate_cif_output
     else:
         raise NotImplementedError('This f0j source has not implemented "generate_cif_output" method')
 

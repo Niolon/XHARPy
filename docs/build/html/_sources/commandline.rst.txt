@@ -4,7 +4,7 @@ Command Line Interface
 
 There is a basic command line interface for using XHARPy with GPAW starting from 
 a SHELXL refinement. After you have installed xharpy, it is available from 
-terminal by typing:
+terminal by typing (make sure you are in the correct conda environment):
 
 .. code-block:: console
 

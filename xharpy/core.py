@@ -357,7 +357,7 @@ def calc_f(
         size (H)-sized array with complex structure factors for each reflection
     """
 
-    #einsum indexes: k: n_symm, z: n_atom, h[description]: n_hkl
+    #einsum indexes: k: n_symm, z: n_atom, h: n_hkl
     lengths_star = jnp.linalg.norm(cell_mat_f, axis=0)
     symm_mats_r, symm_vecs_t = symm_mats_vecs
 
@@ -1458,6 +1458,8 @@ def refine(
         from .f0j_sources.gpaw_mpi_source import calc_f0j, calc_f0j_core
     elif f0j_source == 'tsc_file':
         from .f0j_sources.tsc_file_source import calc_f0j, calc_f0j_core
+    elif f0j_source == 'nosphera2_orca':
+        from .f0j_sources.nosphera2_orca_source import calc_f0j, calc_f0j_core
     else:
         raise NotImplementedError('Unknown type of f0j_source')
 

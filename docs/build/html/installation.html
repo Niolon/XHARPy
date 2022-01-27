@@ -119,7 +119,7 @@ This provides a full linux shell under windows and can be installed to run linux
 programs on Microsoft Windows.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>The very short instruction given here only work on a current version of Windows 10/11,
+<p>The very short instructions given here only work on a current version of Windows 10/11,
 which means newer than build 2004. For older versions refer to
 <a class="reference external" href="https://docs.microsoft.com/en-us/windows/wsl/install-manual">Microsofts Manual installations steps</a></p>
 </div>
@@ -146,9 +146,18 @@ You can now follow the Linux instructions from that shell.</p>
 <div class="section" id="linux">
 <h2>Linux<a class="headerlink" href="#linux" title="Permalink to this headline"></a></h2>
 <p>The easiest way to obtain all the necessary package is within a conda
-environment. So first you need to install <a class="reference external" href="https://www.anaconda.com/products/individual">Anaconda</a>.
-Instruction on how to do that in console only (for example in a WSL) see
-<a class="reference external" href="https://gist.github.com/kauffmanes/5e74916617f9993bc3479f401dfec7da">here</a>.</p>
+environment. So first you need to install <a class="reference external" href="https://www.anaconda.com/products/individual">Anaconda</a>.</p>
+<p>The fastest way from console is installation with the following commands:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">wget https://repo.anaconda.com/archive/Anaconda3-2021.11-Linux-x86_64.sh</span>
+<span class="go">bash Anaconda3-2021.11-Linux-x86_64.sh</span>
+<span class="gp"># </span>Accept licence Agreement and run conda init
+<span class="go">source ~/.bashrc</span>
+<span class="go">rm Anaconda3-2021.11-Linux-x86_64.sh</span>
+</pre></div>
+</div>
+<p>Note that we are playing it save for the instructions.
+Installation without the version numbers (<em>i.e.</em> using the newest version)
+should also work, at least for some time.</p>
 <p>In Anaconda create and activate a new environment using</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">conda create -n xharpy</span>
 <span class="go">conda activate xharpy</span>
@@ -181,7 +190,7 @@ The library will however run without cctbx, with some features unavailable.</p>
 </pre></div>
 </div>
 <p>If you also want to try out the atomic form factor calculation in Quantum
-Espresso, you need to the program. You can do this with conda.
+Espresso, you need to install the program. You can do this with conda.
 You can also install this separately of course, as long as pw.x
 and pp.x directly callable.</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">conda install -c conda-forge qe=7.0</span>

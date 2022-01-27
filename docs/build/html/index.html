@@ -76,8 +76,14 @@
 <p><strong>XHARPy</strong> (X-ray diffraction data Hirshfeld Atom Refinement in Python) is a Python
 library that enables refinement with custom atomic form factor calculations.</p>
 <p>This is the first refinement library to implement the calculation of atomic form
-factors from periodic PAW-DFT calculations. Independent atom model for comparison
-and debugging is also available.</p>
+factors from periodic PAW-DFT calculations. Currently the following sources for
+atomic form factors are available:</p>
+<ul class="simple">
+<li><p>Periodic PAW with GPAW</p></li>
+<li><p>Periodic PAW with Quantum Espresso</p></li>
+<li><p>Independent Atom model</p></li>
+<li><p>tsc files written by other programs</p></li>
+</ul>
 <p>The library has been written with extensibility in mind. You can look at the
 f0j_sources folder for examples how to write a new atomic form factor source.</p>
 <p>Refinement itself relies heavily on JAX for the automatic generation of
@@ -144,6 +150,7 @@ fundamentally change with future versions.</p>
 <li class="toctree-l2"><a class="reference internal" href="xharpy.f0j_sources.html#module-xharpy.f0j_sources.gpaw_source">xharpy.f0j_sources.gpaw_source module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xharpy.f0j_sources.html#module-xharpy.f0j_sources.gpaw_spherical_source">xharpy.f0j_sources.gpaw_spherical_source module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xharpy.f0j_sources.html#module-xharpy.f0j_sources.iam_source">xharpy.f0j_sources.iam_source module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xharpy.f0j_sources.html#module-xharpy.f0j_sources.nosphera2_orca_source">xharpy.f0j_sources.nosphera2_orca_source module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xharpy.f0j_sources.html#module-xharpy.f0j_sources.qe_source">xharpy.f0j_sources.qe_source module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xharpy.f0j_sources.html#module-xharpy.f0j_sources.real_spher_harm">xharpy.f0j_sources.real_spher_harm module</a></li>
 </ul>

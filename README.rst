@@ -54,7 +54,7 @@ Documentation
 
 An online version of the documentation is available at:
 
-`xharpy.readthedocs.org`
+`https://xharpy.readthedocs.org <https://xharpy.readthedocs.org>`_
 
 With the sphinx package and the sphinx-rtd-theme installed you can compile the 
 documentation using ``make html`` in the doc directory. 

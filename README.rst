@@ -1,7 +1,7 @@
 XHARPy
 ======
 
-.. image:: XHARPy_logo.svg
+.. image:: docs/source/XHARPy_logo.svg
 
 
 **XHARPy** (X-ray diffraction data Hirshfeld Atom Refinement in Python) is a Python

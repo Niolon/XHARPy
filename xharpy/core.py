@@ -2,9 +2,13 @@
 and its analysis fron the XHARPy library.
 """
 
+from distutils.log import warn
 from jax.config import config
 from jax.core import Value
-config.update('jax_enable_x64', True)
+try:
+    config.update('jax_enable_x64', True)
+except:
+    warnings.warn('Could not activate 64 bit mode of jax. Might run in 32 bit instead.')
 
 import datetime
 from typing import Callable, List, Dict, Tuple, Optional, Union, Any

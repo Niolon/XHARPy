@@ -106,6 +106,7 @@ Followed by installing the necessary packages
 
    conda install -c conda-forge jax=0.2.26 numpy=1.20.3 scipy=1.7.3 pandas=1.3.5
 
+You can download the XHARPy library from: `https://github.com/Niolon/XHARPy <https://github.com/Niolon/XHARPy>`_
 You need to add the folder where your xharpy *directory* is located to the 
 $PYTHONPATH. If you are unsure the directory should be one level above the one
 where the ``__init__.py`` is located. As long as there is no installation
@@ -115,7 +116,8 @@ routine you can do this by
 
    conda develop /path/to/xharpy
 
-This will create a .pth file in the site-packages of your conda environment.
+This will create a .pth file in the site-packages of your conda environment, 
+which acts as the necessary link for conda/python.
 
 Currently XHARPy has no working possibility for calculating difference 
 electron densities on its own. For this purpose we need the cctbx library. 
@@ -134,7 +136,7 @@ If you want to use gpaw as source for the atomic form factors (recommended)
 If you also want to try out the atomic form factor calculation in Quantum
 Espresso, you need to install the program. You can do this with conda.
 You can also install this separately of course, as long as pw.x 
-and pp.x directly callable.
+and pp.x are directly callable.
 
 .. code-block:: console
 

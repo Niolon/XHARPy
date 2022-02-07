@@ -30,8 +30,11 @@ was originally published:
 
 TODO: Insert paper here
 
-This library was written during my PhD which was embedded in the research 
-training group BENCh at the University of Göttingen, which is funded by 
+The source code is available at `https://github.com/Niolon/XHARPy <https://github.com/Niolon/XHARPy>`_
+
+Creation of this library was only possible due the generous support of the 
+`Research Training Group BENCh <bench.uni-goettingen.de>` at the University 
+of Göttingen, which is funded by 
 the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) - 389479699/GRK245
 
 .. note::

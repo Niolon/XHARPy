@@ -6,6 +6,7 @@
 *.gpw
 **/doctrees
 **/scratch
+**/build
 **/xharpy_output
 **/.vscode
 

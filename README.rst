@@ -23,10 +23,11 @@ was originally published:
 
 TODO: Insert paper here
 
-This library was written during my PhD which was embedded in the research 
-training group BENCh at the University of Göttingen, which is funded by 
-the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) - 389479699/GRK245
 
+Creation of this library was only possible due the generous support of the 
+`Research Training Group BENCh <bench.uni-goettingen.de>` at the University 
+of Göttingen, which is funded by 
+the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) - 389479699/GRK245
 Prerequisites
 -------------
 
@@ -50,7 +51,9 @@ much older or newer the versions can be before things start to break.
 Documentation
 -------------
 
+An online version of the documentation is available at:
+
+`xharpy.readthedocs.org`
+
 With the sphinx package and the sphinx-rtd-theme installed you can compile the 
-documentation using ``make install`` in the doc directory. 
-`A prebuild version <docs/build/html/index.html>`_ is 
-available, but might be slightly out of date.
+documentation using ``make html`` in the doc directory. 

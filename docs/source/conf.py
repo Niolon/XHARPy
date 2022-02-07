@@ -44,6 +44,7 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['grid*', 'horton2*']
 
+autodoc_mock_imports = ['jax', 'ase', 'gpaw']
 
 # -- Options for HTML output -------------------------------------------------
 

@@ -736,26 +736,27 @@ list of refined parameters</p></li>
 <li><p><strong>index_vec_h</strong> (<em>np.ndarray</em>) – size (H) vector containing Miller indicees of the measured reflections</p></li>
 <li><p><strong>symm_mats_vecs</strong> (<em>Tuple</em><em>[</em><em>np.ndarray</em><em>, </em><em>np.ndarray</em><em>]</em>) – size (K, 3, 3) array of symmetry  matrices and (K, 3) array of
 translation vectors for all symmetry elements in the unit cell</p></li>
-<li><p><strong>computation_dict</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – <dl class="simple">
-<dt>Contains options for NoSpherA2/ORCA calculation</dt><dd><ul>
+<li><p><strong>computation_dict</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – <p>Contains options for NoSpherA2/ORCA calculation</p>
+<blockquote>
+<div><ul>
 <li><p>orca_path (str): Path to the ORCA executable. Is required for
 multi-core calculations. If the path given is relative, take into
 account that the executable will be run in the calc_folder and
 change the relative path accordingly, by default ‘orca’</p></li>
-<li><p>nosphera2_path (str): Path to the NoSpherA2 executable. Needs to be
-given, as with the orca_path, a relative path needs to be given
-relative to the calc_folder, not the folder, where the script is run.</p></li>
+<li><p>nosphera2_path (str): Path to the NoSpherA2 executable. If you want
+to use a relative path, it needs to be given relative to the
+calc_folder, not the folder, where the script is run.</p></li>
 <li><p>nosphera2_accuracy (int): Number between 1-5 for the size of the
 grid nosphera2 uses for the calculation of atomic form factors,
 by default 3</p></li>
 <li><p>calc_folder (str): Folder in which the ORCA and NoSpherA2
 calculations will be conducted. Mainly used to keep the main
 directory somewhat clean, by default ‘calc’</p></li>
-<li><p>basis_set (str): if there is no newline character this string will
-be used by ORCA to selet the basis set by name (e.g. def2-TZVPP).
+<li><p>basis_set (str): If there is no newline character, this string will
+be used by ORCA to select the basis set by name (e.g. def2-TZVPP).
 If a newline is present, it will instead be used within ORCA’s
 %basis keyword, with a single ‘end’ added at the end. This way
-basis sets from EMSL can be used, by defailt ‘def2-SVP’</p></li>
+basis sets from EMSL can be used, by default ‘def2-SVP’</p></li>
 <li><p>functional (str): Density functional as ORCA keyword, by default
 ‘PBE’</p></li>
 <li><p>charge (float): Fragment charge, by default 0</p></li>
@@ -772,8 +773,7 @@ symmetry card (e.g. -x, 1-y, 1/2-z). The following list needs to
 contain the atom names, on which the symmetry is supposed to be
 applied.</p></li>
 </ul>
-</dd>
-</dl>
+</div></blockquote>
 </p></li>
 <li><p><strong>restart</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, the DFT calculation will be restarted from a previous calculation</p></li>
 <li><p><strong>explicit_core</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True the frozen core density is assumed to be calculated separately,

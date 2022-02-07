@@ -209,24 +209,25 @@ def calc_f0j(
         translation vectors for all symmetry elements in the unit cell
     computation_dict : Dict[str, Any]
         Contains options for NoSpherA2/ORCA calculation
+
          - orca_path (str): Path to the ORCA executable. Is required for 
            multi-core calculations. If the path given is relative, take into
            account that the executable will be run in the calc_folder and 
            change the relative path accordingly, by default 'orca'
-         - nosphera2_path (str): Path to the NoSpherA2 executable. Needs to be
-           given, as with the orca_path, a relative path needs to be given
-           relative to the calc_folder, not the folder, where the script is run.
+         - nosphera2_path (str): Path to the NoSpherA2 executable. If you want 
+           to use a relative path, it needs to be given relative to the 
+           calc_folder, not the folder, where the script is run.
          - nosphera2_accuracy (int): Number between 1-5 for the size of the 
            grid nosphera2 uses for the calculation of atomic form factors,
            by default 3
          - calc_folder (str): Folder in which the ORCA and NoSpherA2 
            calculations will be conducted. Mainly used to keep the main 
            directory somewhat clean, by default 'calc'
-         - basis_set (str): if there is no newline character this string will
-           be used by ORCA to selet the basis set by name (e.g. def2-TZVPP).
+         - basis_set (str): If there is no newline character, this string will
+           be used by ORCA to select the basis set by name (e.g. def2-TZVPP).
            If a newline is present, it will instead be used within ORCA's 
            %basis keyword, with a single 'end' added at the end. This way
-           basis sets from EMSL can be used, by defailt 'def2-SVP'
+           basis sets from EMSL can be used, by default 'def2-SVP'
          - functional (str): Density functional as ORCA keyword, by default
            'PBE'
          - charge (float): Fragment charge, by default 0
@@ -276,7 +277,7 @@ def calc_f0j(
     multiplicity = computation_dict.get('multiplicity', 1)
     n_cores = computation_dict.get('n_cores', 1)
     orca_path = computation_dict.get('orca_path', 'orca')
-    assert orca_path != '.' or n_cores == 1, 'for multicore calculations you need to give an absolute orca_path'
+    assert orca_path != 'orca' or n_cores == 1, 'for multicore calculations you need to give an absolute orca_path'
     assert 'nosphera2_path' in computation_dict, 'Give a path to the NoSpherA2 Executable'
     nosphera2_path = computation_dict['nosphera2_path']
     nosphera2_accuracy = computation_dict.get('nosphera2_accuracy', 3)

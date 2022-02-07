@@ -115,6 +115,7 @@ func_start = {
     'orthorhombic': (corr_uij_ortho, corr_uij_ortho_nosc, jnp.array([1] + [0] * 3)),
     'tetragonal': (corr_uij_tetra, corr_uij_tetra_nosc, jnp.array([1] + [0] * 2)),
     'rhombohedral': (corr_uij_tric, corr_uij_tric_nosc, jnp.array([1] + [0] * 6)),
+    'trigonal': (corr_uij_tric, corr_uij_tric_nosc, jnp.array([1] + [0] * 6)),
     'hexagonal': (corr_uij_hexa, corr_uij_hexa_nosc, jnp.array([1] + [0] * 2)),
     'cubic': (corr_uij_cubic, corr_uij_cubic_nosc, jnp.array([1] + [0] * 1))
 }

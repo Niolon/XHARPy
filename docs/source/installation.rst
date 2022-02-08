@@ -21,12 +21,13 @@ For difference electron density calculation
  - `cctbx <https://cci.lbl.gov/cctbx_docs/index.html>`_ = 2021.11
 
 This does not mean, that the library will not work with other versions. I tried
-not to use the newest of features, but I do not have the means/time to test how
-much older or newer the versions can be before things start to break.
+not to use the deprecated or the newest of features, but I do not have the
+means/time to test how much older or newer the versions can be before things 
+start to break.
 
 Windows
 -------
-As the library relies on GPAW there is no direct straightforward way to 
+As the library relies on GPAW and JAX there is no direct straightforward way to 
 install on Microsoft Windows Python installations. However, the library 
 has been tested on the
 `Windows Subsystem For Linux <https://docs.microsoft.com/en-us/windows/wsl/install>`_.
@@ -49,7 +50,8 @@ In this console you can now type:
    wsl --install
 
 Afterwards, you probably need to restart your computer. Now open a new PowerShell and 
-type ``wsl``. If you now now have a linux console you can go to the Linux section.
+type ``wsl``. If you now now have a linux console, everything works as intended 
+and you can go to the Linux section.
 
 Sometimes it has happened that the default ubuntu installation is not present and wsl does not work. 
 **Only in that case** you need to type:

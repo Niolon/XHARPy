@@ -272,7 +272,7 @@ def generate_hm(
     diff = fobs.f_obs_minus_f_calc(1.0, arrays['_refln_F_calc'])
     diff_map = diff.fft_map(map_factor)
     diff_map.apply_volume_scaling()
-    real = diff_map.real_map()
+    real = diff_map.real_map_unpadded()
     arr = real.as_numpy_array()
     levels = np.arange(-1.0, 1.0 + level_step, level_step)
     start_at = np.argwhere(levels < arr.min())[-1, 0]
@@ -294,3 +294,70 @@ def generate_hm(
         warnings.simplefilter("ignore")
         df = np.log10(sum_levels) / np.log10(n_pairs**(1/3))
     return {'levels': levels, 'df': df}
+
+def calculate_egross(    
+    fcf_path: str,
+    map_factor: float = 1/3
+) -> float:
+    """Calculates the e_gross value. Relies on cctbx for the calculation of
+    the difference electron density.
+
+    Parameters
+    ----------
+    fcf_path : str
+        Path to the fcf6 file.
+    map_factor : float, optional
+        map_factor passed to the fft_map function of cctbx, by default 1/3
+
+    Returns
+    -------
+    e_gross : float
+        The resulting e_gross value
+    """
+    try: 
+        from iotbx import reflection_file_reader
+    except:
+        raise ModuleNotFoundError('cctbx is needed for this feature')
+    reader = reflection_file_reader.cif_reader(fcf_path)
+    arrays = reader.build_miller_arrays()[next(iter(reader.build_miller_arrays()))]
+    fobs = arrays['_refln_F_squared_meas'].f_sq_as_f()
+    try:
+        fcalc = arrays['_refln_F_calc']
+    except ValueError:
+        raise ValueError('No _refln_F_calc in fcf, an fcf6 is needed')
+    diff = fobs.f_obs_minus_f_calc(1.0, arrays['_refln_F_calc'])
+    diff_map = diff.fft_map(map_factor)
+    #diff_map.apply_volume_scaling()
+    real = diff_map.real_map_unpadded()
+    arr = real.as_numpy_array()
+    return np.mean(np.abs(arr)) / 2
+
+def diff_density_values(
+    fcf_path: str,
+    map_factor: float = 1/3
+) -> Dict[str, float]:
+    """Calculates the rho_max, rho_min and rhos_sigma for a given fcf6 file
+
+    Parameters
+    ----------
+    fcf_path : str
+        Path to the fcf6 file.
+    map_factor : float, optional
+        map_factor passed to the fft_map function of cctbx, by default 1/3
+
+    Returns
+    -------
+    Dict[str, float]
+        The three value as a dictionary
+    """
+    from iotbx import reflection_file_reader
+    reader = reflection_file_reader.cif_reader(fcf_path)
+    arrays = reader.build_miller_arrays()[next(iter(reader.build_miller_arrays()))]
+    fobs = arrays['_refln_F_squared_meas'].f_sq_as_f()
+    fcalc = arrays['_refln_F_calc']
+    diff = fobs.f_obs_minus_f_calc(1.0, arrays['_refln_F_calc'])
+    diff_map = diff.fft_map(map_factor)
+    diff_map.apply_volume_scaling()
+    stats = diff_map.statistics()
+    return {'rho_max': stats.max(), 'rho_min': stats.min(), 'rho_sigma': stats.sigma()}
+

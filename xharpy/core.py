@@ -438,7 +438,8 @@ def resolve_instruction(parameters: jnp.ndarray, instruction: Parameter) -> jnp.
         return_value = instruction.value
     elif type(instruction).__name__ == 'MultiIndexParameter':
         multiplicators = jnp.array(instruction.multiplicators)
-        return_value = jnp.sum(multiplicators * parameters[jnp.array(instruction.par_indexes)]) + instruction.added_value
+        par_values = jnp.take(parameters, jnp.array(instruction.par_indexes), axis=0)
+        return_value = jnp.sum(multiplicators * par_values) + instruction.added_value
     else:
         raise NotImplementedError('This type of instruction is not implemented')
     return return_value

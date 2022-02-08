@@ -29,6 +29,16 @@ Creation of this library was only possible due the generous support of the
 of Göttingen, which is funded by 
 the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) - 389479699/GRK245
 
+Documentation
+-------------
+
+An online version of the documentation is available at:
+
+`https://xharpy.readthedocs.org <https://xharpy.readthedocs.org>`_
+
+With the sphinx package and the sphinx-rtd-theme installed you can compile the 
+documentation using ``make html`` in the doc directory. 
+
 Prerequisites
 -------------
 
@@ -42,6 +52,9 @@ The following packages in the following versions were used for development
 For atomic form factor calculation in GPAW
  - `gpaw <https://wiki.fysik.dtu.dk/gpaw/>`_ = 21.6.0
 
+For atomic form factor calculation in Quantum Espresso (experimental)
+ - `qe <https://www.quantum-espresso.org/>`_ = 7.0
+
 For difference electron density calculation
  - `cctbx <https://cci.lbl.gov/cctbx_docs/index.html>`_ = 2021.11
 
@@ -49,12 +62,3 @@ This does not mean, that the library will not work with other versions. I tried
 not to use the newest of features, but I do not have the means/time to test how
 much older or newer the versions can be before things start to break.
 
-Documentation
--------------
-
-An online version of the documentation is available at:
-
-`https://xharpy.readthedocs.org <https://xharpy.readthedocs.org>`_
-
-With the sphinx package and the sphinx-rtd-theme installed you can compile the 
-documentation using ``make html`` in the doc directory. 

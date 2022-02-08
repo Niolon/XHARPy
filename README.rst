@@ -25,7 +25,7 @@ TODO: Insert paper here
 
 
 Creation of this library was only possible due the generous support of the 
-`Research Training Group BENCh <bench.uni-goettingen.de>`_ at the University 
+`Research Training Group BENCh <https://bench.uni-goettingen.de>`_ at the University 
 of Göttingen, which is funded by 
 the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) - 389479699/GRK245
 

@@ -47,28 +47,28 @@ def calc_f0j(
         it to the XHARPy Repository, at least after you have published your 
         results.
         
-        - calc_f0j (Callable): function that implements the arguments: 
-          cell_mat_m, construction_instructions, parameters, index_vec_h, 
-          symm_mats_vecs, computation_dict, restart and explicit_core and 
-          returns the calculated f0j values as an array. Examples and the 
-          explanation of the input parameters can be found in any *_source.py
-          file in the calc_f0j function and its docstring
-        - calc_f0j_core (Callable, Optional): function that implements the 
-          arguments: cell_mat_m, construction_instructions, parameters, 
-          index_vec_h, symm_mats_vecs, computation_dict and returns the 
-          f0j_core values for a spherical frozen core density. Will only be
-          called once at the beginning of the refinement. Is optional if 
-          the refinement_dict['core'] is set to 'combine' otherwise it will 
-          throw a NotImplementError. Examples and the explanation of the input 
-          parameters can be found in any *_source.py file in the 
-          calc_f0j_core function and its docstring.
-        - generate_cif_output (Callable): functional with the argument 
-          computation dict, which will be called during .cif generation to write
-          an output of the methodology used to the .cif file.
-        - inner_computation_dict (Dict): dictionary with options to pass on to 
-          your functions. The equivalend of the computation_dict for all 
-          implemented f0j_sources in XHARPy-
-
+          - calc_f0j (Callable): function that implements the arguments: 
+            cell_mat_m, construction_instructions, parameters, index_vec_h, 
+            symm_mats_vecs, computation_dict, restart and explicit_core and 
+            returns the calculated f0j values as an array. Examples and the 
+            explanation of the input parameters can be found in any *_source.py
+            file in the calc_f0j function and its docstring
+          - calc_f0j_core (Callable, Optional): function that implements the 
+            arguments: cell_mat_m, construction_instructions, parameters, 
+            index_vec_h, symm_mats_vecs, computation_dict and returns the 
+            f0j_core values for a spherical frozen core density. Will only be
+            called once at the beginning of the refinement. Is optional if 
+            the refinement_dict['core'] is set to 'combine' otherwise it will 
+            throw a NotImplementError. Examples and the explanation of the input 
+            parameters can be found in any *_source.py file in the 
+            calc_f0j_core function and its docstring.
+          - generate_cif_output (Callable): functional with the argument 
+            computation dict, which will be called during .cif generation to write
+            an output of the methodology used to the .cif file.
+          - inner_computation_dict (Dict): dictionary with options to pass on to 
+            your functions. The equivalend of the computation_dict for all 
+            implemented f0j_sources in XHARPy.
+    
     restart : bool, optional
         If true, the calculation will be restarted from a previous calculation 
         if possible
@@ -126,10 +126,8 @@ def calc_f0j_core(
         size (K, 3, 3) array of symmetry  matrices and (K, 3) array of
         translation vectors for all symmetry elements in the unit cell
     computation_dict : Dict[str, Any]
-        contains options for the calculation. The custom options will be ignored
-        and everything else is passed on to GPAW for initialisation. The only
-        option that makes a difference here is which setups are used. (Need to
-        be same as in calc_f0j)
+        contains options for the calculation. Should include the 'calc_f0j_core'
+        keyword if this function is meant to be used.
 
     Returns
     -------

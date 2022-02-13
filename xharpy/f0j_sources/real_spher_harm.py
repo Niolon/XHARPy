@@ -6,7 +6,7 @@ grid."""
 import numpy as np
 
 ylm_func_dict = {
-    (0, 0): lambda xyz: (1/2)/np.sqrt(np.pi),
+    (0, 0): lambda xyz: (1/2)/np.sqrt(np.pi) * np.ones(xyz.shape[:-1]),
     (1, -1): lambda xyz: (1/2)*np.sqrt(3)*xyz[...,1]/np.sqrt(np.pi),
     (1, 0): lambda xyz: (1/2)*np.sqrt(3)*xyz[...,2]/np.sqrt(np.pi),
     (1, 1): lambda xyz: (1/2)*np.sqrt(3)*xyz[...,0]/np.sqrt(np.pi),
@@ -3643,7 +3643,7 @@ bessel_dict = {
 }
 
 def spherical_harmonic(l, m, xyz):
-    return ylm_func_dict[(l, m)](xyz)
+    return ylm_func_dict[(l, m)](xyz/np.linalg.norm(xyz, axis=-1)[...,None])
 
 def get_multiplication_instructions(l1, m1, l2, m2):
     if l1 > l2:

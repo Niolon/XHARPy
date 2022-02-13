@@ -1465,6 +1465,8 @@ def refine(
         from .f0j_sources.tsc_file_source import calc_f0j, calc_f0j_core
     elif f0j_source == 'nosphera2_orca':
         from .f0j_sources.nosphera2_orca_source import calc_f0j, calc_f0j_core
+    elif f0j_source == 'custom_function':
+        from .f0j_sources.custom_function_source import calc_f0j, calc_f0j_core
     else:
         raise NotImplementedError('Unknown type of f0j_source')
 

@@ -8,7 +8,7 @@ if __name__ == '__main__':
     output = 'source/library/library_f0j.rst'
     source_files = sorted([file for file in os.listdir(folder) if file.endswith('_source.py')])
 
-    pattern1 = re.compile(r'calc\_f0j\(.+?return', flags=re.DOTALL)
+    pattern1 = re.compile(r'calc\_f0j\(.+?\s+\s+return\s[\_a-zA-Z\[\]]', flags=re.DOTALL)
     pattern2 = re.compile(r'"""(.*?)"""', flags=re.DOTALL)
     pattern3 = re.compile('\n(\s+)----')
     strings = [
@@ -55,6 +55,7 @@ if __name__ == '__main__':
                 else:
                     strings.append(string[n_spaces:])
         except:
+            print(f0j_function)
             warnings.warn('Could not read the docstring in file: ' + source_file)
 
     with open(output, 'w') as fo:

@@ -546,7 +546,7 @@ def calc_f0j(
     else:
         res = subprocess.run(f'mpiexec -n {ncores} gpaw python step1.py', shell=True)
 
-    assert res.returncode == 0, 'mpiexec failed. If started from Jupyter: Try running a script from shell instead'
+    assert res.returncode == 0, 'mpiexec failed. Make sure you have not loaded GPAW somewhere in your script or kernel (such as switching the f0j_source from gpaw to gpaw_mpi in jupyter without kernel restart)'
 
     with open('step1.py', 'w') as fo:
         fo.write(step1_script)

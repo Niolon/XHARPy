@@ -365,6 +365,7 @@ def qe_atomic_density(
     at_computation_dict['control']['prefix'] = 'adensity'
     at_computation_dict['electrons']['electron_maxstep'] = 0
     at_computation_dict['electrons']['startingwfc'] = 'atomic'
+    at_computation_dict['electrons']['startingpot'] = 'atomic'
     at_computation_dict['electrons']['scf_must_converge'] = False
     return qe_density(symm_symbols, symm_positions, cell_mat_m, at_computation_dict)
 
@@ -466,6 +467,7 @@ def calc_f0j(
         if 'electrons' not in computation_dict:
             computation_dict['electrons'] = {}
         computation_dict['electrons']['startingwfc'] = 'file'
+        computation_dict['electrons']['startingpot'] = 'file'
 
     element_symbols = [instr.element for instr in construction_instructions]
 

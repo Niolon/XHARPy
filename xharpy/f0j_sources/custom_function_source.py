@@ -66,8 +66,8 @@ def calc_f0j(
             computation dict, which will be called during .cif generation to write
             an output of the methodology used to the .cif file.
           - inner_computation_dict (Dict): dictionary with options to pass on to 
-            your functions. The equivalend of the computation_dict for all 
-            implemented f0j_sources in XHARPy.
+            your functions. The equivalent of the computation_dict that is used
+            for the f0j_sources in XHARPy
     
     restart : bool, optional
         If true, the calculation will be restarted from a previous calculation 

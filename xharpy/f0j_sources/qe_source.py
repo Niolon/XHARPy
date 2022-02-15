@@ -126,7 +126,8 @@ def qe_pw_file(
     }
     for section, secval in computation_dict.items():
         if section in ('paw_files', 'core_electrons', 'k_points', 
-                       'mpicores', 'density_format'):
+                       'mpicores', 'density_format', 'pw_in_file',
+                       'pw_out_file', 'pp_in_file', 'pp_out_file'):
             # these are either given in tables in QE or not used here
             continue
         if section in qe_options:
@@ -288,36 +289,44 @@ def qe_density(
         Numpy array containing the density. The overall sum of the array is 
         normalised to the number of electrons.
     """
-    with open('pw.in', 'w') as fo:
-        fo.write(qe_pw_file(symm_symbols, symm_positions, cell_mat_m, computation_dict))
-    with open('pp.in', 'w') as fo:
-        fo.write(qe_pp_file(computation_dict))
-    mpicores = computation_dict.get('mpicores', 1)
     if 'electrons' in computation_dict and computation_dict['electrons'].get('electron_maxstep', 1) == 0:
+        # we have an atomic calculation
+        in_pw = 'pw_atomic.in'
+        in_pp = 'pp_atomic.in'
         out_pw = '/dev/null'
         out_pp = '/dev/null'
     else:
-        out_pw = 'pw.out'
-        out_pp = 'pp.out'
+        in_pw = computation_dict.get('pw_in_file', 'pw.in')
+        in_pp = computation_dict.get('pp_in_file', 'pp.in')
+        out_pw = computation_dict.get('pw_out_file', 'pw.out')
+        out_pp = computation_dict.get('pw_out_file', 'pp.out')
+    with open(in_pw, 'w') as fo:
+        fo.write(qe_pw_file(symm_symbols, symm_positions, cell_mat_m, computation_dict))
+    with open(in_pp, 'w') as fo:
+        fo.write(qe_pp_file(computation_dict))
+    mpicores = computation_dict.get('mpicores', 1)
     if mpicores == 1:
-        subprocess.call([f'pw.x -i pw.in > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
-        subprocess.call([f'pp.x -i pp.in > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+        subprocess.call([f'pw.x -i {in_pw} > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+        subprocess.call([f'pp.x -i {in_pp} > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
     elif mpicores == 'auto':
-        subprocess.call([f'mpirun pw.x -i pw.in > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
-        subprocess.call([f'mpirun pp.x -i pp.in > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+        subprocess.call([f'mpirun pw.x -i {in_pw} > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+        subprocess.call([f'mpirun pp.x -i {in_pp} > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
     else:
         assert type(mpicores) == int, 'mpicores has to either "auto" or int'
         n_cores = mpicores
-        subprocess.call([f'mpirun -n {n_cores} pw.x -i pw.in > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
-        subprocess.call([f'mpirun -n {n_cores} pp.x -i pp.in > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+        subprocess.call([f'mpirun -n {n_cores} pw.x -i {in_pw} > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+        subprocess.call([f'mpirun -n {n_cores} pp.x -i {in_pp} > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
 
     density_format = computation_dict.get('density_format', 'xsf')
     if  density_format == 'xsf':
         density = read_xsf_density('density.xsf')
+        os.remove('density.xsf')
     elif density_format == 'cube':
         density, _ = cubetools.read_cube('density.cube')
+        os.remove('density.cube')
     else:
         raise NotImplementedError('unknown density format allowed options are: xsf, cube')
+
     element_list = list(mass_dict.keys())
 
     n_elec = sum([element_list.index(symb) + 1 for symb in symm_symbols])
@@ -424,6 +433,10 @@ def calc_f0j(
             successful for the calculation of atoms disordered on special 
             positions. Can not be used with if symm_equiv is 'individually',
             by default {} 
+          - pw_in_file (str): Filename for the input file of the pw.x scf calculation
+          - pp_in_file (str): Filename for the input file of pp.x
+          - pw_out_file (str): Filename for the output file of the pw.x scf calculation
+          - pp_out_file (str): Filename for the output file of pp.x
         
         K-points are organised into their own entry 'k_points' which is a dict
         'mode' is the selection mode, and 'input' is the output after the 

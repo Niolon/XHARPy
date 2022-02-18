@@ -43,7 +43,7 @@ def calc_f0j(
         factors in the custom refinement, as well as a computation dict for 
         any settings you want to pass to your function. This is meant for
         development. If you have build something working and nice, please 
-        consider transfering your sources to an *_source.py file and uploading 
+        consider transfering your sources to an \*_source.py file and uploading 
         it to the XHARPy Repository, at least after you have published your 
         results.
         
@@ -51,7 +51,7 @@ def calc_f0j(
             cell_mat_m, construction_instructions, parameters, index_vec_h, 
             symm_mats_vecs, computation_dict, restart and explicit_core and 
             returns the calculated f0j values as an array. Examples and the 
-            explanation of the input parameters can be found in any *_source.py
+            explanation of the input parameters can be found in any \*_source.py
             file in the calc_f0j function and its docstring
           - calc_f0j_core (Callable, Optional): function that implements the 
             arguments: cell_mat_m, construction_instructions, parameters, 
@@ -60,7 +60,7 @@ def calc_f0j(
             called once at the beginning of the refinement. Is optional if 
             the refinement_dict['core'] is set to 'combine' otherwise it will 
             throw a NotImplementError. Examples and the explanation of the input 
-            parameters can be found in any *_source.py file in the 
+            parameters can be found in any \*_source.py file in the 
             calc_f0j_core function and its docstring.
           - generate_cif_output (Callable): functional with the argument 
             computation dict, which will be called during .cif generation to write

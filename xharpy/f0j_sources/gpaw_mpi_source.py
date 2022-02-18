@@ -533,6 +533,22 @@ def calc_f0j(
         'save': save
     }
 
+    step2_dict = {
+        'save': save,
+        'gridinterpolation': gridinterpolation,
+        'explicit_core': explicit_core,
+        'index_vec_h': index_vec_h,
+        'symm_mats_vecs': symm_mats_vecs,
+        'symm_positions': symm_positions,
+        'positions': positions,
+        'symm_equiv': symm_equiv,
+        'f0j_indexes': f0j_indexes
+    }
+
+    if save == 'none' or save is None:
+        step1_dict['save'] = 'temp.gpw'
+        step2_dict['save'] = 'temp.gpw'
+
     with open('step1_values.pic', 'wb') as fo:
         pickle.dump(step1_dict, fo)
 
@@ -551,17 +567,6 @@ def calc_f0j(
     with open('step1.py', 'w') as fo:
         fo.write(step1_script)
 
-    step2_dict = {
-        'save': save,
-        'gridinterpolation': gridinterpolation,
-        'explicit_core': explicit_core,
-        'index_vec_h': index_vec_h,
-        'symm_mats_vecs': symm_mats_vecs,
-        'symm_positions': symm_positions,
-        'positions': positions,
-        'symm_equiv': symm_equiv,
-        'f0j_indexes': f0j_indexes
-    }
     with open('step2_values.pic', 'wb') as fo:
         pickle.dump(step2_dict, fo)
 
@@ -580,6 +585,8 @@ def calc_f0j(
     os.remove('step2_values.pic')
     os.remove('f0j.pic')
 
+    if save == 'none' or save is None:
+        os.remove('temp.gpw')
     return f0j
 
 def calc_f0j_core(

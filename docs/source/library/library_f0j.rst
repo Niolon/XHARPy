@@ -15,7 +15,7 @@ contains the function(s) that are called to calculate the atomic form
 factors in the custom refinement, as well as a computation dict for 
 any settings you want to pass to your function. This is meant for
 development. If you have build something working and nice, please 
-consider transfering your sources to an *_source.py file and uploading 
+consider transfering your sources to an \*_source.py file and uploading 
 it to the XHARPy Repository, at least after you have published your 
 results.
 
@@ -23,7 +23,7 @@ results.
     cell_mat_m, construction_instructions, parameters, index_vec_h, 
     symm_mats_vecs, computation_dict, restart and explicit_core and 
     returns the calculated f0j values as an array. Examples and the 
-    explanation of the input parameters can be found in any *_source.py
+    explanation of the input parameters can be found in any \*_source.py
     file in the calc_f0j function and its docstring
   - calc_f0j_core (Callable, Optional): function that implements the 
     arguments: cell_mat_m, construction_instructions, parameters, 
@@ -32,14 +32,14 @@ results.
     called once at the beginning of the refinement. Is optional if 
     the refinement_dict['core'] is set to 'combine' otherwise it will 
     throw a NotImplementError. Examples and the explanation of the input 
-    parameters can be found in any *_source.py file in the 
+    parameters can be found in any \*_source.py file in the 
     calc_f0j_core function and its docstring.
   - generate_cif_output (Callable): functional with the argument 
     computation dict, which will be called during .cif generation to write
     an output of the methodology used to the .cif file.
   - inner_computation_dict (Dict): dictionary with options to pass on to 
-    your functions. The equivalend of the computation_dict for all 
-    implemented f0j_sources in XHARPy.
+    your functions. The equivalent of the computation_dict that is used
+    for the f0j_sources in XHARPy
     
 
 
@@ -256,6 +256,10 @@ check
     successful for the calculation of atoms disordered on special 
     positions. Can not be used with if symm_equiv is 'individually',
     by default {} 
+  - pw_in_file (str): Filename for the input file of the pw.x scf calculation
+  - pp_in_file (str): Filename for the input file of pp.x
+  - pw_out_file (str): Filename for the output file of the pw.x scf calculation
+  - pp_out_file (str): Filename for the output file of pp.x
 
 K-points are organised into their own entry 'k_points' which is a dict
 'mode' is the selection mode, and 'input' is the output after the 

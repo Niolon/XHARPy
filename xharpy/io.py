@@ -1,6 +1,7 @@
 """This module containts the input/output routines for the XHARPy library"""
 
 from collections import OrderedDict
+
 import pandas as pd
 import numpy as np
 from typing import Any, Dict, Union, Tuple, List
@@ -9,13 +10,16 @@ import jax
 import re
 import warnings
 from io import StringIO
+import pickle
 import textwrap
 from .core import (
     AtomInstructions, ConstrainedValues, cell_constants_to_M, distance_with_esd,
     construct_esds, construct_values, u_iso_with_esd, angle_with_esd, calc_f,
-    get_value_or_default, get_parameter_index
+    get_value_or_default, get_parameter_index, create_construction_instructions
 )
 from .quality import calculate_quality_indicators
+from .conversion import calc_sin_theta_ov_lambda, cell_constants_to_M
+
 
 
 def ciflike_to_dict(
@@ -1993,5 +1997,164 @@ def f0j2tsc(
                         for row in  hkl_df.iloc[:, 3:].values]
     hkl_entries = [f'{row[0]} {row[1]} {row[2]} ' for row in hkl_df[['refl_h', 'refl_k', 'refl_l']].values]
     out_data = '\n'.join([hkl_entry + complex_entry for hkl_entry, complex_entry in zip(hkl_entries, complex_entries)])
+
+    header = [
+        'TITLE: Atomic Form Factors from XHARPY',
+        'SYMM: expanded',
+        'AD: FALSE',
+        f'SCATTERERS: {" ".join(labels)}',
+        'DATA:'
+    ]
     with open(file_name, 'w') as fo:
+        fo.write('\n'.join(header))
+        fo.write('\n')
         fo.write(out_data)
+
+def cif2tsc(
+    tsc_path: str, 
+    cif_path: str, 
+    cif_dataset: Union[str, int], 
+    export_dict: Dict[str, Any], 
+    computation_dict: Dict[str, Any]
+) -> None:
+    """Can be used to create a tsc file directly from a given cif file
+    and the necessary options. 
+
+    Parameters
+    ----------
+    tsc_path : str
+        Path where the new tsc file is meant to be written
+    cif_path : str
+        Path to the input cif file
+    cif_dataset : Union[str, int]
+        indentifier of dataset in cif file. If this parameter is a string, the 
+        function will search for data\_*cif_dataset* and use the values.
+        An integer will be interpreted as an index, starting with 0 as usual in
+        python.
+    export_dict : Dict[str, Any]
+        Dictionary with options for the .tsc export
+        - f0j_source (str) : Can be one of the implemented sources for atomic
+          form factors. The most common options are 'gpaw', 'gpaw_mpi' and 'qe'
+        - core (str): can be either 'costant', which means the core densitsy 
+          will be evaluated on a separate spherical grid and assigned to the 
+          source atom completely, or 'combine' in which case the core density is
+          expanded and partitioned in the same way the valence density is
+        - core_io (Tuple[str, str]):
+          Expects a tuple where the first entry can be 'save', 'load', 'none'
+          which is the action that is taken with the core density. The 
+          second argument in the tuple is the filename, to which the core
+          density is saved to or loaded from 
+        - resolution_limit (float) : resolution limit in Angstrom up to which
+          the atomic form factors are evaluated, by default 0.40
+    computation_dict : Dict[str, Any]
+        Dict with options that are passed on to the f0j_source. See the 
+        individual calc_f0j functions for a more detailed description
+
+    Raises
+    ------
+    NotImplementedError
+        f0j_source not implemented
+    ValueError
+        Tried to load core density, but core density does not have the same 
+        number of entries as the hkl indicees
+    NotImplementedError
+        Type of core description not implemented
+    """
+    f0j_source = export_dict.get('f0j_source', 'gpaw')
+    core = export_dict.get('core', 'constant')
+    core_io, core_file = export_dict.get('core_io', ('none', 'none'))
+    reslim = export_dict.get('resolution_limit', 0.40)
+
+    atom_table, cell, cell_std, symm_mats_vecs, symm_strings, wavelength = cif2data(cif_path, cif_dataset)
+    cell_mat_m = cell_constants_to_M(*cell)
+    cell_mat_f = np.linalg.inv(cell_mat_m).T
+
+    a_star, b_star, c_star = np.linalg.norm(cell_mat_f, axis=1)
+    hmax = int(np.ceil(1 / reslim / a_star)) + 1
+    kmax = int(np.ceil(1 / reslim / b_star)) + 1
+    lmax = int(np.ceil(1 / reslim / c_star)) + 1
+    h, k, l = np.meshgrid(np.arange(-hmax, hmax + 1), np.arange(-kmax, kmax + 1), np.arange(-lmax, lmax + 1))
+    index_vec_h = np.array([h.ravel(), k.ravel(), l.ravel()]).T
+    index_vec_h = index_vec_h[calc_sin_theta_ov_lambda(cell_mat_f, index_vec_h) <= 0.5 / reslim].copy()
+
+    construction_instructions, parameters = create_construction_instructions(
+        atom_table, {}, {}, cell
+    )
+
+    if f0j_source == 'gpaw':
+        from .f0j_sources.gpaw_source import calc_f0j, calc_f0j_core
+    elif f0j_source == 'iam':
+        from .f0j_sources.iam_source import calc_f0j, calc_f0j_core
+    elif f0j_source == 'gpaw_spherical':
+        from .f0j_sources.gpaw_spherical_source import calc_f0j, calc_f0j_core
+    elif f0j_source == 'qe':
+        from .f0j_sources.qe_source import calc_f0j, calc_f0j_core
+    elif f0j_source == 'gpaw_mpi':
+        from .f0j_sources.gpaw_mpi_source import calc_f0j, calc_f0j_core
+    elif f0j_source == 'tsc_file':
+        from .f0j_sources.tsc_file_source import calc_f0j, calc_f0j_core
+    elif f0j_source == 'nosphera2_orca':
+        from .f0j_sources.nosphera2_orca_source import calc_f0j, calc_f0j_core
+    elif f0j_source == 'custom_function':
+        from .f0j_sources.custom_function_source import calc_f0j, calc_f0j_core
+    else:
+        raise NotImplementedError('Unknown type of f0j_source')
+
+    if f0j_source in ('iam') and core != 'combine':
+        warnings.warn('core description is not possible with this f0j source')
+    if core == 'constant':
+        print('Calculating core density')
+        if core_io == 'load':
+            with open(core_file, 'rb') as fo:
+                f0j_core = pickle.load(fo)
+            if index_vec_h.shape[0] != f0j_core.shape[1]:
+                raise ValueError('The loaded core atomic form factors do not match the number of reflections')
+            print('  loaded core atomic form factors from disk')
+        elif f0j_source == 'qe':
+            f0j_core, computation_dict = calc_f0j_core(
+                cell_mat_m,
+                construction_instructions,
+                parameters,
+                index_vec_h,
+                computation_dict
+            )
+            f0j_core = np.array(f0j_core)
+        else:
+            f0j_core = np.array(calc_f0j_core(
+                cell_mat_m,
+                construction_instructions,
+                parameters,
+                index_vec_h,
+
+                symm_mats_vecs,
+                computation_dict
+            ))
+        if core_io == 'save':
+            with open(core_file, 'wb') as fo:
+                pickle.dump(f0j_core, fo)
+            print('  saved core atomic form factors to disk')
+        #f0j_core += f_dash[:, None]
+
+    elif core == 'combine':
+        pass
+        #f0j_core = None
+    else:
+        raise NotImplementedError('Choose either constant or combine for core description')
+        
+    print('Calculating density')
+
+    f0j = calc_f0j(
+        cell_mat_m,           
+        construction_instructions,
+        parameters,
+        index_vec_h,
+        symm_mats_vecs,
+        computation_dict,
+        False,
+        core == 'constant'
+    )
+
+    if core != 'combine':
+        f0j = f0j + f0j_core[None, :, :]
+
+    f0j2tsc(tsc_path, f0j, construction_instructions, symm_mats_vecs, index_vec_h, False)

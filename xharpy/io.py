@@ -1977,6 +1977,8 @@ def f0j2tsc(
 
     hkl_df = pd.DataFrame(columns=['refl_h', 'refl_k', 'refl_l', *labels])
 
+    df_list = []
+
     for symm_matrix, _, f0j_slice in zip(*symm_mats_vecs, f0j):
         hrot, krot, lrot = np.einsum('zx, xy -> zy', index_vec_h, symm_matrix).T.astype(np.int64)
 
@@ -1989,9 +1991,11 @@ def f0j2tsc(
         for label, column in zip(labels, f0j_slice):
             new_df[label] = column
             
-        hkl_df = hkl_df.append(new_df, ignore_index=True)
+        df_list.append(new_df)
+    
+    hkl_df = pd.concat(df_list, ignore_index=True)
         
-    hkl_df = hkl_df.drop_duplicates(ignore_index=True)
+    hkl_df = hkl_df.drop_duplicates(subset=['refl_h', 'refl_k', 'refl_l'], ignore_index=True)
 
     complex_entries = [' '.join([f'{np.real(val):10.8e},{np.imag(val):10.8e}' for val in row])
                         for row in  hkl_df.iloc[:, 3:].values]
@@ -2064,8 +2068,12 @@ def cif2tsc(
     core = export_dict.get('core', 'constant')
     core_io, core_file = export_dict.get('core_io', ('none', 'none'))
     reslim = export_dict.get('resolution_limit', 0.40)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        atom_table, cell, cell_std, symm_mats_vecs, symm_strings, wavelength = cif2data(cif_path, cif_dataset)
+    atom_table['type_scat_dispersion_real'] = 0.0
+    atom_table['type_scat_dispersion_imag'] = 0.0
 
-    atom_table, cell, cell_std, symm_mats_vecs, symm_strings, wavelength = cif2data(cif_path, cif_dataset)
     cell_mat_m = cell_constants_to_M(*cell)
     cell_mat_f = np.linalg.inv(cell_mat_m).T
 

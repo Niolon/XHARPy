@@ -256,10 +256,18 @@ check
     successful for the calculation of atoms disordered on special 
     positions. Can not be used with if symm_equiv is 'individually',
     by default {} 
-  - pw_in_file (str): Filename for the input file of the pw.x scf calculation
-  - pp_in_file (str): Filename for the input file of pp.x
-  - pw_out_file (str): Filename for the output file of the pw.x scf calculation
-  - pp_out_file (str): Filename for the output file of pp.x
+  - pw_in_file (str): Filename for the input file of the pw.x scf 
+    calculation, by default pw.in
+  - pp_in_file (str): Filename for the input file of pp.x, by default
+    pp.in
+  - pw_out_file (str): Filename for the output file of the pw.x scf 
+    calculation, by default pw.out
+  - pp_out_file (str): Filename for the output file of pp.x,
+    by default pp.out
+  - non_convergence (str): How to deal with non-convergence in SCF
+    'exception' will stop the calculation with a ValueError, 'warning'
+    will print out a warning module 'print' will only print the warning
+    in the usual text, by default 'exception'
 
 K-points are organised into their own entry 'k_points' which is a dict
 'mode' is the selection mode, and 'input' is the output after the 

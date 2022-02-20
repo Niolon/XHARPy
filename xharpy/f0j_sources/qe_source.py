@@ -127,7 +127,8 @@ def qe_pw_file(
     for section, secval in computation_dict.items():
         if section in ('paw_files', 'core_electrons', 'k_points', 
                        'mpicores', 'density_format', 'pw_in_file',
-                       'pw_out_file', 'pp_in_file', 'pp_out_file'):
+                       'pw_out_file', 'pp_in_file', 'pp_out_file',
+                       'non_convergence'):
             # these are either given in tables in QE or not used here
             continue
         if section in qe_options:
@@ -317,6 +318,24 @@ def qe_density(
         subprocess.call([f'mpirun -n {n_cores} pw.x -i {in_pw} > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
         subprocess.call([f'mpirun -n {n_cores} pp.x -i {in_pp} > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
 
+    if out_pw != '/dev/null':
+        with open(out_pw) as fo:
+            pw_content = fo.read()
+        is_converged = re.search('convergence has been achieved in\s+\d+\s+iterations', pw_content) is not None
+        if is_converged:
+            final_energy = re.findall('!\s+total energy\s+=\s+(\-?[\d]*\.\d+) Ry', pw_content)[-1]
+            print(f'  convergence has been achieved with energy of {final_energy} Ry')
+        else:
+            non_conv = computation_dict.get('non_convergence', 'exception')
+            if non_conv == 'exception':
+                raise ValueError('Quantum Espresso SCF calculation has not converged.')
+            elif non_conv == 'warning':
+                warnings.warn('Quantum Espresso SCF calculation has not converged. Your HAR result is almost certainly not reliable!')
+            elif non_conv == 'print':
+                print('  Quantum Espresso SCF calculation has not converged. Your HAR result is almost certainly not reliable!')
+            else:
+                raise NotImplementedError('Treatment of non-convergence is not known, use exception, warning or print')
+
     density_format = computation_dict.get('density_format', 'xsf')
     if  density_format == 'xsf':
         density = read_xsf_density('density.xsf')
@@ -433,10 +452,18 @@ def calc_f0j(
             successful for the calculation of atoms disordered on special 
             positions. Can not be used with if symm_equiv is 'individually',
             by default {} 
-          - pw_in_file (str): Filename for the input file of the pw.x scf calculation
-          - pp_in_file (str): Filename for the input file of pp.x
-          - pw_out_file (str): Filename for the output file of the pw.x scf calculation
-          - pp_out_file (str): Filename for the output file of pp.x
+          - pw_in_file (str): Filename for the input file of the pw.x scf 
+            calculation, by default pw.in
+          - pp_in_file (str): Filename for the input file of pp.x, by default
+            pp.in
+          - pw_out_file (str): Filename for the output file of the pw.x scf 
+            calculation, by default pw.out
+          - pp_out_file (str): Filename for the output file of pp.x,
+            by default pp.out
+          - non_convergence (str): How to deal with non-convergence in SCF
+            'exception' will stop the calculation with a ValueError, 'warning'
+            will print out a warning module 'print' will only print the warning
+            in the usual text, by default 'exception'
         
         K-points are organised into their own entry 'k_points' which is a dict
         'mode' is the selection mode, and 'input' is the output after the 

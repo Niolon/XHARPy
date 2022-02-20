@@ -154,7 +154,7 @@ def calc_f0j(
     collect_dict.update(**data_entries)
 
     # Convert to pandas DataFrame for easy merging
-    read_df = pd.DataFrame(collect_dict)
+    read_df = pd.DataFrame(collect_dict).drop_duplicates(subset=['refl_h', 'refl_k', 'refl_l'])
 
     # create the comparison DataFrame from the known hkl indexes
     resort_df = pd.DataFrame({

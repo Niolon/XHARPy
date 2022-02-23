@@ -186,12 +186,10 @@ def calc_f0j(
     restart: bool = True,
     explicit_core: bool = True
 )-> np.ndarray:
-    """Gives the possibility to read atomic form factors from a .tsc file.
-    For the format see: https://arxiv.org/pdf/1911.08847.pdf. Has only been 
-    tested with SYMM:expanded options and does not tolerate duplicate hkl
-    indicees.
-    Is also meant for fast prototyping (see more about that in the
-    'call_function' keyword in the computation_dict).
+    """Gives the possibility to calculate atomic form factors in the LCAO
+    approximation using ORCA and NoSpherA2. Both Programs need to be installed
+    separately. NoSpherA2 is shipped with Olex or can be compiled from the 
+    souce provided in Florian Klemiss' Github Repository. 
 
     Parameters
     ----------

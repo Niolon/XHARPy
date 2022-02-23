@@ -17,9 +17,13 @@ atomic form factors are available:
 - Periodic PAW with Quantum Espresso
 - Independent Atom model 
 - tsc files written by other programs
+- LCAO calculation (with optional cluster charges) using ORCA/NoSpherA2
 
 The library has been written with extensibility in mind. You can look at the 
-f0j_sources folder for examples how to write a new atomic form factor source.
+f0j_sources folder for examples how to write a new atomic form factor source. If
+you want to develop without touching the library itself you can have a look 
+at the custom\_function\_source, This source exposes the functions, that are 
+called during the refinement.
 
 Refinement itself relies heavily on JAX for the automatic generation of 
 gradients. This means that new features only have to be implemented in the loss
@@ -28,7 +32,7 @@ function. No explicit gradients are needed.
 If you have used the library in your research, please cite the paper where it
 was originally published:
 
-TODO: Insert paper here
+Ruth, P.N., Herbst-Irmer, R. & Stalke, D. (2022). **IUCrJ 9**, `https://doi.org/10.1107/S2052252522001385 <https://doi.org/10.1107/S2052252522001385>`_
 
 The source code is available at `https://github.com/Niolon/XHARPy <https://github.com/Niolon/XHARPy>`_
 

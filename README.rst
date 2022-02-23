@@ -4,15 +4,21 @@ XHARPy
 .. image:: docs/source/XHARPy_logo.svg
 
 
-**XHARPy** (X-ray diffraction data Hirshfeld Atom Refinement in Python) is a Python
-library that enables refinement with custom atomic form factor calculations.
+**XHARPy** (X-ray diffraction data Hirshfeld Atom Refinement in Python) is a pure Python
+library that enables refinement with custom atomic form factors from various 
+sources.
 
 This is the first refinement library to implement the calculation of atomic form
-factors from periodic PAW-DFT calculations. Independent atom model for comparison
-and debugging is also available.
+factors from periodic PAW-DFT calculations. Additionally, there are experimental
+implementations of atomic form factor determinations with Quantum Espresso, 
+NoSpherA2/Orca and the possibility to refine against .tsc files.
+Independent atom model for comparison and debugging is also available.
 
 The library has been written with extensibility in mind. You can look at the 
-f0j_sources folder for examples how to write a new atomic form factor source.
+f0j_sources folder for examples how to write a new atomic form factor source. If
+you want to develop without touching the library itself you can have a look 
+at the custom\_function\_source, This source exposes the functions, that are 
+called during the refinement.
 
 Refinement itself relies heavily on JAX for the automatic generation of 
 gradients. This means that new features only have to be implemented in the loss
@@ -21,7 +27,7 @@ function. No explicit gradients are needed.
 If you have used the library in your research, please cite the paper where it
 was originally published:
 
-TODO: Insert paper here
+Ruth, P.N., Herbst-Irmer, R. & Stalke, D. (2022). **IUCrJ 9**, `https://doi.org/10.1107/S2052252522001385 <https://doi.org/10.1107/S2052252522001385>`_
 
 
 Creation of this library was only possible due the generous support of the 

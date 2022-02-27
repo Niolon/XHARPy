@@ -991,6 +991,9 @@ def value_with_esd(
                 string = '{{value:0.{format_order}f}}({{esd_val}})'.format(format_order=int(-order))
                 string = string.format(**format_dict)
                 return string
+    except ValueError:
+        print(values, esds)
+        raise
 
 
 def cif_entry_string(
@@ -1362,23 +1365,65 @@ def create_gc4_table_string(
     else:
         return ''
 
+def site_symm2mat_vec(
+    code: str,
+    symm_mats_vecs: Tuple[np.ndarray, np.ndarray]
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Covert a cif site_symmetry string into the corresponding symmetry matrix
+    and translation vector
+
+    Parameters
+    ----------
+    code : str
+        site_symm code from a cif file, e.g. 2_565
+    symm_mats_vecs : Tuple[np.ndarray, np.ndarray]
+        size (K, 3, 3) array of symmetry matrices and (K, 3) array of translation
+        vectors for all symmetry elements in the unit cell
+
+    Returns
+    -------
+    symm_mat : np.ndarray
+        size (3, 3) symmetry matrix
+    trans_vec :  np.ndarray
+        size (3) array contraining the translation from symmetry and additional
+        translation from code
+    """
+    if code == '.':
+        return np.eye(3), np.zeros(3)
+    code_split = code.split('_')
+    symm_mats, symm_vecs = symm_mats_vecs
+    if len(code_split) == 1:
+        symm_index = int(code) - 1
+        return symm_mats[symm_index], np.zeros(3)
+    else:
+        symm_index_str, trans_code = code_split
+        t_add = np.array([
+            float(trans_code[0]) - 5,
+            float(trans_code[1]) - 5,
+            float(trans_code[2]) - 5,
+        ])
+        symm_index = int(symm_index_str) - 1
+        return symm_mats[symm_index], symm_vecs[symm_index] + t_add
+
 
 def create_distance_table(
-    bonds: List[Tuple[str, str]],
+    bonds: List[Tuple[str, str, str]],
     construction_instructions: List[AtomInstructions],
     parameters: jnp.ndarray,
     var_cov_mat: jnp.ndarray,
     cell: jnp.ndarray,
     cell_esd: jnp.ndarray,
-    crystal_system: str
+    crystal_system: str,
+    symm_mats_vecs: Tuple[np.ndarray, np.ndarray]
 ) -> str:
     """Create a distance table for the given parameters
 
     Parameters
     ----------
-    bonds : List[Tuple[str, str]]
-        List with tuples of atom names. Distances between the atoms in the pair 
-        are output to the bond table
+    bonds : List[Tuple[str, str, str]]
+        List with tuples of atom names and a corresponding cif symmetry code for
+        the second atom. Distances between the atoms in the tuple are output to
+        the bond table.
     construction_instructions : List[AtomInstructions]
         list of AtomInstructions used in the refinement.
     parameters : jnp.ndarray
@@ -1400,33 +1445,59 @@ def create_distance_table(
     str
         Formatted geom_bond table
     """
+    if len(bonds) == 0:
+        return ''
     columns =  ['geom_bond_atom_site_label_1',
                 'geom_bond_atom_site_label_2',
-                'geom_bond_distance']
+                'geom_bond_distance',
+                'geom_bond_site_symmetry_2']
     string = '\nloop_\n _' + '\n _'.join(columns) + '\n'
-    distances_esds = [distance_with_esd(bond[0], bond[1], construction_instructions, parameters, var_cov_mat, cell, cell_esd, crystal_system) for bond in bonds]
+    dist_symm_mats_vecs = [
+        site_symm2mat_vec(bond[2], symm_mats_vecs) for bond in bonds
+    ]
+    distances_esds = [
+        distance_with_esd(
+            bond[0],
+            bond[1],
+            construction_instructions,
+            parameters, 
+            var_cov_mat, 
+            cell, 
+            cell_esd, 
+            crystal_system,
+            symm2[0],
+            symm2[1]
+        ) for bond, symm2 in zip(bonds, dist_symm_mats_vecs)
+    ]
     distances, distance_esds = zip(*distances_esds)
-    distance_strings = value_with_esd(np.array(distances), np.array(distance_esds))
-    string += ''.join([f'{atom1} {atom2} {distance_string}\n' for (atom1, atom2), distance_string in zip(bonds, distance_strings)])
+    distance_esds = np.array(distance_esds)
+    distance_esds[distance_esds < 1e-12] = np.nan 
+    distance_strings = value_with_esd(np.array(distances), distance_esds)
+    string += ''.join([
+        f'{atom1} {atom2} {distance_string} {symm_code}\n' 
+        for (atom1, atom2, symm_code), distance_string in zip(bonds, distance_strings)
+    ])
     return string
 
 
 def create_angle_table(
-    angle_names: List[Tuple[str, str, str]],
+    angles: List[Tuple[str, str, str, str, str]],
     construction_instructions: List[AtomInstructions],
     parameters: jnp.ndarray,
     var_cov_mat: jnp.ndarray,
     cell: jnp.ndarray,
     cell_esd: jnp.ndarray,
-    crystal_system: str
+    crystal_system: str,
+    symm_mats_vecs: Tuple[np.ndarray, np.ndarray]
 ) -> str:
     """Create a angle table for the given parameters
 
     Parameters
     ----------
-    bonds : List[Tuple[str, str]]
+    bonds : List[Tuple[str, str, str, str, str]]
         List with tuples of atom names. Angles spanned the atoms 
-        are output to the angle table
+        are output to the angle table and two cif symmetry codes for the
+        first and third atom of the angle
     construction_instructions : List[AtomInstructions]
         list of AtomInstructions used in the refinement.
     parameters : jnp.ndarray
@@ -1451,12 +1522,43 @@ def create_angle_table(
     columns =  ['geom_angle_atom_site_label_1',
                 'geom_angle_atom_site_label_2',
                 'geom_angle_atom_site_label_3',
-                'geom_angle']
+                'geom_angle',
+                'geom_angle_site_symmetry_1',
+                'geom_angle_site_symmetry_3']
+    if len(angles) == 0:
+        return ''
+    angle_symm_mats_vecs1 = [
+        site_symm2mat_vec(angle[3], symm_mats_vecs) for angle in angles
+    ]
+    angle_symm_mats_vecs3 = [
+        site_symm2mat_vec(angle[4], symm_mats_vecs) for angle in angles
+    ]
     string = '\nloop_\n _' + '\n _'.join(columns) + '\n'
-    angles_esds = [angle_with_esd(angle_name[0], angle_name[1], angle_name[2], construction_instructions, parameters, var_cov_mat, cell, cell_esd, crystal_system) for angle_name in angle_names]
-    angles, angle_esds = zip(*angles_esds)
-    angle_strings = value_with_esd(np.array(angles), np.array(angle_esds))
-    string += ''.join([f'{atom1} {atom2} {atom3} {angle_string}\n' for (atom1, atom2, atom3), angle_string in zip(angle_names, angle_strings)])
+    angles_esds = [
+        angle_with_esd(
+            angle[0],
+            angle[1],
+            angle[2],
+            construction_instructions,
+            parameters,
+            var_cov_mat,
+            cell,
+            cell_esd,
+            crystal_system,
+            symm1[0],
+            symm1[1],
+            symm3[0],
+            symm3[1]
+        ) for angle, symm1, symm3 in zip(angles, angle_symm_mats_vecs1, angle_symm_mats_vecs3)]
+    angle_vals, angle_esds = zip(*angles_esds)
+    angle_esds = np.array(angle_esds)
+    angle_esds[angle_esds < 1e-12] = np.nan # account for numerical noise 
+
+    angle_strings = value_with_esd(np.array(angle_vals), np.array(angle_esds))
+    string += ''.join([
+        f'{atom1} {atom2} {atom3} {angle_string} {symm_code1} {symm_code3}\n'
+        for (atom1, atom2, atom3, symm_code1, symm_code3), angle_string in zip(angles, angle_strings)
+    ])
     return string
 
 
@@ -1756,15 +1858,22 @@ def write_cif(
     )
 
     bond_table = next(loop for loop in shelx_cif['loops'] if 'geom_bond_distance' in loop.columns)
-    bonds = [(line['geom_bond_atom_site_label_1'],
-              line['geom_bond_atom_site_label_2']) for _, line in bond_table.iterrows()
-              if line['geom_bond_site_symmetry_2'] == '.']
+    bonds = [
+        (line['geom_bond_atom_site_label_1'],
+        line['geom_bond_atom_site_label_2'],
+        line['geom_bond_site_symmetry_2']) for _, line in bond_table.iterrows()
+    ]
 
     angle_table = next(loop for loop in shelx_cif['loops'] if 'geom_angle' in loop.columns)
-    angle_names = [(line['geom_angle_atom_site_label_1'],
-                    line['geom_angle_atom_site_label_2'],
-                    line['geom_angle_atom_site_label_3']) for _, line in angle_table.iterrows() 
-                    if line['geom_angle_site_symmetry_1'] == '.' and line['geom_angle_site_symmetry_3'] == '.']
+    angles = [
+        (
+            line['geom_angle_atom_site_label_1'],
+            line['geom_angle_atom_site_label_2'],
+            line['geom_angle_atom_site_label_3'],
+            line['geom_angle_site_symmetry_1'],
+            line['geom_angle_site_symmetry_3']
+        ) for _, line in angle_table.iterrows()
+    ]
     lines = [
         f'\ndata_{cif_dataset}\n',
         cif_entry_string('audit_creation_method', f'xHARPY {versionmajor}.{versionminor}'),
@@ -1885,8 +1994,8 @@ Correlations between cell parameters are taken into account in the
 calculation of derivatives used for the error propagation to the esds
 of U(iso), distances and angles. Otherwise, the esds of the cell
 parameters are assumed to be independent."""),
-        create_distance_table(bonds, construction_instructions, parameters, var_cov_mat, cell, cell_esd, crystal_system),
-        create_angle_table(angle_names, construction_instructions, parameters, var_cov_mat, cell, cell_esd, crystal_system),
+        create_distance_table(bonds, construction_instructions, parameters, var_cov_mat, cell, cell_esd, crystal_system, symm_mats_vecs),
+        create_angle_table(angles, construction_instructions, parameters, var_cov_mat, cell, cell_esd, crystal_system, symm_mats_vecs),
         create_diff_density_entries(symm_mats_vecs, index_vec_h, intensity/parameters[0], structure_factors, cell_mat_m),
         create_fcf4_table(index_vec_h, structure_factors, intensity, esd_int, parameters[0])
     ]

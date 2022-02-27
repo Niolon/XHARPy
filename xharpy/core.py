@@ -1,5 +1,5 @@
 """This module contains the core functionality, including the refinement
-and its analysis fron the XHARPy library.
+and its analysis from the XHARPy library.
 """
 
 from distutils.log import warn
@@ -24,7 +24,7 @@ import pickle
 from scipy.optimize import minimize
 
 from .restraints import resolve_restraints
-from .conversion import ucif2ucart, cell_constants_to_M
+from .conversion import calc_sin_theta_ov_lambda, ucif2ucart, cell_constants_to_M
 
 
 ### Internal Objects ####
@@ -185,7 +185,8 @@ def get_value_or_default(
         'min_iter': 10,
         'restraints': [],
         'flack': False,
-        'core_io': ('none', 'core.pic')
+        'core_io': ('none', 'core.pic'),
+        'cutoff': ('none', 'none', 0.0)
     }
     return refinement_dict.get(parameter_name, defaults[parameter_name])
 
@@ -978,7 +979,7 @@ def resolve_instruction_esd(
         Unknown type of Parameter used
     """
     if type(instruction).__name__ == 'RefinedParameter':
-        return_value = instruction.multiplicator * np.sqrt(var_cov_mat[instruction.par_index, instruction.par_index])
+        return_value = np.abs(instruction.multiplicator) * np.sqrt(var_cov_mat[instruction.par_index, instruction.par_index])
     elif type(instruction).__name__ == 'FixedParameter':
         return_value = jnp.nan # One could pick zero, but this should indicate that an error is not defined
     elif type(instruction).__name__ == 'MultiIndexParameter':
@@ -1544,12 +1545,47 @@ def refine(
         f0j += f_dash[None,:,None]
     xyz_density = constructed_xyz
 
+    cutoff_mode, cutoff_direction, cutoff_value = get_value_or_default('cutoff', refinement_dict)
+
+    if cutoff_mode == 'none':
+        hkl['included'] = True
+    elif cutoff_mode in ('sin(theta)/lambda', 'fraction_f0jval'):
+        sinthovlam = np.array(calc_sin_theta_ov_lambda(jnp.linalg.inv(cell_mat_m).T, index_vec_h))
+        if cutoff_mode == 'fraction_f0jval':
+            assert core != 'combine', 'This needs a separately calculated valence density'
+            sort_args = np.argsort(sinthovlam)
+            f0j_bar = np.mean(np.abs(f0j), axis=(0, 1))[sort_args]
+            first_position = np.argwhere(np.cumsum(f0j_bar)/np.sum(f0j_bar) >= cutoff_value)[0][0]
+            cutoff = float(sinthovlam[sort_args][first_position])
+            print(f'  determined a sin(theta)/lambda cutoff of {cutoff:7.5f}')
+        else:
+            cutoff = cutoff_value
+        hkl['included'] = True
+        if cutoff_direction == 'above':
+            hkl.loc[sinthovlam >= cutoff, 'included'] = False
+        elif cutoff_direction == 'below':
+            hkl.loc[sinthovlam < cutoff, 'included'] = False
+        else:
+            raise NotImplementedError("For the cutoff direction choose either 'above' or 'below'")
+        print(f'  including {sum(hkl["included"])} of {len(hkl)} reflections')
+    elif cutoff_mode == 'I/esd(I)':
+        i_ov_esd = hkl['intensity'].values / hkl['esd_int'].values
+        if cutoff_direction == 'above':
+            hkl['included'] = i_ov_esd < cutoff_value
+        elif cutoff_direction == 'below':
+            hkl['included'] = i_ov_esd >= cutoff_value
+        print(f'  including {sum(hkl["included"])} of {len(hkl)} reflections')
+    else:
+        raise NotImplementedError("cutoff_mode has to be 'none', 'sin(theta)/lambda', 'fraction_f0jval' or 'I/esd(I)")
+
+
+
     print('  building least squares function')
     calc_lsq = calc_lsq_factory(cell_mat_m,
                                 symm_mats_vecs,
-                                jnp.array(hkl[['h', 'k', 'l']]),
-                                jnp.array(hkl['intensity']),
-                                jnp.array(hkl['weight']),
+                                jnp.array(hkl[['h', 'k', 'l']].values),
+                                jnp.array(hkl['intensity'].values),
+                                jnp.array(hkl['weight'].values * hkl['included'].values.astype(np.int64)),
                                 construction_instructions,
                                 f0j_core,
                                 refinement_dict,
@@ -1621,8 +1657,8 @@ def refine(
     var_cov_mat = calc_var_cor_mat(cell_mat_m,
                                    symm_mats_vecs,
                                    index_vec_h,
-                                   jnp.array(hkl['intensity']),
-                                   jnp.array(hkl['weight']),
+                                   jnp.array(hkl['intensity'].values),
+                                   jnp.array(hkl['weight'].values * hkl['included'].values.astype(np.int64)),
                                    construction_instructions,
                                    f0j_core,
                                    parameters,
@@ -1789,8 +1825,8 @@ def angle_with_esd(
     cell_par: jnp.ndarray,
     cell_esd: jnp.ndarray,
     crystal_system: str,
-    symm_mat2: jnp.ndarray = jnp.eye(3),
-    symm_vec2: jnp.ndarray = np.zeros(3),
+    symm_mat1: jnp.ndarray = jnp.eye(3),
+    symm_vec1: jnp.ndarray = np.zeros(3),
     symm_mat3: jnp.ndarray = jnp.eye(3),
     symm_vec3: jnp.ndarray = np.zeros(3)
 )-> Tuple[float, float]:
@@ -1851,8 +1887,8 @@ def angle_with_esd(
     def angle_func(parameters, cell_par):
         cell_mat_m = cell_constants_to_M(*cell_par, crystal_system)
         constructed_xyz, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
-        xyz1 = constructed_xyz[index1]
-        xyz2 = symm_mat2 @ constructed_xyz[index2] + symm_vec2
+        xyz1 = symm_mat1 @ constructed_xyz[index1] + symm_vec1
+        xyz2 = constructed_xyz[index2] 
         xyz3 = symm_mat3 @ constructed_xyz[index3] + symm_vec3
         vec1 = cell_mat_m @ (xyz1 - xyz2)
         vec2 = cell_mat_m @ (xyz3 - xyz2)

@@ -27,7 +27,7 @@ function. No explicit gradients are needed.
 If you have used the library in your research, please cite the paper where it
 was originally published:
 
-Ruth, P.N., Herbst-Irmer, R. & Stalke, D. (2022). **IUCrJ 9**, `https://doi.org/10.1107/S2052252522001385 <https://doi.org/10.1107/S2052252522001385>`_
+Ruth, P.N., Herbst-Irmer, R. & Stalke, D. (2022). *IUCrJ*,  **9**, 286-297. `https://doi.org/10.1107/S2052252522001385 <https://doi.org/10.1107/S2052252522001385>`_
 
 
 Creation of this library was only possible due the generous support of the 

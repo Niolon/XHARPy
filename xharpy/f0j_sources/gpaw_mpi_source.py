@@ -309,11 +309,18 @@ import numpy as np
 
 from ase.units import Bohr
 
-def f_core_from_spline(spline, g_k, k=13):
-    r_max = spline.get_cutoff()
-    r = np.zeros(2**k + 1)
-    r[1:] = np.exp(-1 * np.linspace(1.25 * k, 0.0 , 2**k)) * r_max
-    #r[0] = 0
+def f_core_from_spline(
+    spline,
+    g_k,
+    grid=13
+):
+    if type(grid) is int:
+        r_max = spline.get_cutoff()
+        r = np.zeros(2**grid + 1)
+        r[1:] = np.exp(-1 * np.linspace(1.25 * grid, 0.0 , 2**grid)) * r_max
+        #r[0] = 0
+    if type(grid) is np.ndarray:
+        r = grid
     gr = r[None,:] * g_k[:,None]
     j0 = np.zeros_like(gr)
     j0[gr != 0] = np.sin(2 * np.pi * gr[gr != 0]) / (2 * np.pi * gr[gr != 0])
@@ -334,18 +341,22 @@ if __name__ == '__main__':
     cell_inv = np.linalg.inv(atoms.cell.T).T
     g_k3 = np.einsum('xy, zy -> zx', cell_inv, value_dict['index_vec_h'])
     g_ks = np.linalg.norm(g_k3, axis=-1)
-    splines = {setup.symbol: setup.get_partial_waves()[:4] for setup in calc.density.setups}
+    core_grid = value_dict['core_grid']
+    splines = {setup.symbol: (setup.get_partial_waves()[2], setup.rgd.r_g) for setup in calc.density.setups}
 
     f0j_core = {}
     n_steps = 100
     n_per_step = 50
 
-    for name, (_, _, nc, _) in list(splines.items()):
+    for name, (nc, rgd) in list(splines.items()):
         if name in list(f0j_core.keys()):
             continue
         #if name == 'H':
         #    f0j_core[name] = np.zeros_like(g_ks)
-        if len(g_ks) > n_steps * n_per_step:
+        if core_grid == 'rgd':
+            print(f'  calculating the core structure factor for {name}')
+            f0j_core[name] = f_core_from_spline(nc, g_ks * Bohr, grid=rgd)
+        elif len(g_ks) > n_steps * n_per_step:
             print(f'  calculating the core structure factor by spline for {name}')
             g_max = g_ks.max() * Bohr + 0.1
             #x_inv = np.linspace(-0.5, g_max, n_steps * n_per_step)
@@ -354,7 +365,7 @@ if __name__ == '__main__':
             x_inv[0] = 0
             f0j = np.zeros(n_steps * n_per_step)
             for index in range(n_steps):
-                f0j[index * n_per_step:(index + 1) * n_per_step] = f_core_from_spline(nc, x_inv[index * n_per_step:(index + 1) * n_per_step], k=19) 
+               f0j[index * n_per_step:(index + 1) * n_per_step] = f_core_from_spline(nc, x_inv[index * n_per_step:(index + 1) * n_per_step], grid=core_grid) 
             f0j_core[name] = interp1d(x_inv, f0j, kind='cubic')(g_ks * Bohr)
         else:
             print(f'  calculating the core structure factor for {name}')
@@ -365,7 +376,7 @@ if __name__ == '__main__':
                     end_index = index
                 else:
                     end_index = len(g_ks)
-                f0j[start_index:end_index] = f_core_from_spline(nc, g_ks[start_index:end_index] * Bohr, k=19)
+                f0j[start_index:end_index] = f_core_from_spline(nc, g_ks[start_index:end_index] * Bohr, grid=core_grid)
             f0j_core[name] = f0j
     del(calc)
     del(atoms)
@@ -436,6 +447,12 @@ def calc_f0j(
           moments of atoms. These will be expanded to atoms in the unit cell 
           by just applying the same magnetic moment to all symmetry equivalent
           atoms. This is probably too simplistic and will fail.
+        - core_grid (Union[str, int]): Determines how the core grid is build 
+          on which the core density is evaluated 'rgd' will use the default
+          grid from GPAW, an integer k will span a grid of 2**k + 1 points, 
+          where the first point is 0 and all other points are determined by
+          exp(-ai) * r_max, where ai is a np linspace between 1.25 * k and 0,
+          by default 'rgd'
         - mpicores (Union[int, str]): give the number of cores used for the 
           mpi calculation. If this is 'auto' GPAW will select the number
           itself, by default 'auto'
@@ -500,6 +517,8 @@ def calc_f0j(
         del(computation_dict['mpicores'])
     else:
         ncores = None
+    if 'core_grid' in computation_dict:
+        del(computation_dict['core_grid'])
 
     element_symbols = [instr.element for instr in construction_instructions]
 
@@ -639,13 +658,16 @@ def calc_f0j_core(
     )
     
     computation_dict = computation_dict.copy()
+    core_grid = computation_dict.get('core_grid', 'rgd')
+
     non_gpaw_keys = [
         'gridinterpolation',
         'symm_equiv',
         'skip_symm',
         'magmoms',
         'mpicores',
-        'save_file'
+        'save_file',
+        'core_grid'
     ]
     for key in non_gpaw_keys:
         if key in computation_dict:
@@ -662,7 +684,8 @@ def calc_f0j_core(
         'cell_mat_m': cell_mat_m,
         'index_vec_h': index_vec_h,
         'element_symbols': element_symbols,
-        'computation_dict': computation_dict
+        'computation_dict': computation_dict,
+        'core_grid': core_grid
     }
 
     with open('core_values.pic', 'wb') as fo:

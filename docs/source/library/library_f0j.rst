@@ -81,6 +81,12 @@ the rest onto the GPAW calculator without further checks.
   moments of atoms. These will be expanded to atoms in the unit cell 
   by just applying the same magnetic moment to all symmetry equivalent
   atoms. This is probably too simplistic and will fail.
+- core_grid (Union[str, int]): Determines how the core grid is build 
+  on which the core density is evaluated 'rgd' will use the default
+  grid from GPAW, an integer k will span a grid of 2**k + 1 points, 
+  where the first point is 0 and all other points are determined by
+  exp(-ai) * r_max, where ai is a np linspace between 1.25 * k and 0,
+  by default 'rgd'
 - mpicores (Union[int, str]): give the number of cores used for the 
   mpi calculation. If this is 'auto' GPAW will select the number
   itself, by default 'auto'
@@ -123,6 +129,12 @@ the rest onto the GPAW calculator without further checks.
     successful for the calculation of atoms disordered on special 
     positions. Can not be used with if symm_equiv is 'individually',
     by default {} 
+  - core_grid (Union[str, int]): Determines how the core grid is build 
+    on which the core density is evaluated 'rgd' will use the default
+    grid from GPAW, an integer k will span a grid of 2**k + 1 points, 
+    where the first point is 0 and all other points are determined by
+    exp(-ai) * r_max, where ai is a np linspace between 1.25 * k and 0,
+    by default 'rgd'
   - magmoms (np.ndarray): Experimental: starting values for magnetic
     moments of atoms. These will be expanded to atoms in the unit cell 
     by just applying the same magnetic moment to all symmetry equivalent

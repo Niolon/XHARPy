@@ -1412,6 +1412,18 @@ def refine(
             which is the action that is taken with the core density. The 
             second argument in the tuple is the filename, to which the core
             density is saved to or loaded from
+          - cutoff:
+            Expects a tuple of three values where the first two are strings and
+            the last one is a float value. First string is a cutoff mode. 
+            Currently available are 'none' where all reflections are used,
+            'sin(theta)/lambda' where the cutoff is set according to a user
+            given resolution, 'fraction(f0jval)' where the resolution cutoff is
+            set to include a certain fraction of the mean absolute *valence* 
+            atomic form factors. 'I/esd(I)' can be used for excluding values
+            based on the value over estimated standard deviation
+            The second string can be either be 'above' or 'below' and 
+            denominates in which direction values will be excluded.
+            The final value is the actual cutoff value.
           - restraints:
             Not fully implemented. Do not use at the moment, by default []
 
@@ -1549,9 +1561,9 @@ def refine(
 
     if cutoff_mode == 'none':
         hkl['included'] = True
-    elif cutoff_mode in ('sin(theta)/lambda', 'fraction_f0jval'):
+    elif cutoff_mode in ('sin(theta)/lambda', 'fraction(f0jval)'):
         sinthovlam = np.array(calc_sin_theta_ov_lambda(jnp.linalg.inv(cell_mat_m).T, index_vec_h))
-        if cutoff_mode == 'fraction_f0jval':
+        if cutoff_mode == 'fraction(f0jval)':
             assert core != 'combine', 'This needs a separately calculated valence density'
             sort_args = np.argsort(sinthovlam)
             f0j_bar = np.mean(np.abs(f0j), axis=(0, 1))[sort_args]

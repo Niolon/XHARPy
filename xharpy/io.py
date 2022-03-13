@@ -2128,7 +2128,8 @@ def cif2tsc(
     cif_path: str, 
     cif_dataset: Union[str, int], 
     export_dict: Dict[str, Any], 
-    computation_dict: Dict[str, Any]
+    computation_dict: Dict[str, Any],
+    tsc_core_path: str = None,
 ) -> None:
     """Can be used to create a tsc file directly from a given cif file
     and the necessary options. 
@@ -2173,9 +2174,9 @@ def cif2tsc(
     NotImplementedError
         Type of core description not implemented
     """
-    f0j_source = export_dict.get('f0j_source', 'gpaw')
-    core = export_dict.get('core', 'constant')
-    core_io, core_file = export_dict.get('core_io', ('none', 'none'))
+    f0j_source = get_value_or_default('f0j_source', export_dict)
+    core = get_value_or_default('core', export_dict)
+    core_io, core_file = get_value_or_default('core_io', export_dict)
     reslim = export_dict.get('resolution_limit', 0.40)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -2270,8 +2271,11 @@ def cif2tsc(
         False,
         core == 'constant'
     )
-
-    if core != 'combine':
+    if tsc_core_path is None and core != 'combine':
         f0j = f0j + f0j_core[None, :, :]
 
     f0j2tsc(tsc_path, f0j, construction_instructions, symm_mats_vecs, index_vec_h, False)
+
+    if tsc_core_path is not None:
+        f0j_core_out = np.ones_like(f0j) * f0j_core[None,:,:]
+        f0j2tsc(tsc_core_path, f0j_core_out, construction_instructions, symm_mats_vecs, index_vec_h, False)

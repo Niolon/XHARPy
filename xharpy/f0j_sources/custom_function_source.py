@@ -43,7 +43,7 @@ def calc_f0j(
         factors in the custom refinement, as well as a computation dict for 
         any settings you want to pass to your function. This is meant for
         development. If you have build something working and nice, please 
-        consider transfering your sources to an \*_source.py file and uploading 
+        consider transferring your sources to an \*_source.py file and uploading 
         it to the XHARPy Repository, at least after you have published your 
         results.
         

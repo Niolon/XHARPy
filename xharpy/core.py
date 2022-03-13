@@ -1354,7 +1354,7 @@ def refine(
         pandas DataFrame containing the reflection data. Needs to have at least
         five columns: h, k, l, intensity, weight. Alternatively weight can be 
         substituted by esd_int. If no weight column is available the weights
-        will be calculated as 1/est_int**2. Additional columns will be ignored
+        will be calculated as 1/esd_int**2. Additional columns will be ignored
     construction_instructions : List[AtomInstructions]
         List of instructions for reconstructing the atomic parameters from the
         list of refined parameters
@@ -1365,6 +1365,7 @@ def refine(
         style extinction correction. Can be omitted otherwise, by default None
     refinement_dict : dict, optional
         Dictionary with refinement options, by default {}
+
         Available options are:
           - f0j_source: 
             Source of the atomic form factors. The computation_dict 

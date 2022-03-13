@@ -706,7 +706,7 @@ def calc_f0j(
 def calc_f0j_core(
     *args, **kwargs
 ):
-    raise ValueError('Separate core calculation is non-sensical in IAM Mode')
+    raise ValueError('Separate core calculation is nonsensical in IAM Mode')
 
 def generate_cif_output(
     computation_dict: Dict[str, Any]

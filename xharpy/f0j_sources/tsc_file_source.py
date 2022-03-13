@@ -47,14 +47,14 @@ def calc_f0j(
         - file_name (str): Path to the .tsc file, by default 'to_xharpy.tsc'
         - call_function (python function): If this option is not 'none' you can
           pass a function, which will be called in each Hirshfeld cycle. The
-          function receives four arguments: labels contrains the atom label for 
-          each atom in the asymmetric unit, element_symbols containts the 
+          function receives four arguments: labels contains the atom label for 
+          each atom in the asymmetric unit, element_symbols contains the 
           element symbols (e.g. H, Na), positions are the atomic positions in 
           FRACTIONAL coordinates, restart is a bool, which you can check to 
           trigger a start of a calculation from a precalculated density. 
           (Usually you would want to start the first step with a calculation 
           from scratch and then recycle for all other HAR cycles, as the
-          differences in posutions get smaller). At the end of the function
+          differences in positions get smaller). At the end of the function
           you should write a new .tsc file with the atomic form factors,
           by default 'none'
         - call_args (List): If you have a call_function you can use this
@@ -199,7 +199,7 @@ def calc_f0j_core(
 ) -> np.ndarray:
     """Can be used to read the core density from a tsc file
     Even if the core density is assumed to be spherically symmetric, the
-    file still must fulfill all requirements of a usual tsc file
+    file still must fulfil all requirements of a usual tsc file
 
     cell_mat_m : np.ndarray
         size (3, 3) array with the unit cell vectors as row vectors

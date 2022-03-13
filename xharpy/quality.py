@@ -93,7 +93,7 @@ def calculate_quality_indicators(
         hkl['intensity'] = np.array(intensities / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0))
         hkl['esd_int'] = np.array(esd_int / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0))
     else:
-        raise NotImplementedError('Extinction correction method is not implemted in fcf routine')
+        raise NotImplementedError('Extinction correction method is not implented in fcf routine')
 
     intensities = hkl['intensity'].values
     esd_int = hkl['esd_int'].values
@@ -139,11 +139,11 @@ def calculate_drk(
         if no column sint/lambda is given the three columns h, k, and l are also
         needed
     bins : Union[List, int, float], optional
-        Parameter used to define the bins. If it is a loat, this is the
+        Parameter used to define the bins. If it is a float, this is the
         step size in sin(theta)/lambda, if it is an integer, this is the number
         of bins the data is supposed to distributed into. By passing a list, 
         the function will use this as inner bin borders, 0 and inf do not need to
-        be given seperately, by default 0.05
+        be given separately, by default 0.05
     equal_sized_bins : bool, optional
         If true bins needs to be an integer. In that case the binning will
         create bins with an equal number of reflections instead of an equal

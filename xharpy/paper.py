@@ -174,9 +174,9 @@ def calculate_agreement(
         Dictionary with different aggregated quality indicators for the HAR
         dataset and its comparison to the neutron dataset
     bond_comparison : pd.DataFrame,
-        DataFrame containing the merged distances from both cif files inclusing
+        DataFrame containing the merged distances from both cif files including
         esd for comparison and plotting
-    adp_compparison : pd.DataFrame
+    adp_comparison : pd.DataFrame
         DataFrame containing the comparison of the ADPs for each individual 
         atom. For the comparison there are three prefixes: 
         'nosc' means no correction according to Blessing, 'qdel' means a full 

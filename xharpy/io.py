@@ -263,11 +263,11 @@ def symm_to_matrix_vector(instruction: str) -> Tuple[jnp.ndarray, jnp.ndarray]:
         # search for whole numbers
         fraction3 = re.search(r'(-{0,1}\d)(?![XYZ])', element)
         if fraction1:
-            vector = jax.ops.index_update(vector, jax.ops.index[xyz], float(fraction1.group(1)) / float(fraction1.group(2)))
+            vector = vector.at[xyz].set(float(fraction1.group(1)) / float(fraction1.group(2)))
         elif fraction2:
-            vector = jax.ops.index_update(vector, jax.ops.index[xyz], float(fraction2.group(1)))
+            vector = vector.at[xyz].set(float(fraction2.group(1)))
         elif fraction3:
-            vector = jax.ops.index_update(vector, jax.ops.index[xyz], float(fraction3.group(1)))
+            vector = vector.at[xyz].set(float(fraction3.group(1)))
 
         symm = re.findall(r'-{0,1}[\d\.]{0,8}[XYZ]', element)
         for xyz_match in symm:
@@ -278,11 +278,11 @@ def symm_to_matrix_vector(instruction: str) -> Tuple[jnp.ndarray, jnp.ndarray]:
             else:
                 sign = float(xyz_match[:-1])
             if xyz_match[-1] == 'X':
-                matrix = jax.ops.index_update(matrix, jax.ops.index[xyz, 0], sign)
+                matrix = matrix.at[xyz, 0].set(sign)
             if xyz_match[-1] == 'Y':
-                matrix = jax.ops.index_update(matrix, jax.ops.index[xyz, 1], sign)
+                matrix = matrix.at[xyz, 1].set(sign)
             if xyz_match[-1] == 'Z':
-                matrix = jax.ops.index_update(matrix, jax.ops.index[xyz, 2], sign)
+                matrix = matrix.at[xyz, 2].set(sign)
     return matrix, vector
 
 
@@ -713,7 +713,7 @@ def write_fcf(
         hkl['intensity'] = np.array(intensity / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0))
         hkl['esd_int'] = np.array(esd_int / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0))
     else:
-        raise NotImplementedError('Extinction correction method is not implented in fcf routine')
+        raise NotImplementedError('Extinction correction method is not implemented in fcf routine')
 
     if fcf_mode == 6:
         dispersion_real = jnp.array([atom.dispersion_real for atom in construction_instructions])

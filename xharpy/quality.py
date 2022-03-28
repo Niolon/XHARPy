@@ -93,7 +93,7 @@ def calculate_quality_indicators(
         hkl['intensity'] = np.array(intensities / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0))
         hkl['esd_int'] = np.array(esd_int / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0))
     else:
-        raise NotImplementedError('Extinction correction method is not implented in fcf routine')
+        raise NotImplementedError('Extinction correction method is not implemented in fcf routine')
 
     intensities = hkl['intensity'].values
     esd_int = hkl['esd_int'].values

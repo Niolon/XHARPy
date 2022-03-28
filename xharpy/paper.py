@@ -266,7 +266,7 @@ def calculate_agreement(
     x = minimize(lsq_func_nosc, jac=grad, x0=start[1:], args=(uij, uij_neut_start), tol=1e-20)
     parameters_nosc = x.x
     
-    start = jax.ops.index_update(start, jax.ops.index[1:], parameters_nosc)
+    start = start.at[1:].set(parameters_nosc)
     
     lsq_func = gen_lsq(corr_func, jnp.array(weights))
     grad = jax.jit(jax.grad(lsq_func))

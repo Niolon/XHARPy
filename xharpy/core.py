@@ -1415,7 +1415,9 @@ def refine(
           - cutoff:
             Expects a tuple of three values where the first two are strings and
             the last one is a float value. First string is a cutoff mode. 
-            Currently available are 'none' where all reflections are used,
+            Currently available are 'none' where all reflections are used, 
+            'keep', where you need to set the 'included' column of the 
+            hkl pandas.Dataframe before you call the refine function,
             'sin(theta)/lambda' where the cutoff is set according to a user
             given resolution, 'fraction(f0jval)' where the resolution cutoff is
             set to include a certain fraction of the mean absolute *valence* 
@@ -1587,6 +1589,8 @@ def refine(
         elif cutoff_direction == 'below':
             hkl['included'] = i_ov_esd >= cutoff_value
         print(f'  including {sum(hkl["included"])} of {len(hkl)} reflections')
+    elif cutoff_mode == 'keep':
+        assert 'included' in hkl.columns, "With cutoff mode 'keep', the included column has to be defined beforehand"
     else:
         raise NotImplementedError("cutoff_mode has to be 'none', 'sin(theta)/lambda', 'fraction_f0jval' or 'I/esd(I)")
 

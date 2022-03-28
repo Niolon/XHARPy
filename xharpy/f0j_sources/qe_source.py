@@ -113,7 +113,7 @@ def qe_pw_file(
             'prefix': 'scf',
             'calculation': 'scf',
             'restart_mode': 'from_scratch',
-            'pseudo_dir': '/home/niklas/qe_pseudo/',
+            'pseudo_dir': './pseudo/',
             'outdir': './scratch',
         },
         'system' : {

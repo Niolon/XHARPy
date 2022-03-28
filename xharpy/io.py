@@ -42,7 +42,7 @@ def ciflike_to_dict(
         the first dataset in the file), None will return a dict with all
         datasets, with the dataset name as key, by default None
     resolve_esd : bool, optional
-        If this argrument is set to true, will split arguments, which have an
+        If this argument is set to true, will split arguments, which have an
         esd into two arguments: arg, arg_esd, False will return a string in this
         case (i.e. '12(3)'), by default True
 
@@ -71,7 +71,7 @@ def ciflike_to_dict(
     datablocks = OrderedDict()
     current_loop_lines = []
     current_loop_titles = []
-    # If there is data before the first data entrie store it as preblock
+    # If there is data before the first data entry store it as preblock
     current_block = 'preblock'
     in_loop = False
     in_loop_titles = False
@@ -263,11 +263,11 @@ def symm_to_matrix_vector(instruction: str) -> Tuple[jnp.ndarray, jnp.ndarray]:
         # search for whole numbers
         fraction3 = re.search(r'(-{0,1}\d)(?![XYZ])', element)
         if fraction1:
-            vector = jax.ops.index_update(vector, jax.ops.index[xyz], float(fraction1.group(1)) / float(fraction1.group(2)))
+            vector = vector.at[xyz].set(float(fraction1.group(1)) / float(fraction1.group(2)))
         elif fraction2:
-            vector = jax.ops.index_update(vector, jax.ops.index[xyz], float(fraction2.group(1)))
+            vector = vector.at[xyz].set(float(fraction2.group(1)))
         elif fraction3:
-            vector = jax.ops.index_update(vector, jax.ops.index[xyz], float(fraction3.group(1)))
+            vector = vector.at[xyz].set(float(fraction3.group(1)))
 
         symm = re.findall(r'-{0,1}[\d\.]{0,8}[XYZ]', element)
         for xyz_match in symm:
@@ -278,11 +278,11 @@ def symm_to_matrix_vector(instruction: str) -> Tuple[jnp.ndarray, jnp.ndarray]:
             else:
                 sign = float(xyz_match[:-1])
             if xyz_match[-1] == 'X':
-                matrix = jax.ops.index_update(matrix, jax.ops.index[xyz, 0], sign)
+                matrix = matrix.at[xyz, 0].set(sign)
             if xyz_match[-1] == 'Y':
-                matrix = jax.ops.index_update(matrix, jax.ops.index[xyz, 1], sign)
+                matrix = matrix.at[xyz, 1].set(sign)
             if xyz_match[-1] == 'Z':
-                matrix = jax.ops.index_update(matrix, jax.ops.index[xyz, 2], sign)
+                matrix = matrix.at[xyz, 2].set(sign)
     return matrix, vector
 
 
@@ -307,7 +307,7 @@ def cif2data(
         information
     cif_dataset : Union[str, int], optional
         dataset within that cif file, that is supposed to be used, when a string
-        is passed as the argrument, the dataset is selected by name. When an 
+        is passed as the argument, the dataset is selected by name. When an 
         integer is passed it is selected by index. If you have named with
         numbering, pass the number as a string (e.g. '2'), by default 0
 
@@ -590,7 +590,7 @@ def fcf2hkl_pd(
         Path to the fcf file
     fcf_dataset : Union[str, int], optional
         dataset within that fcf file, that is supposed to be used, when a string
-        is passed as the argrument, the dataset is selected by name. When an 
+        is passed as the argument, the dataset is selected by name. When an 
         integer is passed it is selected by index. If you have named with
         numbering, pass the number as a string (e.g. '2'), by default 0
     Returns
@@ -601,7 +601,7 @@ def fcf2hkl_pd(
     Raises
     ------
     ValueError
-        The file contains no table with refln_F_squared_meas as a colum
+        The file contains no table with refln_F_squared_meas as a column
     """
     fcf = ciflike_to_dict(fcf_path, fcf_dataset)
     try:
@@ -636,7 +636,7 @@ def write_fcf(
     fcf_dataset : str
         Dataset name within the fcf file.
     fcf_mode : int
-        Can be either 4 or 6 at the momenent. See SHELXL documentation
+        Can be either 4 or 6 at the moment. See SHELXL documentation
     cell : np.ndarray
         array with the lattice constants (Angstroem, Degree)
     hkl : pd.DataFrame
@@ -713,7 +713,7 @@ def write_fcf(
         hkl['intensity'] = np.array(intensity / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0))
         hkl['esd_int'] = np.array(esd_int / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0))
     else:
-        raise NotImplementedError('Extinction correction method is not implemted in fcf routine')
+        raise NotImplementedError('Extinction correction method is not implemented in fcf routine')
 
     if fcf_mode == 6:
         dispersion_real = jnp.array([atom.dispersion_real for atom in construction_instructions])
@@ -2147,6 +2147,7 @@ def cif2tsc(
         python.
     export_dict : Dict[str, Any]
         Dictionary with options for the .tsc export
+
         - f0j_source (str) : Can be one of the implemented sources for atomic
           form factors. The most common options are 'gpaw', 'gpaw_mpi' and 'qe'
         - core (str): can be either 'costant', which means the core densitsy 
@@ -2160,6 +2161,7 @@ def cif2tsc(
           density is saved to or loaded from 
         - resolution_limit (float) : resolution limit in Angstrom up to which
           the atomic form factors are evaluated, by default 0.40
+
     computation_dict : Dict[str, Any]
         Dict with options that are passed on to the f0j_source. See the 
         individual calc_f0j functions for a more detailed description

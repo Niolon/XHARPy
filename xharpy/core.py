@@ -1,8 +1,7 @@
 """This module contains the core functionality, including the refinement
 and its analysis from the XHARPy library.
 """
-
-from distutils.log import warn
+import warnings
 from jax.config import config
 from jax.core import Value
 try:
@@ -12,10 +11,10 @@ except:
 
 import datetime
 from typing import Callable, List, Dict, Tuple, Optional, Union, Any
+from dataclasses import dataclass
 import jax.numpy as jnp
 import pandas as pd
 from collections import namedtuple
-import warnings
 import jax
 import numpy as np
 import numpy.typing as npt
@@ -25,7 +24,6 @@ from scipy.optimize import minimize
 
 from .restraints import resolve_restraints
 from .conversion import calc_sin_theta_ov_lambda, ucif2ucart, cell_constants_to_M
-
 
 ### Internal Objects ####
 AtomInstructions = namedtuple('AtomInstructions', [
@@ -42,27 +40,45 @@ AtomInstructions = namedtuple('AtomInstructions', [
     'occupancy' # the occupancy
 ], defaults= [None, None, None, None, None, None, None, None])
 
+@dataclass(frozen=True)
+class RefinedParameter:
+    par_index: int
+    multiplicator: float = 1.0
+    added_value: float = 0.0
+    special_position: bool = False
 
-RefinedParameter = namedtuple('RefinedParameter', [
-    'par_index',     # index of the parameter in in the parameter array
-    'multiplicator', # Multiplicator for the parameter. (default: 1.0)
-    'added_value',    # Value that is added to the parameter (e.g. for occupancies)
-    'special_position' # stems from an atom on a special position, makes a
-                       # difference for output of occupancy
-], defaults=(None, 1, 0, False))
+    def resolve(self, parameters):
+        return self.multiplicator * parameters[self.par_index] + self.added_value
+    
+    def resolve_esd(self, var_cov_mat):
+        return jnp.abs(self.multiplicator) * np.sqrt(var_cov_mat[self.par_index, self.par_index])
 
+@dataclass(frozen=True)
+class FixedParameter:
+    value: float
+    special_position: bool = False
 
-FixedParameter = namedtuple('FixedParameter', [
-    'value',         # fixed value of the parameter 
-    'special_position' # stems from an atom on a special position, makes a
-                       # difference for output of occupancy
-], defaults=[1.0, False])
+    def resolve(self, parameters):
+        return self.value
 
-MultiIndexParameter = namedtuple('MultiIndexParameter', [
-    'par_indexes',   # tuple of indexes in the parameter array
-    'multiplicators', # tuple of multiplicators for the parameter array
-    'added_value' # a single added value
-])
+    def resolve_esd(self, var_cov_mat):
+        return jnp.nan # One could pick zero, but this should indicate that an error is not defined
+
+@dataclass(frozen=True)
+class MultiIndexParameter:
+    par_indexes: Tuple[int]
+    multiplicators: Tuple[float]
+    added_value: float
+
+    def resolve(self, parameters):
+        multiplicators = jnp.array(self.multiplicators)
+        par_values = jnp.take(parameters, jnp.array(self.par_indexes), axis=0)
+        return jnp.sum(multiplicators * par_values) + self.added_value
+    
+    def resolve_esd(self, var_cov_mat):
+        jac = jnp.array(self.multiplicators)
+        indexes = jnp.array(self.par_indexes)
+        return jnp.sqrt(jnp.sqrt(jac[None, :] @ var_cov_mat[indexes][: , indexes] @ jac[None, :].T))[0,0]
 
 Parameter = Union[RefinedParameter, FixedParameter, MultiIndexParameter]
 
@@ -88,7 +104,7 @@ TorsionCalculated = namedtuple('TorsionCalculated', [
     'angle_atom_index',   # index of atom spanning the given angle with
                           # bound atom
     'torsion_atom_index', # index of atom giving the torsion angle
-    'distance',           # interatom dpositionsistance
+    'distance',           # interatom distance
     'angle',              # interatom angle
     'torsion_angle'       # interatom torsion angle
 ])
@@ -410,42 +426,6 @@ def calc_f(
     return structure_factors
 
 
-def resolve_instruction(parameters: jnp.ndarray, instruction: Parameter) -> jnp.ndarray:
-    """Resolve a construction instruction to build the corresponding numerical
-    value
-
-    Parameters
-    ----------
-    parameters : jnp.ndarray
-        size (P) array of parameters used for the refinement
-    instruction : Parameter
-        Instruction of one of the known instruction type namedtuples to generate
-        the numerical value from the parameters and/or the values in the
-        instruction
-
-    Returns
-    -------
-    jnp.ndarray
-        a jax.numpy array of size 0 that contains the calculated value
-
-    Raises
-    ------
-    NotImplementedError
-        Type of instruction is currently not one of the known namedtuple types
-    """  
-    if type(instruction).__name__ == 'RefinedParameter':
-        return_value = instruction.multiplicator * parameters[instruction.par_index] + instruction.added_value
-    elif type(instruction).__name__ == 'FixedParameter':
-        return_value = instruction.value
-    elif type(instruction).__name__ == 'MultiIndexParameter':
-        multiplicators = jnp.array(instruction.multiplicators)
-        par_values = jnp.take(parameters, jnp.array(instruction.par_indexes), axis=0)
-        return_value = jnp.sum(multiplicators * par_values) + instruction.added_value
-    else:
-        raise NotImplementedError('This type of instruction is not implemented')
-    return return_value
-
-
 def constrained_values_to_instruction(
     par_index: int,
     mult: float,
@@ -572,18 +552,18 @@ def create_construction_instructions(
         assert gc4_atom in list(atom_table['label']), f'Atom {gc4_atom} in Gram-Charlier 4th order list but not in atom table'
     parameters = jnp.full(10000, jnp.nan)
     current_index = 1
-    parameters = jax.ops.index_update(parameters, jax.ops.index[0], scaling0)
+    parameters = parameters.at[0].set(scaling0)
     flack_index = get_parameter_index('flack', refinement_dict)
     if flack_index is not None:
-        parameters = jax.ops.index_update(parameters, jax.ops.index[flack_index], 0.0)
+        parameters = parameters.at[flack_index].set(0.0)
         current_index += 1
     core_index = get_parameter_index('core', refinement_dict)
     if core_index is not None:
-        parameters = jax.ops.index_update(parameters, jax.ops.index[core_index], 1.0)
+        parameters = parameters.at[core_index].set(1.0)
         current_index += 1
     extinction_index = get_parameter_index('extinction', refinement_dict)
     if extinction_index is not None:
-        parameters = jax.ops.index_update(parameters, jax.ops.index[extinction_index], exti0)
+        parameters = parameters.at[extinction_index].set(exti0)
         current_index += 1
     construction_instructions = []
     known_torsion_indexes = {}
@@ -644,7 +624,7 @@ def create_construction_instructions(
                     x = np.dot(n1, n2)
                     y = np.dot(m1, n2)
                     torsion0 = np.arctan2(y, x) - np.deg2rad(constraint.torsion_angle_add)
-                    parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], torsion0)
+                    parameters = parameters.at[current_index].set(torsion0)
                     known_torsion_indexes[index_tuple] = current_index
                     torsion_parameter_index = current_index
                     current_index += 1
@@ -676,16 +656,14 @@ def create_construction_instructions(
                 n_pars = max(max(entry) if is_multientry(entry) else entry for entry in constraint.variable_indexes) + 1
                 # MultiIndexParameter can never be unique so we can throw it out
                 u_indexes = [-1 if is_multientry(entry) else entry for entry in constraint.variable_indexes]
-                parameters = jax.ops.index_update(
-                    parameters,
-                    jax.ops.index[current_index:current_index + n_pars],
+                parameters = parameters.at[current_index:current_index + n_pars].set(
                     [xyz[jnp.array(varindex)] for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0]
                 )
                 current_index += n_pars
             else:
                 raise(NotImplementedError(f'Unknown type of xyz constraint for atom {atom["label"]}'))
         else:
-            parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + 3], list(xyz))
+            parameters = parameters.at[current_index:current_index + 3].set(list(xyz))
             xyz_instructions = tuple(RefinedParameter(par_index=int(array_index), multiplicator=1.0) for array_index in range(current_index, current_index + 3))
             current_index += 3
 
@@ -702,9 +680,7 @@ def create_construction_instructions(
                     # MultiIndexParameter can never be unique so we can throw it out
                     u_indexes = [-1 if is_multientry(entry) else entry for entry in constraint.variable_indexes]
 
-                    parameters = jax.ops.index_update(
-                        parameters,
-                        jax.ops.index[current_index:current_index + n_pars],
+                    parameters = parameters.at[current_index:current_index + n_pars].set(
                         [adp[jnp.array(varindex)] for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0]
                     )
                     current_index += n_pars
@@ -714,7 +690,7 @@ def create_construction_instructions(
                 else:
                     raise NotImplementedError('Unknown Uij Constraint')
             else:
-                parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + 6], list(adp))
+                parameters = parameters.at[current_index:current_index + 6].set(list(adp))
                 adp_instructions = tuple(RefinedParameter(par_index=int(array_index), multiplicator=1.0) for array_index in range(current_index, current_index + 6))
                 current_index += 6
         elif atom['adp_type'] == 'Uiso':
@@ -725,7 +701,7 @@ def create_construction_instructions(
                         adp_instructions = UEquivCalculated(atom_index=bound_index, multiplicator=constraint.multiplicator)
             else:
                 adp_instructions = UIso(uiso=RefinedParameter(par_index=int(current_index), multiplicator=1.0))
-                parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], float(atom['U_iso_or_equiv']))
+                parameters = parameters.at[current_index].set(float(atom['U_iso_or_equiv']))
                 current_index += 1
         else:
             raise NotImplementedError('Unknown ADP type in cif. Please use the Uiso or Uani convention')
@@ -745,15 +721,13 @@ def create_construction_instructions(
             # MultiIndexParameter can never be unique so we can throw it out
             u_indexes = [-1 if is_multientry(entry) else entry for entry in constraint.variable_indexes]
 
-            parameters = jax.ops.index_update(
-                parameters,
-                jax.ops.index[current_index:current_index + n_pars],
+            parameters = parameters.at[current_index:current_index + n_pars].set(
                 [cijk[jnp.array(varindex)] for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0]
             )
 
             current_index += n_pars
         elif atom['label'] in atoms_for_gc3:
-            parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + 10], list(cijk))
+            parameters = parameters.at[current_index:current_index + 10].set(list(cijk))
             cijk_instructions = tuple(RefinedParameter(par_index=int(array_index), multiplicator=1.0) for array_index in range(current_index, current_index + 10))
             current_index += 10
         else:
@@ -772,14 +746,12 @@ def create_construction_instructions(
             n_pars = max(max(entry) if is_multientry(entry) else entry for entry in constraint.variable_indexes) + 1
             # MultiIndexParameter can never be unique so we can throw it out
             u_indexes = [-1 if is_multientry(entry) else entry for entry in constraint.variable_indexes]
-            parameters = jax.ops.index_update(
-                parameters,
-                jax.ops.index[current_index:current_index + n_pars],
+            parameters = parameters.at[current_index:current_index + n_pars].set(
                 [dijkl[jnp.array(varindex)]*1e3 for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0]
             )
             current_index += n_pars
         elif atom['label'] in atoms_for_gc4:
-            parameters = jax.ops.index_update(parameters, jax.ops.index[current_index:current_index + 15], list(dijkl*1e3))
+            parameters = parameters.at[current_index:current_index + 15].set(list(dijkl*1e3))
             dijkl_instructions = tuple(RefinedParameter(par_index=int(array_index), multiplicator=1e-3) for array_index in range(current_index, current_index + 15))
             current_index += 15
         else:
@@ -795,7 +767,7 @@ def create_construction_instructions(
                 else:
                     parameter_index = current_index
                     common_occupancy_indexes[constraint.label] = parameter_index
-                    parameters = jax.ops.index_update(parameters, jax.ops.index[current_index], atom['occupancy'] / float(constraint.multiplicator))
+                    parameters = parameters.at[current_index].set(atom['occupancy'] / float(constraint.multiplicator))
                     current_index += 1
                 occupancy = RefinedParameter(
                     par_index=int(parameter_index),
@@ -870,24 +842,24 @@ def construct_values(
     cell_mat_f = jnp.linalg.inv(cell_mat_m).T
     lengths_star = jnp.linalg.norm(cell_mat_f, axis=0)
     xyz = jnp.array(
-        [jnp.array([resolve_instruction(parameters, inner_instruction) for inner_instruction in instruction.xyz])
+        [jnp.array([inner_instruction.resolve(parameters) for inner_instruction in instruction.xyz])
           if type(instruction.xyz) in (tuple, list) else jnp.full(3, -9999.9) for instruction in construction_instructions]
     )
     uij = jnp.array(
-        [jnp.array([resolve_instruction(parameters, inner_instruction) for inner_instruction in instruction.uij])
+        [jnp.array([inner_instruction.resolve(parameters) for inner_instruction in instruction.uij])
           if type(instruction.uij) in (tuple, list) else jnp.full(6, -9999.9) for instruction in construction_instructions]
     )
     
     cijk = jnp.array(
-        [jnp.array([resolve_instruction(parameters, inner_instruction) for inner_instruction in instruction.cijk])
+        [jnp.array([inner_instruction.resolve(parameters) for inner_instruction in instruction.cijk])
           if type(instruction.cijk) in (tuple, list) else jnp.full(6, -9999.9) for instruction in construction_instructions]
     )
     
     dijkl = jnp.array(
-        [jnp.array([resolve_instruction(parameters, inner_instruction) for inner_instruction in instruction.dijkl])
+        [jnp.array([inner_instruction.resolve(parameters) for inner_instruction in instruction.dijkl])
           if type(instruction.dijkl) in (tuple, list) else jnp.full(6, -9999.9) for instruction in construction_instructions]
     )
-    occupancies = jnp.array([resolve_instruction(parameters, instruction.occupancy) for instruction in construction_instructions])    
+    occupancies = jnp.array([instruction.occupancy.resolve(parameters) for instruction in construction_instructions])    
 
     # second loop here for constructed options in order to have everything already available
     for index, instruction in enumerate(construction_instructions):
@@ -898,16 +870,16 @@ def construct_values(
             torsion_xyz = cell_mat_m @ xyz[instruction.xyz.torsion_atom_index]
             vec_ab = (angle_xyz - torsion_xyz)
             vec_bc_norm = -(bound_xyz - angle_xyz) / jnp.linalg.norm(bound_xyz - angle_xyz)
-            distance = resolve_instruction(parameters, instruction.xyz.distance)
-            angle = resolve_instruction(parameters, instruction.xyz.angle)
-            torsion_angle = resolve_instruction(parameters, instruction.xyz.torsion_angle)
+            distance = instruction.xyz.distance.resolve(parameters)
+            angle = instruction.xyz.angle.resolve(parameters)
+            torsion_angle = instruction.xyz.torsion_angle.resolve(parameters)
             vec_d2 = jnp.array([distance * jnp.cos(angle),
                                 distance * jnp.sin(angle) * jnp.cos(torsion_angle),
                                 distance * jnp.sin(angle) * jnp.sin(torsion_angle)])
             vec_n = jnp.cross(vec_ab, vec_bc_norm)
             vec_n = vec_n / jnp.linalg.norm(vec_n)
             rotation_mat_m = jnp.array([vec_bc_norm, jnp.cross(vec_n, vec_bc_norm), vec_n]).T
-            xyz = jax.ops.index_update(xyz, jax.ops.index[index], cell_mat_f @ (rotation_mat_m @ vec_d2 + bound_xyz))
+            xyz = xyz.at[index].set(cell_mat_f @ (rotation_mat_m @ vec_d2 + bound_xyz))
 
         elif type(instruction.xyz).__name__ == 'SingleTrigonalCalculated':
             bound_xyz = xyz[instruction.xyz.bound_atom_index]
@@ -918,7 +890,7 @@ def construct_values(
             addition = (direction1 / jnp.linalg.norm(cell_mat_m @ direction1)
                         + direction2 / jnp.linalg.norm(cell_mat_m @ direction2))
             direction = addition / jnp.linalg.norm(cell_mat_m @ addition)
-            xyz = jax.ops.index_update(xyz, jax.ops.index[index], bound_xyz + direction * instruction.xyz.distance)
+            xyz = xyz.at[index].set(bound_xyz + direction * instruction.xyz.distance)
         
         elif type(instruction.xyz).__name__ == 'TetrahedralCalculated':
             bound_xyz = xyz[instruction.xyz.bound_atom_index]
@@ -933,62 +905,25 @@ def construct_values(
                         + direction3 / jnp.linalg.norm(cell_mat_m @ direction3))
 
             direction = (addition) / jnp.linalg.norm(cell_mat_m @ (addition))
-            xyz = jax.ops.index_update(xyz, jax.ops.index[index], bound_xyz + direction * instruction.xyz.distance)
+            xyz = xyz.at[index].set(bound_xyz + direction * instruction.xyz.distance)
 
         # constrained displacements
         if type(instruction.uij).__name__ == 'UEquivCalculated':
             uij_parent = uij[instruction.uij.atom_index, jnp.array([[0, 5, 4], [5, 1, 3], [4, 3, 2]])]
             u_cart = ucif2ucart(cell_mat_m, uij_parent[None,:, :])
             uiso = jnp.trace(u_cart[0]) / 3
-            uij = jax.ops.index_update(uij, jax.ops.index[index, :3], jnp.array([uiso, uiso, uiso]))
-            uij = jax.ops.index_update(uij, jax.ops.index[index, 3], uiso * jnp.sum(cell_mat_f[:, 1] * cell_mat_f[:, 2]) / lengths_star[1] / lengths_star[2])
-            uij = jax.ops.index_update(uij, jax.ops.index[index, 4], uiso * jnp.sum(cell_mat_f[:, 0] * cell_mat_f[:, 2]) / lengths_star[0] / lengths_star[2])
-            uij = jax.ops.index_update(uij, jax.ops.index[index, 5], uiso * jnp.sum(cell_mat_f[:, 0] * cell_mat_f[:, 1]) / lengths_star[0] / lengths_star[1])
+            uij = uij.at[index, :3].set(jnp.array([uiso, uiso, uiso]))
+            uij = uij.at[index, 3].set(uiso * jnp.sum(cell_mat_f[:, 1] * cell_mat_f[:, 2]) / lengths_star[1] / lengths_star[2])
+            uij = uij.at[index, 4].set(uiso * jnp.sum(cell_mat_f[:, 0] * cell_mat_f[:, 2]) / lengths_star[0] / lengths_star[2])
+            uij = uij.at[index, 5].set(uiso * jnp.sum(cell_mat_f[:, 0] * cell_mat_f[:, 1]) / lengths_star[0] / lengths_star[1])
         elif type(instruction.uij).__name__ == 'Uiso':
-            uiso = resolve_instruction(parameters, instruction.uij.uiso)
-            uij = jax.ops.index_update(uij, jax.ops.index[index, :3], jnp.array([uiso, uiso, uiso]))
-            uij = jax.ops.index_update(uij, jax.ops.index[index, 3], uiso * jnp.sum(cell_mat_f[:, 1] * cell_mat_f[:, 2]) / lengths_star[1] / lengths_star[2])
-            uij = jax.ops.index_update(uij, jax.ops.index[index, 4], uiso * jnp.sum(cell_mat_f[:, 0] * cell_mat_f[:, 2]) / lengths_star[0] / lengths_star[2])
-            uij = jax.ops.index_update(uij, jax.ops.index[index, 5], uiso * jnp.sum(cell_mat_f[:, 0] * cell_mat_f[:, 1]) / lengths_star[0] / lengths_star[1])
+            uiso = instruction.uij.uiso.resolve(parameters)
+            uij = uij.at[index, :3].set(jnp.array([uiso, uiso, uiso]))
+            uij = uij.at[index, 3].set(uiso * jnp.sum(cell_mat_f[:, 1] * cell_mat_f[:, 2]) / lengths_star[1] / lengths_star[2])
+            uij = uij.at[index, 4].set(uiso * jnp.sum(cell_mat_f[:, 0] * cell_mat_f[:, 2]) / lengths_star[0] / lengths_star[2])
+            uij = uij.at[index, 5].set(uiso * jnp.sum(cell_mat_f[:, 0] * cell_mat_f[:, 1]) / lengths_star[0] / lengths_star[1])
     return xyz, uij, cijk, dijkl, occupancies
 
-def resolve_instruction_esd(
-    var_cov_mat: jnp.ndarray,
-    instruction: Parameter
-) -> float:
-    """Calculates the estimated standard deviation (esd) for a value calculated 
-    from a parameter
-
-    Parameters
-    ----------
-    var_cov_mat : jnp.ndarray
-        size (P, P) array containing the variances and covariances, where P is the
-        number of refined parameters.
-    instruction : Parameter
-        one parameter instruction, as used for generating atomic parameters
-        (and in this case esds) from the refined parameters
-
-    Returns
-    -------
-    esd: float
-        estimated standart deviation as float or np.nan if parameter has no esd
-
-    Raises
-    ------
-    NotImplementedError
-        Unknown type of Parameter used
-    """
-    if type(instruction).__name__ == 'RefinedParameter':
-        return_value = np.abs(instruction.multiplicator) * np.sqrt(var_cov_mat[instruction.par_index, instruction.par_index])
-    elif type(instruction).__name__ == 'FixedParameter':
-        return_value = jnp.nan # One could pick zero, but this should indicate that an error is not defined
-    elif type(instruction).__name__ == 'MultiIndexParameter':
-        jac = jnp.array(instruction.multiplicators)
-        indexes = jnp.array(instruction.par_indexes)
-        return_value = jnp.sqrt(jnp.sqrt(jac[None, :] @ var_cov_mat[indexes][: , indexes] @ jac[None, :].T))[0,0]
-    else:
-        raise NotImplementedError('Unknown type of parameters')
-    return return_value
 
 def construct_esds(
     var_cov_mat: jnp.ndarray,
@@ -1022,28 +957,28 @@ def construct_esds(
     """
     # TODO Build analogous to the distance calculation function to get esds for all non-primitive calculations
     xyz = jnp.array(
-        [[resolve_instruction_esd(var_cov_mat, inner_instruction) for inner_instruction in instruction.xyz]
+        [[inner_instruction.resolve_esd(var_cov_mat) for inner_instruction in instruction.xyz]
           if type(instruction.xyz) in (tuple, list, np.ndarray, jnp.ndarray) else jnp.full(3, jnp.nan) 
           for instruction in construction_instructions]
     )
     uij = jnp.array(
-        [[resolve_instruction_esd(var_cov_mat, inner_instruction) for inner_instruction in instruction.uij]
+        [[inner_instruction.resolve_esd(var_cov_mat) for inner_instruction in instruction.uij]
           if type(instruction.uij) in (tuple, list, np.ndarray, jnp.ndarray) else jnp.full(6, jnp.nan) 
           for instruction in construction_instructions]
     )
     
     cijk = jnp.array(
-        [[resolve_instruction_esd(var_cov_mat, inner_instruction) for inner_instruction in instruction.cijk]
+        [[inner_instruction.resolve_esd(var_cov_mat) for inner_instruction in instruction.cijk]
           if type(instruction.cijk) in (tuple, list, np.ndarray, jnp.ndarray) else jnp.full(6, jnp.nan) 
           for instruction in construction_instructions]
     )
     
     dijkl = jnp.array(
-        [[resolve_instruction_esd(var_cov_mat, inner_instruction) for inner_instruction in instruction.dijkl]
+        [[inner_instruction.resolve_esd(var_cov_mat) for inner_instruction in instruction.dijkl]
           if type(instruction.dijkl) in (tuple, list, np.ndarray, jnp.ndarray) else jnp.full(6, jnp.nan) 
           for instruction in construction_instructions]
     )
-    occupancies = jnp.array([resolve_instruction_esd(var_cov_mat, instruction.occupancy) for instruction in construction_instructions])
+    occupancies = jnp.array([instruction.occupancy.resolve_esd(var_cov_mat) for instruction in construction_instructions])
     return xyz, uij, cijk, dijkl, occupancies    
 
 def calc_lsq_factory(
@@ -1354,7 +1289,7 @@ def refine(
         pandas DataFrame containing the reflection data. Needs to have at least
         five columns: h, k, l, intensity, weight. Alternatively weight can be 
         substituted by esd_int. If no weight column is available the weights
-        will be calculated as 1/est_int**2. Additional columns will be ignored
+        will be calculated as 1/esd_int**2. Additional columns will be ignored
     construction_instructions : List[AtomInstructions]
         List of instructions for reconstructing the atomic parameters from the
         list of refined parameters
@@ -1365,6 +1300,7 @@ def refine(
         style extinction correction. Can be omitted otherwise, by default None
     refinement_dict : dict, optional
         Dictionary with refinement options, by default {}
+
         Available options are:
           - f0j_source: 
             Source of the atomic form factors. The computation_dict 
@@ -1460,6 +1396,7 @@ def refine(
     print('Preparing')
     index_vec_h = jnp.array(hkl[['h', 'k', 'l']].values.copy())
     type_symbols = [atom.element for atom in construction_instructions]
+    parameters = jnp.array(parameters)
     constructed_xyz, constructed_uij, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
 
     dispersion_real = jnp.array([atom.dispersion_real for atom in construction_instructions])
@@ -1613,16 +1550,16 @@ def refine(
     def minimize_scaling(x, parameters):
         parameters_new = None
         for index, value in enumerate(x):
-            parameters_new = jax.ops.index_update(parameters, jax.ops.index[index], value)
+            parameters_new = parameters.at[index].set(value)
         return calc_lsq(parameters_new, f0j), grad_calc_lsq(parameters_new, f0j)[:len(x)]
     print('step 0: Optimizing scaling')
     x = minimize(minimize_scaling,
-                 args=(parameters.copy()),
+                 args=(jnp.array(parameters)),
                  x0=parameters[0],
                  jac=True,
                  options={'gtol': 1e-8 * jnp.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)})
     for index, val in enumerate(x.x):
-        parameters = jax.ops.index_update(parameters, jax.ops.index[index], val)
+        parameters = parameters.at[index].set(val)
     print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)):8.6f}, number of iterations: {x.nit}')
 
     r_opt_density = 1e10
@@ -1634,7 +1571,6 @@ def refine(
                      method='BFGS',
                      args=(jnp.array(f0j)),
                      options={'gtol': 1e-13 * jnp.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)})
-        
         print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)):8.6f}, number of iterations: {x.nit}')
         shift = parameters - x.x
         parameters = jnp.array(x.x) 

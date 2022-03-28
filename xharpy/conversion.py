@@ -1,11 +1,11 @@
-"""Contains conversions, that are needed in different parts of the library
-is not meant to import from anywhere within XHARPy so that its functions can
-be import without circular imports"""
+"""This module contains conversions, that are needed in different parts of the 
+library. It is not meant to import from anywhere within XHARPy so that its
+functions can be import without circular imports"""
 
 import jax.numpy as jnp
 
 def ucif2ucart(cell_mat_m: jnp.ndarray, u_mats: jnp.ndarray) -> jnp.ndarray:
-    """Calculate anistropic displacement matrices in the cartesian convention
+    """Calculate anisotropic displacement matrices in the cartesian convention
     from the displacement matrices in the cif convention
     see: R. W. Grosse-Kunstleve and P. D. Adams J. Appl. Cryst 2002, p.478
     eq. 3a + 4a
@@ -122,7 +122,7 @@ def calc_sin_theta_ov_lambda(
     cell_mat_f: jnp.ndarray,
     index_vec_h: jnp.ndarray
 ) -> jnp.ndarray:
-    """Calculate the resolution in sin(theta)/lambda for the given set of miller
+    """Calculate the resolution in sin(theta)/lambda for the given set of Miller
     indicees
 
     Parameters
@@ -136,6 +136,6 @@ def calc_sin_theta_ov_lambda(
     Returns
     -------
     sin_theta_ov_lambda: jnp.ndarray
-        size (H) array containing the calculated values
+        size (H) array containing the calculated resolution values
     """
     return jnp.linalg.norm(jnp.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 

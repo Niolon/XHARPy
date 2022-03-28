@@ -230,7 +230,7 @@ if __name__ == '__main__':
     parser.add_argument('--hkl_name', nargs=1, help='Name of the shelx style hkl file')
     parser.add_argument('--extinction', nargs=1, help='Type of extinction refinement must be either none/shelxl/secondary', choices=['none', 'shelxl', 'secondary'])
     parser.add_argument('--xc', nargs=1, help='Functional to be used by GPAW')
-    parser.add_argument('--gridspacing', nargs=1, type=float, help='Grid spacing for the calculation of the wavefundction')
+    parser.add_argument('--gridspacing', nargs=1, type=float, help='Grid spacing for the calculation of the wavefunction')
     parser.add_argument('--kpoints', nargs=3, type=int, help='Number of k_points for the periodic calculation (3 arguments)')
     parser.add_argument('--mpi_cores', nargs=1, help='Number of cores for the multi-core calculation with mpi (1 = no mpi, auto=auto)')
     parser.add_argument('--output_folder', nargs=1, help='Folder for output of cif and fcf file')

@@ -174,9 +174,9 @@ def calculate_agreement(
         Dictionary with different aggregated quality indicators for the HAR
         dataset and its comparison to the neutron dataset
     bond_comparison : pd.DataFrame,
-        DataFrame containing the merged distances from both cif files inclusing
+        DataFrame containing the merged distances from both cif files including
         esd for comparison and plotting
-    adp_compparison : pd.DataFrame
+    adp_comparison : pd.DataFrame
         DataFrame containing the comparison of the ADPs for each individual 
         atom. For the comparison there are three prefixes: 
         'nosc' means no correction according to Blessing, 'qdel' means a full 
@@ -266,7 +266,7 @@ def calculate_agreement(
     x = minimize(lsq_func_nosc, jac=grad, x0=start[1:], args=(uij, uij_neut_start), tol=1e-20)
     parameters_nosc = x.x
     
-    start = jax.ops.index_update(start, jax.ops.index[1:], parameters_nosc)
+    start = start.at[1:].set(parameters_nosc)
     
     lsq_func = gen_lsq(corr_func, jnp.array(weights))
     grad = jax.jit(jax.grad(lsq_func))

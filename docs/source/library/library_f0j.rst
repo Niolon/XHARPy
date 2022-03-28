@@ -15,7 +15,7 @@ contains the function(s) that are called to calculate the atomic form
 factors in the custom refinement, as well as a computation dict for 
 any settings you want to pass to your function. This is meant for
 development. If you have build something working and nice, please 
-consider transfering your sources to an \*_source.py file and uploading 
+consider transferring your sources to an \*_source.py file and uploading 
 it to the XHARPy Repository, at least after you have published your 
 results.
 
@@ -304,14 +304,14 @@ Contains options for the .tsc source
 - file_name (str): Path to the .tsc file, by default 'to_xharpy.tsc'
 - call_function (python function): If this option is not 'none' you can
   pass a function, which will be called in each Hirshfeld cycle. The
-  function receives four arguments: labels contrains the atom label for 
-  each atom in the asymmetric unit, element_symbols containts the 
+  function receives four arguments: labels contains the atom label for 
+  each atom in the asymmetric unit, element_symbols contains the 
   element symbols (e.g. H, Na), positions are the atomic positions in 
   FRACTIONAL coordinates, restart is a bool, which you can check to 
   trigger a start of a calculation from a precalculated density. 
   (Usually you would want to start the first step with a calculation 
   from scratch and then recycle for all other HAR cycles, as the
-  differences in posutions get smaller). At the end of the function
+  differences in positions get smaller). At the end of the function
   you should write a new .tsc file with the atomic form factors,
   by default 'none'
 - call_args (List): If you have a call_function you can use this

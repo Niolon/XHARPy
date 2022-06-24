@@ -2150,7 +2150,7 @@ def cif2tsc(
 
         - f0j_source (str) : Can be one of the implemented sources for atomic
           form factors. The most common options are 'gpaw', 'gpaw_mpi' and 'qe'
-        - core (str): can be either 'costant', which means the core densitsy 
+        - core (str): can be either 'constant', which means the core densitsy 
           will be evaluated on a separate spherical grid and assigned to the 
           source atom completely, or 'combine' in which case the core density is
           expanded and partitioned in the same way the valence density is

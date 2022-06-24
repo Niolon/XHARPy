@@ -95,7 +95,7 @@ def cli(**kwargs):
     if 'gridspacing' not in kwargs:
         computation_dict['h'] = float(input_with_default(
             'Give the grid-spacing for the FD wavefunction calculation',
-            '0.20'
+            '0.16'
         ))
     else:
         computation_dict['h'] = kwargs['gridspacing'][0]

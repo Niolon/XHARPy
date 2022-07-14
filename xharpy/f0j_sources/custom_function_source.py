@@ -8,7 +8,7 @@ library for everyone to use, at the latest after successful publication.
 
 import numpy as np
 from typing import List, Tuple, Dict, Any
-from ..core import AtomInstructions
+from ..structure.common import AtomInstructions
 
 
 def calc_f0j(

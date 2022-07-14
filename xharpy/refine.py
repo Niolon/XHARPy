@@ -3,7 +3,6 @@ and its analysis from the XHARPy library.
 """
 import warnings
 from jax.config import config
-from jax.core import Value
 try:
     config.update('jax_enable_x64', True)
 except:
@@ -20,7 +19,9 @@ from copy import deepcopy
 import pickle
 from scipy.optimize import minimize
 
+from .defaults import get_parameter_index, get_value_or_default
 from .structure.common import AtomInstructions
+from .structure.construct import construct_values, construct_esds
 from .restraints import resolve_restraints
 from .conversion import calc_sin_theta_ov_lambda, ucif2ucart, cell_constants_to_M
 
@@ -873,78 +874,3 @@ def refine(
     }
     return parameters, var_cov_mat, additional_information
 
-
-def create_atom_table(
-    cell: jnp.ndarray,
-    construction_instructions: List[AtomInstructions],
-    parameters: jnp.ndarray,
-    var_cov_mat: jnp.ndarray
-) -> pd.DataFrame:
-    """Recreates an atom table from the refined parameters
-
-    Parameters
-    ----------
-    cell : jnp.ndarray
-        size (6) array of cell parameters in degrees and Angstroem.
-    construction_instructions : List[AtomInstructions]
-        List of atomic instruction for reconstruction of the parameters. 
-        Needs to be the same, that was used for refinement.
-    parameters : jnp.ndarray
-        size (P) array of refined parameters
-    var_cov_mat : jnp.ndarray
-        size (P, P) array of the variance-covariance matrix
-
-
-    Returns
-    -------
-    atom_table: pd.DataFrame
-        The atom_table dataframe
-    """
-    atom_table_new = pd.DataFrame(columns=[
-        'label', 'type_symbol', 'fract_x', 'fract_y', 'fract_z', 
-        'fract_x_esd', 'fract_y_esd', 'fract_z_esd', 'U_11', 'U_22',
-        'U_33', 'U_23', 'U_13', 'U_12', 'U_11_esd', 'U_22_esd', 'U_33_esd',
-        'U_23_esd', 'U_13_esd', 'U_12_esd', 'occupancy', 'occupancy_esd',
-        'type_scat_dispersion_real', 'type_scat_dispersion_imag', 'adp_type'
-    ])
-
-    xyz, uij, cijk, dijkl, occ = construct_values(
-        parameters,
-        construction_instructions,
-        cell_constants_to_M(*cell)
-    )
-
-    xyz_esd, uij_esd, cijk_esd, dijkl_esd, occ_esd = construct_esds(
-        var_cov_mat,
-        construction_instructions
-    )
-
-    atom_table_new['label'] = [instr.name for instr in construction_instructions]
-    atom_table_new['type_symbol'] = [instr.element for instr in construction_instructions]
-    atom_table_new[['fract_x', 'fract_y', 'fract_z']] = np.array(xyz)
-    atom_table_new[['fract_x_esd', 'fract_y_esd', 'fract_z_esd']] = np.array(xyz_esd)
-    atom_table_new[['U_11', 'U_22', 'U_33', 'U_23', 'U_13', 'U_12']] = uij
-    atom_table_new[['U_11_esd', 'U_22_esd', 'U_33_esd', 'U_23_esd', 'U_13_esd', 'U_12_esd']] = np.array(uij_esd)
-    atom_table_new[[
-        'C_111', 'C_222', 'C_333', 'C_112', 'C_122', 'C_113', 'C_133', 'C_223', 'C_233', 'C_123'
-    ]] = np.array(cijk)
-    atom_table_new[[
-        'C_111_esd', 'C_222_esd', 'C_333_esd', 'C_112_esd', 'C_122_esd', 'C_113_esd', 'C_133_esd',
-        'C_223_esd', 'C_233_esd', 'C_123_esd'
-    ]] = np.array(cijk_esd)
-    atom_table_new[[
-        'D_1111', 'D_2222', 'D_3333', 'D_1112', 'D_1222', 'D_1113', 'D_1333', 'D_2223', 'D_2333',
-        'D_1122', 'D_1133', 'D_2233', 'D_1123', 'D_1223', 'D_1233'
-    ]] = np.array(dijkl)
-    atom_table_new[[
-        'D_1111_esd', 'D_2222_esd', 'D_3333_esd', 'D_1112_esd', 'D_1222_esd',
-        'D_1113_esd', 'D_1333_esd', 'D_2223_esd', 'D_2333_esd', 'D_1122_esd',
-        'D_1133_esd', 'D_2233_esd', 'D_1123_esd', 'D_1223_esd', 'D_1233_esd'
-    ]] = np.array(dijkl_esd)
-    atom_table_new['occupancy'] = np.array(occ)
-    atom_table_new['occupancy_esd'] = np.array(occ_esd)
-    atom_table_new['adp_type'] = ['Uani' if type(instr.uij) in (tuple, list) else 'Uiso' for instr in construction_instructions]
-    atom_table_new['type_scat_dispersion_real'] = [instr.dispersion_real for instr in construction_instructions]
-    atom_table_new['type_scat_dispersion_imag'] = [instr.dispersion_imag for instr in construction_instructions]
-
-    return atom_table_new

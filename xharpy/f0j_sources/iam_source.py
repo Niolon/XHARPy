@@ -7,7 +7,7 @@ import numpy as np
 
 from typing import Any, Dict, List, Tuple
 
-from ..core import AtomInstructions
+from ..structure.common import AtomInstructions
 
 
 element_parameters = {

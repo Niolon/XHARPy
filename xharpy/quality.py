@@ -2,8 +2,14 @@
 This module contains functions for calculating quality indicators for a
 finished refinement.   
 """
+from .structure.common import AtomInstructions
 
-from .core import AtomInstructions, calc_f, construct_values, get_value_or_default, get_parameter_index
+from .structure.construct import construct_values
+
+from .refine import calc_f
+
+from .defaults import get_parameter_index, get_value_or_default
+
 import pandas as pd
 from typing import Tuple, List, Dict, Any, Union
 from .conversion import calc_sin_theta_ov_lambda, cell_constants_to_M, calc_sin_theta_ov_lambda

@@ -1,9 +1,13 @@
 import warnings
 from collections import namedtuple
 from typing import Tuple, Union
+from ..better_abc import ABCMeta, abstractmethod
 try:
     import jax.numpy as jnp
+    import jax
 except:
+    import numpy as jnp
+    import math as jax
     warnings.warn('Jax was not found. Refinement will not be available')
 
 from dataclasses import dataclass
@@ -22,8 +26,17 @@ AtomInstructions = namedtuple('AtomInstructions', [
     'occupancy' # the occupancy
 ], defaults= [None, None, None, None, None, None, None, None])
 
+class Parameter(metaclass=ABCMeta):
+    @abstractmethod
+    def resolve(self, parameters):
+        return None
+
+    @abstractmethod
+    def resolve_esd(self, var_cov_mat):
+        return None
+
 @dataclass(frozen=True)
-class RefinedParameter:
+class RefinedParameter(Parameter):
     par_index: int
     multiplicator: float = 1.0
     added_value: float = 0.0
@@ -36,23 +49,23 @@ class RefinedParameter:
         return jnp.abs(self.multiplicator) * jnp.sqrt(var_cov_mat[self.par_index, self.par_index])
 
 @dataclass(frozen=True)
-class FixedParameter:
+class FixedParameter(Parameter):
     value: float
     special_position: bool = False
 
-    def resolve(self, parameters):
+    def resolve(self, parameters, **kwargs):
         return self.value
 
     def resolve_esd(self, var_cov_mat):
         return jnp.nan # One could pick zero, but this should indicate that an error is not defined
 
 @dataclass(frozen=True)
-class MultiIndexParameter:
+class MultiIndexParameter(Parameter):
     par_indexes: Tuple[int]
     multiplicators: Tuple[float]
     added_value: float
 
-    def resolve(self, parameters):
+    def resolve(self, parameters, **kwargs):
         multiplicators = jnp.array(self.multiplicators)
         par_values = jnp.take(parameters, jnp.array(self.par_indexes), axis=0)
         return jnp.sum(multiplicators * par_values) + self.added_value
@@ -62,13 +75,13 @@ class MultiIndexParameter:
         indexes = jnp.array(self.par_indexes)
         return jnp.sqrt(jnp.sqrt(jac[None, :] @ var_cov_mat[indexes][: , indexes] @ jac[None, :].T))[0,0]
 
-Parameter = Union[RefinedParameter, FixedParameter, MultiIndexParameter]
+#Parameter = Union[RefinedParameter, FixedParameter, MultiIndexParameter]
 
 @dataclass(frozen=True)
 class Array:
     parameter_tuple: Tuple[Parameter]
     derived: bool = False
-    def resolve(self, parameters):
+    def resolve(self, parameters, **kwargs):
         return jnp.array([par.resolve(parameters) for par in self.parameter_tuple])
 
     def resolve_esd(self, var_cov_mat):

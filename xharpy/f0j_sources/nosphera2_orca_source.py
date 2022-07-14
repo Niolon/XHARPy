@@ -1,7 +1,8 @@
 from typing import List, Tuple, Dict, Any
 
 from ..conversion import cell_constants_to_M
-from ..core import construct_values, AtomInstructions
+from ..structure.common import AtomInstructions
+from ..structure.construct import construct_values
 from ..io import symm_to_matrix_vector
 from .tsc_file_source import calc_f0j as calc_f0j_tsc
 

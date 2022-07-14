@@ -4,7 +4,7 @@ import pandas as pd
 from typing import Tuple, Dict, Any, Optional, List
 
 from ..conversion import cell_constants_to_M
-
+from ..defaults import get_parameter_index
 from .common import jnp
 from .common import (
     AtomInstructions, FixedParameter, RefinedParameter, MultiIndexParameter,
@@ -12,6 +12,7 @@ from .common import (
 )
 
 from .positions import SingleTrigonalCalculated, TetrahedralCalculated, TorsionCalculated
+from .displacements import IsoTFactor, UEquivTFactor, AnisoTFactor
 
 CommonOccupancyParameter = namedtuple('CommonOccupancyParameter', [
     'label'        , # any identifying label that is immutable
@@ -333,7 +334,14 @@ def create_construction_instructions(
                     constraint = constraint_dict[atom['label']]['uij']
                     if type(constraint).__name__ == 'ConstrainedValues':
                         instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value) 
-                        adp_instructions = tuple(constrained_values_to_instruction(par_index, mult, add, constraint, current_index) for par_index, mult, add in instr_zip)
+                        adp_pars = Array(parameter_tuple=tuple(constrained_values_to_instruction(
+                            par_index,
+                            mult,
+                            add,
+                            constraint,
+                            current_index) for par_index, mult, add in instr_zip)
+                        )
+                        adp_instructions = AnisoTFactor(uij_pars=adp_pars)
                         # we need this construction to unpack lists in indexes for the MultiIndexParameters
                         n_pars = max(max(entry) if is_multientry(entry) else entry for entry in constraint.variable_indexes) + 1
 
@@ -346,21 +354,27 @@ def create_construction_instructions(
                         current_index += n_pars
                     elif type(constraint).__name__ == 'UEquivConstraint':
                         bound_index = names.index(constraint.bound_atom_name)
-                        adp_instructions = UEquivCalculated(atom_index=bound_index, multiplicator=constraint.multiplicator)
+                        adp_instructions = UEquivTFactor(parent_index=bound_index, scaling_par=FixedParameter(value=constraint.multiplicator))
                     else:
                         raise NotImplementedError('Unknown Uij Constraint')
                 else:
                     parameters = parameters.at[current_index:current_index + 6].set(list(adp))
-                    adp_instructions = tuple(RefinedParameter(par_index=int(array_index), multiplicator=1.0) for array_index in range(current_index, current_index + 6))
+                    adp_pars = Array(
+                        parameter_tuple=tuple(RefinedParameter(
+                            par_index=int(array_index), multiplicator=1.0
+                            ) for array_index in range(current_index, current_index + 6))
+                    )
+                    adp_instructions = AnisoTFactor(uij_pars=adp_pars)
                     current_index += 6
             elif atom['adp_type'] == 'Uiso':
                 if atom['label'] in constraint_dict.keys() and 'uij' in constraint_dict[atom['label']].keys():
                     constraint = constraint_dict[atom['label']]['uij']
                     if type(constraint).__name__ == 'UEquivConstraint':
                             bound_index = names.index(constraint.bound_atom_name)
-                            adp_instructions = UEquivCalculated(atom_index=bound_index, multiplicator=constraint.multiplicator)
+                            adp_instructions = UEquivTFactor(parent_index=bound_index, scaling_par=FixedParameter(value=constraint.multiplicator))
                 else:
-                    adp_instructions = UIso(uiso=RefinedParameter(par_index=int(current_index), multiplicator=1.0))
+                    adp_par = RefinedParameter(par_index=int(current_index), multiplicator=1.0)
+                    adp_instructions = IsoTFactor(uiso_par=adp_par)
                     parameters = parameters.at[current_index].set(float(atom['U_iso_or_equiv']))
                     current_index += 1
             else:

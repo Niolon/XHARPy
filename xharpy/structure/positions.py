@@ -67,7 +67,7 @@ class TetrahedralCalculated:
     distance_par: Parameter
     derived: bool = True
 
-    def resolve(self, parameters, xyz, cell_mat_m,):
+    def resolve(self, parameters, xyz, cell_mat_m, **kwargs):
         bound_xyz = xyz[self.bound_atom_index]
         tetrahedron1_xyz = xyz[self.tetrahedron_atom1_index]
         tetrahedron2_xyz = xyz[self.tetrahedron_atom2_index]

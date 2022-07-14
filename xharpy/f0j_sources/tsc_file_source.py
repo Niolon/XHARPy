@@ -6,7 +6,8 @@ import numpy as np
 import pandas as pd
 
 from typing import List, Dict, Tuple, Any
-from ..core import AtomInstructions, construct_values
+from ..structure.common import AtomInstructions
+from ..structure.construct import construct_values
 
 
 

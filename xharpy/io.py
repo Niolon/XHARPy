@@ -12,15 +12,23 @@ import warnings
 from io import StringIO
 import pickle
 import textwrap
-from .core import (
-    AtomInstructions, ConstrainedValues, cell_constants_to_M, distance_with_esd,
-    construct_esds, construct_values, u_iso_with_esd, angle_with_esd, calc_f,
-    get_value_or_default, get_parameter_index, create_construction_instructions
+from .defaults import get_parameter_index, get_value_or_default
+from .conversion import cell_constants_to_M
+from .refine import calc_f
+
+from .structure.common import (
+    AtomInstructions, FixedParameter, RefinedParameter
 )
+from .structure.initialise import (
+    create_construction_instructions, ConstrainedValues
+)
+from .structure.construct import (
+    distance_with_esd, construct_esds, construct_values, u_iso_with_esd,
+    angle_with_esd
+)
+
 from .quality import calculate_quality_indicators
 from .conversion import calc_sin_theta_ov_lambda, cell_constants_to_M
-
-
 
 def ciflike_to_dict(
     filename: str,
@@ -1196,23 +1204,16 @@ def create_atom_site_table_string(
     constr_xyz_esd, _, _, _, constructed_occ_esd = construct_esds(var_cov_mat, construction_instructions)
 
     for index, (xyz, xyz_esd, occ, occ_esd, instr) in enumerate(zip(constructed_xyz, constr_xyz_esd, constructed_occ, constructed_occ_esd, construction_instructions)):
-        if type(instr.uij) is tuple:
-            adp_type = 'Uani'
-        elif type(instr.uij).__name__ == 'Uiso':
-            adp_type = 'Uiso'
-        elif type(instr.uij).__name__ == 'UEquivCalculated':
-            adp_type = 'calc'
-        else:
-            raise NotImplementedError('There was a currently not implemented ADP calculation type')
+        adp_type = instr.uij.adp_type
 
-        if type(instr.occupancy).__name__ == 'FixedParameter':
+        if isinstance(instr.occupancy, FixedParameter):
             if instr.occupancy.special_position:
                 occupancy = 1.0
                 symmetry_order = int(1 / instr.occupancy.value)
             else:
                 occupancy = instr.occupancy.value
                 symmetry_order = 1
-        elif type(instr.occupancy).__name__ == 'RefinedParameter':
+        elif isinstance(instr.occupancy, RefinedParameter):
             if instr.occupancy.special_position:
                 occupancy = value_with_esd(float(occ/ instr.occupancy.multiplicator), float(occ_esd / instr.occupancy.multiplicator))
                 symmetry_order = int(1 / instr.occupancy.multiplicator)

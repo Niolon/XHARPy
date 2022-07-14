@@ -6,7 +6,8 @@ import sys
 import os
 import argparse
 from typing import Any
-from .core import refine, create_construction_instructions
+from .refine import refine
+from .structure.initialise import create_construction_instructions
 from .io import (cif2data, lst2constraint_dict, write_cif, write_fcf, 
                  shelxl_hkl2pd, write_res)
 

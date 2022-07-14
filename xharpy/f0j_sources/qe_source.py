@@ -15,8 +15,9 @@ from scipy.interpolate import interp1d
 from scipy.integrate import simps
 from scipy.ndimage import zoom
 import warnings
-from ..core import expand_symm_unique, construct_values, AtomInstructions
-
+from ..refine import expand_symm_unique
+from ..structure.construct import construct_values
+from ..structure.common import AtomInstructions
 mass_dict = {
     'H': 1.008,  'He': 4.0026, 'Li': 6.9675, 'Be': 9.0122, 'B': 10.814, 'C': 12.011, 'N': 14.007, 'O': 15.999,
     'F': 18.998, 'Ne': 20.18, 'Na': 22.99, 'Mg': 24.306, 'Al': 26.982, 'Si': 28.085, 'P': 30.974, 'S': 32.068,

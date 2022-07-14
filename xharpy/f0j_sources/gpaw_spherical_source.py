@@ -23,8 +23,9 @@ from scipy.special import spherical_jn
 import gpaw
 import warnings
 import importlib.resources as pkg_resources
-from ..core import expand_symm_unique, construct_values, AtomInstructions
-from .grid.atomgrid import AtomGrid
+from ..refine import expand_symm_unique
+from ..structure.construct import construct_values
+from ..structure.common import AtomInstructionsfrom .grid.atomgrid import AtomGrid
 from .grid.onedgrid import HortonLinear
 from .grid.rtransform import PowerRTransform
 from .grid.utils import get_cov_radii

@@ -8,10 +8,16 @@ from .io import(
     shelxl_hkl2pd, fcf2hkl_pd, add_density_entries_from_fcf, xd_hkl2pd,
     cif2tsc
 ) 
-from .core import (
+from .refine import refine
+
+from .structure.initialise import (
     create_construction_instructions, ConstrainedValues, UEquivConstraint,
     TorsionPositionConstraint, TrigonalPositionConstraint, 
-    TetrahedralPositionConstraint, refine, create_atom_table
+    TetrahedralPositionConstraint
+)
+
+from .structure.construct import (
+    create_atom_table
 )
 
 from .quality import calculate_quality_indicators

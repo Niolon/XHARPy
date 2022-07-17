@@ -1,6 +1,6 @@
-from .common import Parameter, Array
+from .common import Value, Array
 
-from .common import jnp, jax
+from ..common_jax import jnp, jax
 from ..conversion import cell_constants_to_M, ucif2ucart
 from ..better_abc import ABC, ABCMeta, abstract_attribute, abstractmethod
 from collections import namedtuple
@@ -41,18 +41,18 @@ class TFactor(metaclass=ABCMeta):
 
 @dataclass(frozen=True)
 class AnisoTFactor(TFactor):
-    uij_pars: Array
+    uij_values: Array
     adp_type = 'Uani'
     derived = False
 
     def as_uij(self, parameters, **kwargs):
-        return self.uij_pars.resolve(parameters)
+        return self.uij_values.resolve(parameters)
 
     def uij_esd(self, var_cov_mat):
-        return self.uij_pars.resolve_esd(var_cov_mat)
+        return self.uij_values.resolve_esd(var_cov_mat)
 
     def u_equiv(self, parameters, cell_mat_m, **kwargs):
-        uij = self.uij_pars.resolve(parameters)
+        uij = self.uij_values.resolve(parameters)
         u_mats = uij[None, jnp.array([[0, 5, 4],
                                       [5, 1, 3],
                                       [4, 3, 2]])]
@@ -74,12 +74,12 @@ class AnisoTFactor(TFactor):
 
 @dataclass(frozen=True)
 class IsoTFactor(TFactor):
-    uiso_par: Parameter
+    uiso_value: Value
     adp_type = 'Uiso'
     derived = False
 
     def as_uij(self, parameters, cell_mat_f, lengths_star, **kwargs):
-        uiso = self.uiso_par.resolve(parameters)
+        uiso = self.uiso_value.resolve(parameters)
         return jnp.array([
             uiso,
             uiso,
@@ -101,7 +101,7 @@ class IsoTFactor(TFactor):
 @dataclass(frozen=True)
 class UEquivTFactor(TFactor):
     parent_index: int
-    scaling_par: Parameter
+    scaling_value: Value
 
     adp_type = 'calc'
     derived = True
@@ -130,5 +130,5 @@ class UEquivTFactor(TFactor):
 
 #@dataclass(frozen=True)
 #class GCTFactor:
-#    gc3_pars: Array
-#    gc4_pars: Array
+#    gc3_values: Array
+#    gc4_values: Array

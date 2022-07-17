@@ -1,15 +1,12 @@
+""" Contains objecs, which can be used for several different values.
+"""
+
+
 import warnings
 from collections import namedtuple
-from typing import Tuple, Union
-from ..better_abc import ABCMeta, abstractmethod
-try:
-    import jax.numpy as jnp
-    import jax
-except:
-    import numpy as jnp
-    import math as jax
-    warnings.warn('Jax was not found. Refinement will not be available')
-
+from typing import Dict, Tuple, Union
+from ..better_abc import ABCMeta, abstract_attribute, abstractmethod
+from ..common_jax import jax, jnp
 from dataclasses import dataclass
 
 AtomInstructions = namedtuple('AtomInstructions', [
@@ -26,46 +23,135 @@ AtomInstructions = namedtuple('AtomInstructions', [
     'occupancy' # the occupancy
 ], defaults= [None, None, None, None, None, None, None, None])
 
-class Parameter(metaclass=ABCMeta):
+class Value(metaclass=ABCMeta):
+    """This abstract class represents value classes, i.e. the smallest unit
+    translating the parameter vector into the values describing the structure
+    """
     @abstractmethod
-    def resolve(self, parameters):
-        return None
+    def resolve(self, parameters: jnp.array) -> float:
+        """Takes in the parameter vector and maps back to a single value
+
+        Parameters
+        ----------
+        parameters : jnp.array
+            This size P array contains the parameter vector, which contains the
+            values optimised during refinement
+
+        Returns
+        -------
+        float
+            value calculated from the parameter vector
+        """
+        pass
 
     @abstractmethod
-    def resolve_esd(self, var_cov_mat):
-        return None
+    def resolve_esd(self, var_cov_mat: jnp.array) -> float:
+        """Takes in the variance covariance matrix and
+        gives back the esd of the given calculated value
+
+        Parameters
+        ----------
+        var_cov_mat : jnp.array
+            Size (P,P) array containing the full variance-covariance matrix
+            from the least-squares refinement.
+
+        Returns
+        -------
+        float
+            esd for calculated value
+        """
+        pass
 
 @dataclass(frozen=True)
-class RefinedParameter(Parameter):
+class RefinedValue(Value):
+    """Represents a value that can be calculated from a single value in 
+    the parameter vector and therefore changes in the refinement /
+    optimisation
+
+    Parameters
+    ----------
+    par_index : int
+        index in the parameter vector that is used as value p in the calculation
+    multiplicator : float
+        value that the value p is multiplied
+    added_value : float
+        value that is added to m * p
+    """
     par_index: int
     multiplicator: float = 1.0
     added_value: float = 0.0
-    special_position: bool = False
 
-    def resolve(self, parameters):
+    def resolve(self, parameters: jnp.array) -> float:
+        """Generate the value from the parameter array
+
+        Parameters
+        ----------
+        parameters : jnp.array
+            This size P array contains the parameter vector, which contains the
+            values optimised during refinement
+
+        Returns
+        -------
+        float
+            calculated value
+        """
+
         return self.multiplicator * parameters[self.par_index] + self.added_value
     
     def resolve_esd(self, var_cov_mat):
         return jnp.abs(self.multiplicator) * jnp.sqrt(var_cov_mat[self.par_index, self.par_index])
 
 @dataclass(frozen=True)
-class FixedParameter(Parameter):
-    value: float
-    special_position: bool = False
+class FixedValue(Value):
+    """Represents a value, which is not refined during refinement / optimisation
 
-    def resolve(self, parameters, **kwargs):
+    Parameters
+    ----------
+    value : float
+        return value that is used
+    """
+    value: float
+
+    def resolve(self, parameters: jnp.array) -> float:
+        """Give the value determined by this (data) class
+
+        Parameters
+        ----------
+        parameters : jnp.array
+            This size P array contains the parameter vector, which contains the
+            values optimised during refinement. Will not be used in a
+            FixedValue
+
+        Returns
+        -------
+        float
+            return value as float (given by value attribute)
+        """
         return self.value
 
     def resolve_esd(self, var_cov_mat):
         return jnp.nan # One could pick zero, but this should indicate that an error is not defined
 
 @dataclass(frozen=True)
-class MultiIndexParameter(Parameter):
+class MultiIndexValue(Value):
+    """Represents a value that can be calculated from multiple values in 
+    the parameter vector and therefore changes in the refinement /
+    optimisation
+    Parameters
+    ----------
+    Parameter : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     par_indexes: Tuple[int]
     multiplicators: Tuple[float]
     added_value: float
 
-    def resolve(self, parameters, **kwargs):
+    def resolve(self, parameters):
         multiplicators = jnp.array(self.multiplicators)
         par_values = jnp.take(parameters, jnp.array(self.par_indexes), axis=0)
         return jnp.sum(multiplicators * par_values) + self.added_value
@@ -75,14 +161,26 @@ class MultiIndexParameter(Parameter):
         indexes = jnp.array(self.par_indexes)
         return jnp.sqrt(jnp.sqrt(jac[None, :] @ var_cov_mat[indexes][: , indexes] @ jac[None, :].T))[0,0]
 
-#Parameter = Union[RefinedParameter, FixedParameter, MultiIndexParameter]
+
+class AtomicProperty(metaclass=ABCMeta):
+    derived: bool = abstract_attribute()
+    #pre_cycle_calculated: Dict[str, callable] = {}
+    #in_cycle_calculated: Dict[str, callable] = {} 
+
+    @abstractmethod
+    def resolve(self, parameters: jnp.array, **kwargs):
+        return 1.0
+
+    @abstractmethod
+    def resolve_esd(self, var_cov_mat: jnp.array, **kwargs):
+        return jnp.nan
 
 @dataclass(frozen=True)
-class Array:
-    parameter_tuple: Tuple[Parameter]
+class Array(AtomicProperty):
+    value_tuple: Tuple[Value]
     derived: bool = False
-    def resolve(self, parameters, **kwargs):
-        return jnp.array([par.resolve(parameters) for par in self.parameter_tuple])
+    def resolve(self, parameters: jnp.array, **kwargs):
+        return jnp.array(tuple(par.resolve(parameters) for par in self.value_tuple))
 
-    def resolve_esd(self, var_cov_mat):
-        return jnp.array([par.resolve_esd(var_cov_mat) for par in self.parameter_tuple])
+    def resolve_esd(self, var_cov_mat: jnp.array, **kwargs):
+        return jnp.array([par.resolve_esd(var_cov_mat) for par in self.value_tuple])

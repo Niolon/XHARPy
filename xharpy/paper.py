@@ -10,8 +10,7 @@ from .io import ciflike_to_dict
 from .conversion import ucif2ucart, cell_constants_to_M
 from scipy.optimize import minimize
 import numpy as np
-import jax
-import jax.numpy as jnp
+from .common_jax import jax, jnp
 import warnings
 import pandas as pd
 from cycler import cycler

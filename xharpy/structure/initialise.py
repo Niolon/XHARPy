@@ -5,14 +5,15 @@ from typing import Tuple, Dict, Any, Optional, List
 
 from ..conversion import cell_constants_to_M
 from ..defaults import get_parameter_index
-from .common import jnp
+from ..common_jax import jnp
 from .common import (
-    AtomInstructions, FixedParameter, RefinedParameter, MultiIndexParameter,
-    Parameter, Array
+    AtomInstructions, FixedValue, RefinedValue, MultiIndexValue,
+    Value, Array
 )
 
 from .positions import SingleTrigonalCalculated, TetrahedralCalculated, TorsionCalculated
 from .displacements import IsoTFactor, UEquivTFactor, AnisoTFactor
+from .occupancy import Occupancy
 
 CommonOccupancyParameter = namedtuple('CommonOccupancyParameter', [
     'label'        , # any identifying label that is immutable
@@ -71,9 +72,10 @@ def constrained_values_to_instruction(
     add: float,
     constraint: ConstrainedValues,
     current_index: int
-) -> Parameter:
+) -> Value:
     """Convert the given constraint instruction to the internal parameter 
-    representation for the construction instructions.
+    representation for the construction instructions. Cannot be used for 
+    occupancy
 
     Parameters
     ----------
@@ -90,25 +92,25 @@ def constrained_values_to_instruction(
 
     Returns
     -------
-    instruction: Parameter
-        the appropriate RefinedParameter, MultiParameter or FixedParameter
+    instruction : Value
+        the appropriate RefinedValue, MultiIndexValue or FixedValue
         object
     """
     if isinstance(par_index, (tuple, list, np.ndarray)):
         assert len(par_index) == len(mult), 'par_index and mult have different lengths'
-        return MultiIndexParameter(
+        return MultiIndexValue(
             par_indexes=tuple(np.array(par_index) + current_index),
             multiplicators=tuple(mult),
             added_value=float(add)
         )
     elif par_index >= 0:
-        return RefinedParameter(
+        return RefinedValue(
             par_index=int(current_index + par_index),                                                      
             multiplicator=float(mult),
             added_value=float(add)
         ) 
     else:
-        return FixedParameter(value=float(add), special_position=constraint.special_position)
+        return FixedValue(value=float(add))
 
 
 def is_multientry(entry: Any) -> bool:
@@ -191,20 +193,20 @@ def create_construction_instructions(
         assert gc3_atom in list(atom_table['label']), f'Atom {gc3_atom} in Gram-Charlier 3rd order list but not in atom table'
     for gc4_atom in atoms_for_gc4:
         assert gc4_atom in list(atom_table['label']), f'Atom {gc4_atom} in Gram-Charlier 4th order list but not in atom table'
-    parameters = jnp.full(10000, jnp.nan)
+    parameters = np.full(10000, np.nan)
     current_index = 1
-    parameters = parameters.at[0].set(scaling0)
+    parameters[0] = scaling0
     flack_index = get_parameter_index('flack', refinement_dict)
     if flack_index is not None:
-        parameters = parameters.at[flack_index].set(0.0)
+        parameters[flack_index] = 0.0
         current_index += 1
     core_index = get_parameter_index('core', refinement_dict)
     if core_index is not None:
-        parameters = parameters.at[core_index].set(1.0)
+        parameters[core_index] = 1.0
         current_index += 1
     extinction_index = get_parameter_index('extinction', refinement_dict)
     if extinction_index is not None:
-        parameters = parameters.at[extinction_index].set(exti0)
+        parameters[extinction_index] = exti0
         current_index += 1
     known_torsion_indexes = {}
     if cell is None:
@@ -235,7 +237,7 @@ def create_construction_instructions(
                         bound_atom_index=bound_index,
                         plane_atom1_index=plane_atom1_index,
                         plane_atom2_index=plane_atom2_index,
-                        distance_par=FixedParameter(value=float(constraint.distance))
+                        distance_value=FixedValue(value=float(constraint.distance))
                     )
                 elif type(constraint).__name__ == 'TetrahedralPositionConstraint':
                     bound_index = names.index(constraint.bound_atom_name)
@@ -250,7 +252,7 @@ def create_construction_instructions(
                         tetrahedron_atom1_index=tet1_index,
                         tetrahedron_atom2_index=tet2_index,
                         tetrahedron_atom3_index=tet3_index,
-                        distance_par=FixedParameter(value=float(constraint.distance))
+                        distance_value=FixedValue(value=float(constraint.distance))
                     )
                 elif type(constraint).__name__ == 'TorsionPositionConstraint':
                     bound_index = names.index(constraint.bound_atom_name)
@@ -281,7 +283,7 @@ def create_construction_instructions(
                         x = np.dot(n1, n2)
                         y = np.dot(m1, n2)
                         torsion0 = np.arctan2(y, x) - np.deg2rad(constraint.torsion_angle_add)
-                        parameters = parameters.at[current_index].set(torsion0)
+                        parameters[current_index] = torsion0
                         known_torsion_indexes[index_tuple] = current_index
                         torsion_parameter_index = current_index
                         current_index += 1
@@ -289,42 +291,42 @@ def create_construction_instructions(
                         torsion_parameter_index = known_torsion_indexes[index_tuple]
                     
                     if constraint.refine:
-                        torsion_parameter = RefinedParameter(
+                        torsion_parameter = RefinedValue(
                             par_index=torsion_parameter_index,
                             multiplicator=1.0,
                             added_value=np.deg2rad(constraint.torsion_angle_add)
                         )
                     else:
-                        torsion_parameter = FixedParameter(
+                        torsion_parameter = FixedValue(
                             value=np.deg2rad(constraint.torsion_angle_add)
                         )
                     xyz_instructions = TorsionCalculated(
                         bound_atom_index=bound_index,
                         angle_atom_index=angle_index,
                         torsion_atom_index=torsion_index,
-                        distance_par=FixedParameter(value=float(constraint.distance)),
-                        angle_par=FixedParameter(value=np.deg2rad(float(constraint.angle))),
-                        torsion_angle_par=torsion_parameter
+                        distance_value=FixedValue(value=float(constraint.distance)),
+                        angle_value=FixedValue(value=np.deg2rad(float(constraint.angle))),
+                        torsion_angle_value=torsion_parameter
                     )
                 elif type(constraint).__name__ == 'ConstrainedValues':
                     instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value)
                     xyz_instructions = Array(
-                        parameter_tuple=tuple(constrained_values_to_instruction(par_index, mult, add, constraint, current_index) for par_index, mult, add in instr_zip)
+                        value_tuple=tuple(constrained_values_to_instruction(par_index, mult, add, constraint, current_index) for par_index, mult, add in instr_zip)
                     )
                     # we need this construction to unpack lists in indexes for the MultiIndexParameters
                     n_pars = max(max(entry) if is_multientry(entry) else entry for entry in constraint.variable_indexes) + 1
                     # MultiIndexParameter can never be unique so we can throw it out
                     u_indexes = [-1 if is_multientry(entry) else entry for entry in constraint.variable_indexes]
-                    parameters = parameters.at[current_index:current_index + n_pars].set(
-                        [xyz[jnp.array(varindex)] for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0]
-                    )
+                    parameters[current_index:current_index + n_pars] = [
+                        xyz[jnp.array(varindex)] for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0
+                    ]
                     current_index += n_pars
                 else:
                     raise(NotImplementedError(f'Unknown type of xyz constraint for atom {atom["label"]}'))
             else:
-                parameters = parameters.at[current_index:current_index + 3].set(list(xyz))
+                parameters[current_index:current_index + 3] = list(xyz)
                 xyz_instructions = Array(
-                    parameter_tuple=tuple(RefinedParameter(par_index=int(array_index), multiplicator=1.0) for array_index in range(current_index, current_index + 3))
+                    value_tuple=tuple(RefinedValue(par_index=int(array_index), multiplicator=1.0) for array_index in range(current_index, current_index + 3))
                 )
                 current_index += 3
 
@@ -334,48 +336,48 @@ def create_construction_instructions(
                     constraint = constraint_dict[atom['label']]['uij']
                     if type(constraint).__name__ == 'ConstrainedValues':
                         instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value) 
-                        adp_pars = Array(parameter_tuple=tuple(constrained_values_to_instruction(
+                        adp_pars = Array(value_tuple=tuple(constrained_values_to_instruction(
                             par_index,
                             mult,
                             add,
                             constraint,
                             current_index) for par_index, mult, add in instr_zip)
                         )
-                        adp_instructions = AnisoTFactor(uij_pars=adp_pars)
+                        adp_instructions = AnisoTFactor(uij_values=adp_pars)
                         # we need this construction to unpack lists in indexes for the MultiIndexParameters
                         n_pars = max(max(entry) if is_multientry(entry) else entry for entry in constraint.variable_indexes) + 1
 
                         # MultiIndexParameter can never be unique so we can throw it out
                         u_indexes = [-1 if is_multientry(entry) else entry for entry in constraint.variable_indexes]
 
-                        parameters = parameters.at[current_index:current_index + n_pars].set(
-                            [adp[jnp.array(varindex)] for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0]
-                        )
+                        parameters[current_index:current_index + n_pars] = [
+                            adp[jnp.array(varindex)] for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0
+                        ]
                         current_index += n_pars
                     elif type(constraint).__name__ == 'UEquivConstraint':
                         bound_index = names.index(constraint.bound_atom_name)
-                        adp_instructions = UEquivTFactor(parent_index=bound_index, scaling_par=FixedParameter(value=constraint.multiplicator))
+                        adp_instructions = UEquivTFactor(parent_index=bound_index, scaling_value=FixedValue(value=constraint.multiplicator))
                     else:
                         raise NotImplementedError('Unknown Uij Constraint')
                 else:
-                    parameters = parameters.at[current_index:current_index + 6].set(list(adp))
+                    parameters[current_index:current_index + 6] = list(adp)
                     adp_pars = Array(
-                        parameter_tuple=tuple(RefinedParameter(
+                        value_tuple=tuple(RefinedValue(
                             par_index=int(array_index), multiplicator=1.0
                             ) for array_index in range(current_index, current_index + 6))
                     )
-                    adp_instructions = AnisoTFactor(uij_pars=adp_pars)
+                    adp_instructions = AnisoTFactor(uij_values=adp_pars)
                     current_index += 6
             elif atom['adp_type'] == 'Uiso':
                 if atom['label'] in constraint_dict.keys() and 'uij' in constraint_dict[atom['label']].keys():
                     constraint = constraint_dict[atom['label']]['uij']
                     if type(constraint).__name__ == 'UEquivConstraint':
                             bound_index = names.index(constraint.bound_atom_name)
-                            adp_instructions = UEquivTFactor(parent_index=bound_index, scaling_par=FixedParameter(value=constraint.multiplicator))
+                            adp_instructions = UEquivTFactor(parent_index=bound_index, scaling_value=FixedValue(value=constraint.multiplicator))
                 else:
-                    adp_par = RefinedParameter(par_index=int(current_index), multiplicator=1.0)
-                    adp_instructions = IsoTFactor(uiso_par=adp_par)
-                    parameters = parameters.at[current_index].set(float(atom['U_iso_or_equiv']))
+                    adp_par = RefinedValue(par_index=int(current_index), multiplicator=1.0)
+                    adp_instructions = IsoTFactor(uiso_value=adp_par)
+                    parameters[current_index] = float(atom['U_iso_or_equiv'])
                     current_index += 1
             else:
                 raise NotImplementedError('Unknown ADP type in cif. Please use the Uiso or Uani convention')
@@ -389,7 +391,7 @@ def create_construction_instructions(
                 constraint = constraint_dict[atom['label']]['cijk']
                 instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value) 
                 cijk_instructions = Array(
-                    parameter_tuple = tuple(constrained_values_to_instruction(par_index, mult, add, constraint, current_index) for par_index, mult, add in instr_zip)
+                    value_tuple = tuple(constrained_values_to_instruction(par_index, mult, add, constraint, current_index) for par_index, mult, add in instr_zip)
                 )
                 # we need this construction to unpack lists in indexes for the MultiIndexParameters
                 n_pars = max(max(entry) if is_multientry(entry) else entry for entry in constraint.variable_indexes) + 1
@@ -397,20 +399,20 @@ def create_construction_instructions(
                 # MultiIndexParameter can never be unique so we can throw it out
                 u_indexes = [-1 if is_multientry(entry) else entry for entry in constraint.variable_indexes]
 
-                parameters = parameters.at[current_index:current_index + n_pars].set(
-                    [cijk[jnp.array(varindex)] for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0]
-                )
+                parameters[current_index:current_index + n_pars] = [
+                    cijk[jnp.array(varindex)] for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0
+                ]
 
                 current_index += n_pars
             elif atom['label'] in atoms_for_gc3:
-                parameters = parameters.at[current_index:current_index + 10].set(list(cijk))
+                parameters[current_index:current_index + 10] = list(cijk)
                 cijk_instructions = Array(
-                    parameter_tuple=tuple(RefinedParameter(par_index=int(array_index), multiplicator=1.0) for array_index in range(current_index, current_index + 10))
+                    value_tuple=tuple(RefinedValue(par_index=int(array_index), multiplicator=1.0) for array_index in range(current_index, current_index + 10))
                 )
                 current_index += 10
             else:
                 cijk_instructions = Array(
-                    parameter_tuple=tuple(FixedParameter(value=0.0) for index in range(10))
+                    value_tuple=tuple(FixedValue(value=0.0) for index in range(10))
                 )
 
             if 'D_1111' in atom.keys():
@@ -422,49 +424,53 @@ def create_construction_instructions(
                 constraint = constraint_dict[atom['label']]['dijkl']
                 instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value) 
                 dijkl_instructions = Array(
-                    parameter_tuple=tuple(constrained_values_to_instruction(par_index, mult*1e-3, add, constraint, current_index) for par_index, mult, add in instr_zip)
+                    value_tuple=tuple(constrained_values_to_instruction(par_index, mult*1e-3, add, constraint, current_index) for par_index, mult, add in instr_zip)
                 )
                 # we need this construction to unpack lists in indexes for the MultiIndexParameters
                 n_pars = max(max(entry) if is_multientry(entry) else entry for entry in constraint.variable_indexes) + 1
                 # MultiIndexParameter can never be unique so we can throw it out
                 u_indexes = [-1 if is_multientry(entry) else entry for entry in constraint.variable_indexes]
-                parameters = parameters.at[current_index:current_index + n_pars].set(
-                    [dijkl[jnp.array(varindex)]*1e3 for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0]
-                )
+                parameters[current_index:current_index + n_pars] = [
+                    dijkl[jnp.array(varindex)]*1e3 for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0
+                ]
                 current_index += n_pars
             elif atom['label'] in atoms_for_gc4:
-                parameters = parameters.at[current_index:current_index + 15].set(list(dijkl*1e3))
+                parameters[current_index:current_index + 15] = list(dijkl*1e3)
                 dijkl_instructions = Array(
-                    parameter_tuple=tuple(RefinedParameter(par_index=int(array_index), multiplicator=1e-3) for array_index in range(current_index, current_index + 15))
+                    value_tuple=tuple(RefinedValue(par_index=int(array_index), multiplicator=1e-3) for array_index in range(current_index, current_index + 15))
                 )
                 current_index += 15
             else:
                 dijkl_instructions = Array(
-                    parameter_tuple=tuple(FixedParameter(value=0.0) for index in range(15))
+                    value_tuple=tuple(FixedValue(value=0.0) for index in range(15))
                 )
 
             if atom['label'] in constraint_dict.keys() and 'occ' in constraint_dict[atom['label']].keys():
                 constraint = constraint_dict[atom['label']]['occ']
                 if type(constraint).__name__ == 'ConstrainedValues':
-                    occupancy = FixedParameter(value=float(constraint.added_value[0]), special_position=constraint.special_position)
+                    occupancy_parameter = FixedValue(value=float(constraint.added_value[0]))
+                    special_position = constraint.special_position
                 elif type(constraint).__name__ == 'CommonOccupancyParameter':
                     if constraint.label in common_occupancy_indexes:
                         parameter_index = common_occupancy_indexes[constraint.label]
                     else:
                         parameter_index = current_index
                         common_occupancy_indexes[constraint.label] = parameter_index
-                        parameters = parameters.at[current_index].set(atom['occupancy'] / float(constraint.multiplicator))
+                        parameters[current_index] = atom['occupancy'] / float(constraint.multiplicator)
                         current_index += 1
-                    occupancy = RefinedParameter(
+                    occupancy_parameter = RefinedValue(
                         par_index=int(parameter_index),
                         multiplicator=float(constraint.multiplicator),
-                        added_value=float(constraint.added_value),
-                        special_position=constraint.special_position
+                        added_value=float(constraint.added_value)
                     )
+                    special_position = constraint.special_position
                 else:
                     raise NotImplementedError('This type of constraint is not implemented for the occupancy')
             else:
-                occupancy = FixedParameter(value=float(atom['occupancy']))
+                occupancy_parameter = FixedValue(value=float(atom['occupancy']))
+                special_position = False
+
+            occupancy = Occupancy(occ_value=occupancy_parameter, special_position=special_position)
 
             construction_instructions[instruction_index] = AtomInstructions(
                 name=atom['label'],
@@ -484,4 +490,4 @@ def create_construction_instructions(
         print(construction_instructions)
         raise ValueError('Could not build construction instructions, make sure that constrained values are based on refined values and not dependend onto each other.')
     parameters = parameters[:current_index]
-    return tuple(construction_instructions), parameters
+    return tuple(construction_instructions), jnp.array(parameters)

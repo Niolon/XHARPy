@@ -1,4 +1,4 @@
-from .common import jnp, jax
+from ..common_jax import jnp, jax
 from .common import AtomInstructions
 from ..conversion import ucif2ucart, cell_constants_to_M
 
@@ -57,7 +57,7 @@ def construct_values(
     ))
 
     uij = jnp.array(tuple(
-        instr.uij.as_uij(parameters) if not instr.uij.derived 
+        instr.uij.as_uij(parameters, lengths_star=lengths_star, cell_mat_f=cell_mat_f) if not instr.uij.derived 
         else jnp.full(6, jnp.nan) for instr in construction_instructions
     ))
     

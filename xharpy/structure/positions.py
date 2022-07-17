@@ -1,22 +1,22 @@
 
-from .common import Parameter
-from .common import jnp
+from .common import Value, AtomicProperty
+from ..common_jax import jnp
 
 from dataclasses import dataclass
 
 @dataclass(frozen=True)
-class SingleTrigonalCalculated:
+class SingleTrigonalCalculated(AtomicProperty):
     bound_atom_index: int
     plane_atom1_index: int
     plane_atom2_index: int
-    distance_par: Parameter
+    distance_value: Value
     derived: bool = True
 
     def resolve(self, parameters, xyz, cell_mat_m, **kwargs):
         bound_xyz = xyz[self.bound_atom_index]
         plane1_xyz = xyz[self.plane_atom1_index]
         plane2_xyz = xyz[self.plane_atom2_index]
-        distance = self.distance_par.resolve(parameters)
+        distance = self.distance_value.resolve(parameters)
         direction1 = bound_xyz - plane1_xyz
         direction2 = bound_xyz - plane2_xyz
         addition = (direction1 / jnp.linalg.norm(cell_mat_m @ direction1)
@@ -28,22 +28,22 @@ class SingleTrigonalCalculated:
         return jnp.array((jnp.nan, jnp.nan, jnp.nan))
 
 @dataclass(frozen=True)
-class TorsionCalculated:
+class TorsionCalculated(AtomicProperty):
     bound_atom_index: int
     angle_atom_index: int
     torsion_atom_index: int
-    distance_par: Parameter
-    angle_par: Parameter
-    torsion_angle_par: Parameter
+    distance_value: Value
+    angle_value: Value
+    torsion_angle_value: Value
     derived: bool = True
 
     def resolve(self, parameters, xyz, cell_mat_m, cell_mat_f, **kwargs):
         bound_xyz = cell_mat_m @ xyz[self.bound_atom_index]
         angle_xyz = cell_mat_m @ xyz[self.angle_atom_index]
         torsion_xyz = cell_mat_m @ xyz[self.torsion_atom_index]
-        distance = self.distance_par.resolve(parameters)
-        angle = self.angle_par.resolve(parameters)
-        torsion_angle = self.torsion_angle_par.resolve(parameters)
+        distance = self.distance_value.resolve(parameters)
+        angle = self.angle_value.resolve(parameters)
+        torsion_angle = self.torsion_angle_value.resolve(parameters)
         vec_ab = (angle_xyz - torsion_xyz)
         vec_bc_norm = -(bound_xyz - angle_xyz) / jnp.linalg.norm(bound_xyz - angle_xyz)
         vec_d2 = jnp.array([distance * jnp.cos(angle),
@@ -59,12 +59,12 @@ class TorsionCalculated:
 
 
 @dataclass(frozen=True)
-class TetrahedralCalculated:
+class TetrahedralCalculated(AtomicProperty):
     bound_atom_index: int
     tetrahedron_atom1_index: int
     tetrahedron_atom2_index: int
     tetrahedron_atom3_index: int
-    distance_par: Parameter
+    distance_value: Value
     derived: bool = True
 
     def resolve(self, parameters, xyz, cell_mat_m, **kwargs):
@@ -72,7 +72,7 @@ class TetrahedralCalculated:
         tetrahedron1_xyz = xyz[self.tetrahedron_atom1_index]
         tetrahedron2_xyz = xyz[self.tetrahedron_atom2_index]
         tetrahedron3_xyz = xyz[self.tetrahedron_atom3_index]
-        distance = self.distance_par.resolve(parameters)
+        distance = self.distance_value.resolve(parameters)
 
         direction1 = bound_xyz - tetrahedron1_xyz
         direction2 = bound_xyz - tetrahedron2_xyz

@@ -4,7 +4,7 @@ working implementation."""
 
 
 from collections import namedtuple
-import jax.numpy as np
+from .common_jax import jnp as np
 import pandas as pd
 import warnings
 from .conversion import ucif2ucart

@@ -15,7 +15,7 @@ from scipy.interpolate import interp1d
 from scipy.integrate import simps
 from scipy.ndimage import zoom
 import warnings
-from ..refine import expand_symm_unique
+from ..conversion import expand_symm_unique
 from ..structure.construct import construct_values
 from ..structure.common import AtomInstructions
 mass_dict = {

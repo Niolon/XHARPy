@@ -1766,7 +1766,7 @@ def write_cif(
         Dataset to use in the source_cif
     """
     versionmajor = 0
-    versionminor = 1
+    versionminor = 2
 
     if source_cif_path is None:
         source_cif_path = shelx_cif_path

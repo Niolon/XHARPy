@@ -23,7 +23,7 @@ copyright = '2022, Paul Niklas Ruth'
 author = 'Paul Niklas Ruth'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1.1'
+release = '0.2.0'
 
 
 # -- General configuration ---------------------------------------------------

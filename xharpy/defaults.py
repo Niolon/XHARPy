@@ -1,5 +1,6 @@
 from typing import Dict, Any, Union
 
+XHARPY_VERSION = '0.2.0'
 
 def get_value_or_default(
     parameter_name: str,

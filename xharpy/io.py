@@ -11,7 +11,9 @@ import warnings
 from io import StringIO
 import pickle
 import textwrap
-from .defaults import get_parameter_index, get_value_or_default
+from .defaults import (
+    get_parameter_index, get_value_or_default, XHARPY_VERSION
+)
 from .conversion import cell_constants_to_M
 try:
     from .refine import calc_f
@@ -1102,8 +1104,7 @@ def add_from_cif(
 
 def cif2atom_type_table_string(
     cif: OrderedDict,
-    versionmajor: int,
-    versionminor: int,
+    version: str,
     ishar: bool = True
 ) -> str:
     """Helper function to create the atom_type table from a given cif
@@ -1112,10 +1113,8 @@ def cif2atom_type_table_string(
     ----------
     cif : OrderedDict
         The dictionary generated from the read in cif file
-    versionmajor : int
-        Major xharpy version
-    versionminor : int
-        Minor xharpy version number
+    versionmajor : str
+        current XHARPy version
     ishar : bool, optional
         refinement is a Hirshfeld Atom Refinement in XHARPy, by default True
 
@@ -1126,7 +1125,7 @@ def cif2atom_type_table_string(
     """
     table = next(loop for loop in cif['loops'] if 'atom_type_symbol' in loop.columns)
     if ishar:
-        table['atom_type_scat_source'] = f'HAR in XHARPy {versionmajor}.{versionminor}'
+        table['atom_type_scat_source'] = f'HAR in XHARPy {XHARPY_VERSION}'
     else:
         table['atom_type_scat_source'] = 'International Tables Vol C Tables 4.2.6.8 and 6.1.1.4'
     columns = [column for column in table.columns if not column.endswith('_esd')]
@@ -1765,8 +1764,6 @@ def write_cif(
     source_dataset : Union[str, int], optional
         Dataset to use in the source_cif
     """
-    versionmajor = 0
-    versionminor = 2
 
     if source_cif_path is None:
         source_cif_path = shelx_cif_path
@@ -1869,14 +1866,14 @@ def write_cif(
     ]
     lines = [
         f'\ndata_{cif_dataset}\n',
-        cif_entry_string('audit_creation_method', f'xHARPY {versionmajor}.{versionminor}'),
+        cif_entry_string('audit_creation_method', f'XHARPY {XHARPY_VERSION}'),
         add_from_cif('chemical_name_systematic', source_cif),
         add_from_cif('chemical_name_common', source_cif),
         add_from_cif('chemical_melting_point', source_cif),
         add_from_cif('chemical_formula_moiety', source_cif),
         add_from_cif('chemical_formula_sum', source_cif),
         add_from_cif('chemical_formula_weight', source_cif),
-        cif2atom_type_table_string(shelx_cif, 0, 1, ishar),
+        cif2atom_type_table_string(shelx_cif, XHARPY_VERSION, ishar),
         add_from_cif('space_group_crystal_system', shelx_cif),
         add_from_cif('space_group_IT_number', shelx_cif),
         add_from_cif('space_group_name_H-M_alt', shelx_cif),
@@ -1955,9 +1952,9 @@ systematic absences."""
         add_from_cif('computing_cell_refinement', source_cif),
         add_from_cif('computing_data_reduction', source_cif),
         add_from_cif('computing_structure_solution', source_cif),
-        cif_entry_string('computing_structure_refinement', f'xHARPY {versionmajor}.{versionminor}'),
+        cif_entry_string('computing_structure_refinement', f'xHARPY {XHARPY_VERSION}'),
         cif_entry_string('computing_molecular_graphics', None),
-        cif_entry_string('computing_publication_material', f'xHARPY {versionmajor}.{versionminor}'),
+        cif_entry_string('computing_publication_material', f'xHARPY {XHARPY_VERSION}'),
         '',
         cif_entry_string('atom_sites_solution_hydrogens', 'difmap', False),
         '',

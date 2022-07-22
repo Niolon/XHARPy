@@ -688,7 +688,7 @@ def create_construction_instructions(
             if atom['label'] in constraint_dict.keys() and 'occ' in constraint_dict[atom['label']].keys():
                 constraint = constraint_dict[atom['label']]['occ']
                 if type(constraint).__name__ == 'ConstrainedValues':
-                    occupancy_parameter = FixedValue(value=float(constraint.added_value[0]))
+                    occupancy_parameter = FixedValue(value=float(constraint.added_values[0]))
                     special_position = constraint.special_position
                 elif type(constraint).__name__ == 'CommonOccupancyParameter':
                     if constraint.label in common_occupancy_indexes:
@@ -701,7 +701,7 @@ def create_construction_instructions(
                     occupancy_parameter = RefinedValue(
                         par_index=int(parameter_index),
                         multiplicator=float(constraint.multiplicator),
-                        added_value=float(constraint.added_value)
+                        added_value=float(constraint.added_values[0])
                     )
                     special_position = constraint.special_position
                 else:

@@ -425,7 +425,7 @@ def instructions_to_constraints(
     """
     variable_indexes = list(range(len(names)))
     multiplicators = [1.0] * len(names)
-    added_value = [0.0] * len(names)
+    added_values = [0.0] * len(names)
     for index, name in enumerate(names):
         if name not in instructions:
             continue
@@ -435,14 +435,14 @@ def instructions_to_constraints(
         if var == '':
             variable_indexes[index] = -1
             multiplicators[index] = 0.0
-            added_value[index] = add
+            added_values[index] = add
         else:
             variable_indexes[index] = variable_indexes[names.index(var)]
             multiplicators[index] = mult
-            added_value[index] = add
+            added_values[index] = add
     return ConstrainedValues(variable_indexes=jnp.array(variable_indexes),
                              multiplicators=jnp.array(multiplicators),
-                             added_value=jnp.array(added_value),
+                             added_values=jnp.array(added_values),
                              special_position=True) 
 
 

@@ -1,4 +1,5 @@
-""" Contains objecs, which can be used for several different values.
+""" This module contains the most basic building blocks for structures, which
+are not specialised in any way.
 """
 
 

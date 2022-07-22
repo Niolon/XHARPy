@@ -1,3 +1,10 @@
+"""This module contains the logic to calculate the atomic parameters from the
+construction_instructions, as well as the logic to compute derived values such
+as distances, angles or uiso from the compute instructions and the parameter 
+array
+"""
+
+
 from ..common_jax import jnp, jax
 from .common import AtomInstructions
 from ..conversion import ucif2ucart, cell_constants_to_M

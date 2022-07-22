@@ -1,7 +1,14 @@
+"""Contains the necessary functions  and objects for the user to define the 
+xrystal structure and to build the necessary contruction instructions from that
+input and the atom table.
+"""
+
 from collections import namedtuple
 import numpy as np
 import pandas as pd
 from typing import Tuple, Dict, Any, Optional, List
+from dataclasses import dataclass
+from ..better_abc import ABCMeta, abstract_attribute, abstractmethod
 
 from ..conversion import cell_constants_to_M
 from ..defaults import get_parameter_index
@@ -11,9 +18,17 @@ from .common import (
     Value, Array
 )
 
-from .positions import SingleTrigonalCalculated, TetrahedralCalculated, TorsionCalculated
+from .positions import (
+    SingleTrigonalCalculated, TetrahedralCalculated, TorsionCalculated
+)
 from .displacements import IsoTFactor, UEquivTFactor, AnisoTFactor
 from .occupancy import Occupancy
+
+class UserConstraint(metaclass=ABCMeta):
+    @abstractmethod
+    def obj_and_pars(self, **kwargs):
+        return None
+
 
 CommonOccupancyParameter = namedtuple('CommonOccupancyParameter', [
     'label'        , # any identifying label that is immutable
@@ -22,55 +37,213 @@ CommonOccupancyParameter = namedtuple('CommonOccupancyParameter', [
     'special_position'
 ])
 
-ConstrainedValues = namedtuple('ConstrainedValues', [
-    'variable_indexes', # 0-x (positive): variable index; -1 means 0 
-                        # -> not refined
-    'multiplicators',   # For higher symmetries mathematical conditions can
-                        # include multiplicators
-    'added_value',      # Values that are added
-    'special_position'  # stems from an atom on a special position,
-                        # makes a difference for output of occupancy
-], defaults=[[], [], [], False])
+@dataclass
+class ConstrainedValues(UserConstraint):
+    variable_indexes: Tuple[int]
+    multiplicators: Tuple[float]
+    added_value: float
+    special_position: bool
 
-UEquivConstraint = namedtuple('UEquivConstraint', [
-    'bound_atom_name', # Name of the bound atom
-    'multiplicator'    # Multiplicator for UEquiv Constraint
-                       # (Usually nonterminal: 1.2, terminal 1.5)
-])
+    def obj_and_pars(
+        self,
+        current_index: int,
+        values : List[str],
+        **kwargs
+    ):
+        instr_zip = zip(
+            self.variable_indexes,
+            self.multiplicators,
+            self.added_value
+        )
+        instructions = Array(
+            value_tuple=tuple(
+                constrained_values_to_instruction(
+                    par_index,
+                    mult,
+                    add, 
+                    current_index
+                ) for par_index, mult, add in instr_zip
+            )
+        )
+        indexes = [-1 if is_multientry(entry) else entry 
+                   for entry in self.variable_indexes]
+        new_parameters = np.array([
+            values[np.array(varindex)] for index, varindex in zip(
+                *np.unique(indexes, return_index=True)
+            ) if index >=0
+        ])
+        return instructions, new_parameters
 
-TrigonalPositionConstraint = namedtuple('TrigonalPositionConstraint', [
-    'bound_atom_name',  # name of bound atom
-    'plane_atom1_name', # first bonding partner of bound atom
-    'plane_atom2_name', # second bonding partner of bound atom
-    'distance'          # interatomic distance
-])
+@dataclass
+class UEquivConstraint(UserConstraint):
+    bound_atom_name: str
+    multiplicator: float
 
-TetrahedralPositionConstraint = namedtuple('TetrahedralPositionConstraint', [
-    'bound_atom_name',        # name of bound atom 
-    'tetrahedron_atom1_name', # name of first atom forming the tetrahedron
-    'tetrahedron_atom2_name', # name of second atom forming the tetrahedron
-    'tetrahedron_atom3_name', # name of third atom forming the tetrahedron
-    'distance'                # interatomic distance
-])
+    def obj_and_pars(self, atom_table: pd.DataFrame, **kwargs):
+        bound_index = list(atom_table['label']).index(self.bound_atom_name)
+        instructions = UEquivTFactor(
+            parent_index=bound_index,
+            scaling_value=FixedValue(value=self.multiplicator)
+        )
+        return instructions, np.array([])
 
-TorsionPositionConstraint = namedtuple('TorsionPositionConstraint', [
-    'bound_atom_name',   # index of  atom the derived atom is bound_to
-    'angle_atom_name',   # index of atom spanning the given angle with bound atom
-    'torsion_atom_name', # index of atom giving the torsion angle
-    'distance',          # interatom distance
-    'angle',             # interatom angle
-    'torsion_angle_add', # interatom torsion angle addition.
-                         # Use e.g 120° for second sp3 atom,
-    'refine'             # If True torsion angle will be refined otherwise it 
-                         #will be fixed to torsion_angle_add
-])
+#UEquivConstraint = namedtuple('UEquivConstraint', [
+#    'bound_atom_name', # Name of the bound atom
+#    'multiplicator'    # Multiplicator for UEquiv Constraint
+#                       # (Usually nonterminal: 1.2, terminal 1.5)
+#])
+
+@dataclass
+class TrigonalPositionConstraint(UserConstraint):
+    bound_atom_name: str
+    plane_atom1_name: str
+    plane_atom2_name: str
+    distance: float
+
+    def obj_and_pars(self, atom_table,**kwargs):
+        names = list(atom_table['label'])
+        bound_index = names.index(self.bound_atom_name)
+        plane_atom1_index = names.index(self.plane_atom1_name)
+        plane_atom2_index = names.index(self.plane_atom2_name)
+        instruction = SingleTrigonalCalculated(
+            bound_atom_index=bound_index,
+            plane_atom1_index=plane_atom1_index,
+            plane_atom2_index=plane_atom2_index,
+            distance_value=FixedValue(value=float(self.distance))
+        )
+        return instruction, np.array([])
+
+#TrigonalPositionConstraint = namedtuple('TrigonalPositionConstraint', [
+#    'bound_atom_name',  # name of bound atom
+#    'plane_atom1_name', # first bonding partner of bound atom
+#    'plane_atom2_name', # second bonding partner of bound atom
+#    'distance'          # interatomic distance
+#])
+
+@dataclass
+class TetrahedralPositionConstraint(UserConstraint):
+    bound_atom_name: str
+    tetrahedron_atom1_name: str
+    tetrahedron_atom2_name: str
+    tetrahedron_atom3_name: str
+    distance: float
+
+    def obj_and_pars(self, atom_table, **kwargs):
+        names = list(atom_table['label'])
+        bound_index = names.index(self.bound_atom_name)
+        tet1_index = names.index(self.tetrahedron_atom1_name)
+        tet2_index = names.index(self.tetrahedron_atom2_name)
+        tet3_index = names.index(self.tetrahedron_atom3_name)
+        instruction = TetrahedralCalculated(
+            bound_atom_index=bound_index,
+            tetrahedron_atom1_index=tet1_index,
+            tetrahedron_atom2_index=tet2_index,
+            tetrahedron_atom3_index=tet3_index,
+            distance_value=FixedValue(value=float(self.distance))
+        )
+        return instruction, np.array([])
+
+
+#TetrahedralPositionConstraint = namedtuple('TetrahedralPositionConstraint', [
+#    'bound_atom_name',        # name of bound atom 
+#    'tetrahedron_atom1_name', # name of first atom forming the tetrahedron
+#    'tetrahedron_atom2_name', # name of second atom forming the tetrahedron
+#    'tetrahedron_atom3_name', # name of third atom forming the tetrahedron
+#    'distance'                # interatomic distance
+#])
+
+@dataclass
+class TorsionPositionConstraint(UserConstraint):
+    bound_atom_name: str
+    angle_atom_name: str
+    torsion_atom_name: str
+    distance: float
+    angle: float
+    torsion_angle_add: float
+    refine: bool
+
+    def obj_and_pars(
+            self,
+            atom_table,
+            current_index,
+            cell_mat_m,
+            values,
+            known_torsion_indexes,
+            **kwargs
+        ):
+        names = list(atom_table['label'])
+        bound_index = names.index(self.bound_atom_name)
+        angle_index = names.index(self.angle_atom_name)
+        torsion_index = names.index(self.torsion_atom_name)
+        index_tuple = (bound_index, angle_index, torsion_index)
+        if not self.refine:
+            torsion_parameter_index = None
+            new_parameters = np.array([])
+        elif index_tuple not in known_torsion_indexes:
+            assert cell_mat_m is not None, 'You need to pass a cell for the calculation of the torsion start values.'
+            atom_cart = cell_mat_m @ values
+            bound_xyz = atom_table.loc[bound_index,['fract_x', 'fract_y', 'fract_z']].values.astype(np.float64)
+            bound_cart = cell_mat_m @ bound_xyz
+            angle_xyz = atom_table.loc[angle_index,['fract_x', 'fract_y', 'fract_z']].values.astype(np.float64)
+            angle_cart = cell_mat_m @ angle_xyz
+            torsion_xyz = atom_table.loc[torsion_index,['fract_x', 'fract_y', 'fract_z']].values.astype(np.float64)
+            torsion_cart = cell_mat_m @ torsion_xyz
+            b1 = angle_cart- torsion_cart
+            b2 = bound_cart - angle_cart
+            b3 = atom_cart - bound_cart
+            n1 = np.cross(b1, b2)
+            n1 /= np.linalg.norm(n1)
+            n2 = np.cross(b2, b3)
+            n2 /= np.linalg.norm(n2)
+            m1 = np.cross(n1, b2 / np.linalg.norm(b2))
+            x = np.dot(n1, n2)
+            y = np.dot(m1, n2)
+            torsion0 = np.arctan2(y, x) - np.deg2rad(self.torsion_angle_add)
+            new_parameters = np.array([torsion0])
+            known_torsion_indexes[index_tuple] = current_index
+            torsion_parameter_index = current_index
+        else:
+            torsion_parameter_index = known_torsion_indexes[index_tuple]
+            new_parameters = np.array([])
+        
+        if self.refine:
+            torsion_parameter = RefinedValue(
+                par_index=torsion_parameter_index,
+                multiplicator=1.0,
+                added_value=np.deg2rad(self.torsion_angle_add)
+            )
+        else:
+            torsion_parameter = FixedValue(
+                value=np.deg2rad(self.torsion_angle_add)
+            )
+        instruction = TorsionCalculated(
+            bound_atom_index=bound_index,
+            angle_atom_index=angle_index,
+            torsion_atom_index=torsion_index,
+            distance_value=FixedValue(value=float(self.distance)),
+            angle_value=FixedValue(value=np.deg2rad(float(self.angle))),
+            torsion_angle_value=torsion_parameter
+        )
+        return instruction, new_parameters
+
+
+#TorsionPositionConstraint = namedtuple('TorsionPositionConstraint', [
+#    'bound_atom_name',   # index of  atom the derived atom is bound_to
+#    'angle_atom_name',   # index of atom spanning the given angle with bound atom
+#    'torsion_atom_name', # index of atom giving the torsion angle
+#    'distance',          # interatom distance
+#    'angle',             # interatom angle
+#    'torsion_angle_add', # interatom torsion angle addition.
+#                         # Use e.g 120° for second sp3 atom,
+#    'refine'             # If True torsion angle will be refined otherwise it 
+#                         #will be fixed to torsion_angle_add
+#])
 
 
 def constrained_values_to_instruction(
     par_index: int,
     mult: float,
     add: float,
-    constraint: ConstrainedValues,
     current_index: int
 ) -> Value:
     """Convert the given constraint instruction to the internal parameter 
@@ -225,160 +398,55 @@ def create_construction_instructions(
             xyz = atom[['fract_x', 'fract_y', 'fract_z']].values.astype(np.float64)
             if atom['label'] in constraint_dict.keys() and 'xyz' in constraint_dict[atom['label']].keys():
                 constraint = constraint_dict[atom['label']]['xyz']
-                # TODO Make the Constraints used by the user dataclasses as well
-                if type(constraint).__name__ == 'TrigonalPositionConstraint':
-                    bound_index = names.index(constraint.bound_atom_name)
-                    plane_atom1_index = names.index(constraint.plane_atom1_name)
-                    plane_atom2_index = names.index(constraint.plane_atom2_name)
-                    check_indexes = (bound_index, plane_atom1_index, plane_atom2_index)
-                    if any(construction_instructions[i] is None for i in check_indexes):
-                        continue
-                    xyz_instructions = SingleTrigonalCalculated(
-                        bound_atom_index=bound_index,
-                        plane_atom1_index=plane_atom1_index,
-                        plane_atom2_index=plane_atom2_index,
-                        distance_value=FixedValue(value=float(constraint.distance))
-                    )
-                elif type(constraint).__name__ == 'TetrahedralPositionConstraint':
-                    bound_index = names.index(constraint.bound_atom_name)
-                    tet1_index = names.index(constraint.tetrahedron_atom1_name)
-                    tet2_index = names.index(constraint.tetrahedron_atom2_name)
-                    tet3_index = names.index(constraint.tetrahedron_atom3_name)
-                    check_indexes = (bound_index, tet1_index, tet2_index, tet3_index)
-                    if any(construction_instructions[i] is None for i in check_indexes):
-                        continue
-                    xyz_instructions = TetrahedralCalculated(
-                        bound_atom_index=bound_index,
-                        tetrahedron_atom1_index=tet1_index,
-                        tetrahedron_atom2_index=tet2_index,
-                        tetrahedron_atom3_index=tet3_index,
-                        distance_value=FixedValue(value=float(constraint.distance))
-                    )
-                elif type(constraint).__name__ == 'TorsionPositionConstraint':
-                    bound_index = names.index(constraint.bound_atom_name)
-                    angle_index = names.index(constraint.angle_atom_name)
-                    torsion_index = names.index(constraint.torsion_atom_name)
-                    index_tuple = (bound_index, angle_index, torsion_index)
-                    if any(construction_instructions[i] is None for i in index_tuple):
-                        continue
-                    if not constraint.refine:
-                        torsion_parameter_index = None
-                    elif index_tuple not in known_torsion_indexes:
-                        assert cell_mat_m is not None, 'You need to pass a cell for the calculation of the torsion start values.'
-                        atom_cart = cell_mat_m @ xyz
-                        bound_xyz = atom_table.loc[bound_index,['fract_x', 'fract_y', 'fract_z']].values.astype(np.float64)
-                        bound_cart = cell_mat_m @ bound_xyz
-                        angle_xyz = atom_table.loc[angle_index,['fract_x', 'fract_y', 'fract_z']].values.astype(np.float64)
-                        angle_cart = cell_mat_m @ angle_xyz
-                        torsion_xyz = atom_table.loc[torsion_index,['fract_x', 'fract_y', 'fract_z']].values.astype(np.float64)
-                        torsion_cart = cell_mat_m @ torsion_xyz
-                        b1 = angle_cart- torsion_cart
-                        b2 = bound_cart - angle_cart
-                        b3 = atom_cart - bound_cart
-                        n1 = np.cross(b1, b2)
-                        n1 /= np.linalg.norm(n1)
-                        n2 = np.cross(b2, b3)
-                        n2 /= np.linalg.norm(n2)
-                        m1 = np.cross(n1, b2 / np.linalg.norm(b2))
-                        x = np.dot(n1, n2)
-                        y = np.dot(m1, n2)
-                        torsion0 = np.arctan2(y, x) - np.deg2rad(constraint.torsion_angle_add)
-                        parameters[current_index] = torsion0
-                        known_torsion_indexes[index_tuple] = current_index
-                        torsion_parameter_index = current_index
-                        current_index += 1
-                    else:
-                        torsion_parameter_index = known_torsion_indexes[index_tuple]
-                    
-                    if constraint.refine:
-                        torsion_parameter = RefinedValue(
-                            par_index=torsion_parameter_index,
-                            multiplicator=1.0,
-                            added_value=np.deg2rad(constraint.torsion_angle_add)
-                        )
-                    else:
-                        torsion_parameter = FixedValue(
-                            value=np.deg2rad(constraint.torsion_angle_add)
-                        )
-                    xyz_instructions = TorsionCalculated(
-                        bound_atom_index=bound_index,
-                        angle_atom_index=angle_index,
-                        torsion_atom_index=torsion_index,
-                        distance_value=FixedValue(value=float(constraint.distance)),
-                        angle_value=FixedValue(value=np.deg2rad(float(constraint.angle))),
-                        torsion_angle_value=torsion_parameter
-                    )
-                elif type(constraint).__name__ == 'ConstrainedValues':
-                    instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value)
-                    xyz_instructions = Array(
-                        value_tuple=tuple(constrained_values_to_instruction(par_index, mult, add, constraint, current_index) for par_index, mult, add in instr_zip)
-                    )
-                    # we need this construction to unpack lists in indexes for the MultiIndexParameters
-                    n_pars = max(max(entry) if is_multientry(entry) else entry for entry in constraint.variable_indexes) + 1
-                    # MultiIndexParameter can never be unique so we can throw it out
-                    u_indexes = [-1 if is_multientry(entry) else entry for entry in constraint.variable_indexes]
-                    parameters[current_index:current_index + n_pars] = [
-                        xyz[jnp.array(varindex)] for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0
-                    ]
-                    current_index += n_pars
-                else:
-                    raise(NotImplementedError(f'Unknown type of xyz constraint for atom {atom["label"]}'))
+                xyz_instructions, new_pars = constraint.obj_and_pars(
+                    current_index=current_index,
+                    values=xyz,
+                    atom_table=atom_table,
+                    cell_mat_m=cell_mat_m,
+                    known_torsion_indexes=known_torsion_indexes
+                )
+                n_pars = len(new_pars)
+                parameters[current_index:current_index + n_pars] = new_pars
+                current_index += n_pars
             else:
                 parameters[current_index:current_index + 3] = list(xyz)
                 xyz_instructions = Array(
                     value_tuple=tuple(RefinedValue(par_index=int(array_index), multiplicator=1.0) for array_index in range(current_index, current_index + 3))
                 )
                 current_index += 3
-
-            if atom['adp_type'] == 'Uani' or atom['adp_type'] == 'Umpe':
+            
+            if atom['label'] in constraint_dict.keys() and 'uij' in constraint_dict[atom['label']].keys():
                 adp = jnp.array(atom[['U_11', 'U_22', 'U_33', 'U_23', 'U_13', 'U_12']].values.astype(np.float64))
-                if atom['label'] in constraint_dict.keys() and 'uij' in constraint_dict[atom['label']].keys():
-                    constraint = constraint_dict[atom['label']]['uij']
-                    if type(constraint).__name__ == 'ConstrainedValues':
-                        instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value) 
-                        adp_pars = Array(value_tuple=tuple(constrained_values_to_instruction(
-                            par_index,
-                            mult,
-                            add,
-                            constraint,
-                            current_index) for par_index, mult, add in instr_zip)
-                        )
-                        adp_instructions = AnisoTFactor(uij_values=adp_pars)
-                        # we need this construction to unpack lists in indexes for the MultiIndexParameters
-                        n_pars = max(max(entry) if is_multientry(entry) else entry for entry in constraint.variable_indexes) + 1
-
-                        # MultiIndexParameter can never be unique so we can throw it out
-                        u_indexes = [-1 if is_multientry(entry) else entry for entry in constraint.variable_indexes]
-
-                        parameters[current_index:current_index + n_pars] = [
-                            adp[jnp.array(varindex)] for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0
-                        ]
-                        current_index += n_pars
-                    elif type(constraint).__name__ == 'UEquivConstraint':
-                        bound_index = names.index(constraint.bound_atom_name)
-                        adp_instructions = UEquivTFactor(parent_index=bound_index, scaling_value=FixedValue(value=constraint.multiplicator))
-                    else:
-                        raise NotImplementedError('Unknown Uij Constraint')
+                constraint = constraint_dict[atom['label']]['uij']
+                adp_values, new_pars = constraint.obj_and_pars(
+                    current_index=current_index,
+                    values=adp,
+                    atom_table=atom_table
+                )
+                if isinstance(adp_values, Array):
+                    # is necessary because TFactors are not the same as
+                    # all other AtomicParameters
+                    adp_instructions = AnisoTFactor(uij_values=adp_values)
                 else:
-                    parameters[current_index:current_index + 6] = list(adp)
-                    adp_pars = Array(
-                        value_tuple=tuple(RefinedValue(
-                            par_index=int(array_index), multiplicator=1.0
-                            ) for array_index in range(current_index, current_index + 6))
-                    )
-                    adp_instructions = AnisoTFactor(uij_values=adp_pars)
-                    current_index += 6
+                    adp_instructions = adp_values
+                n_pars = len(new_pars)
+                parameters[current_index:current_index + n_pars] = new_pars
+                current_index += n_pars
+            elif atom['adp_type'] == 'Uani' or atom['adp_type'] == 'Umpe':
+                adp = jnp.array(atom[['U_11', 'U_22', 'U_33', 'U_23', 'U_13', 'U_12']].values.astype(np.float64))
+                parameters[current_index:current_index + 6] = list(adp)
+                adp_pars = Array(
+                    value_tuple=tuple(RefinedValue(
+                        par_index=int(array_index), multiplicator=1.0
+                        ) for array_index in range(current_index, current_index + 6))
+                )
+                adp_instructions = AnisoTFactor(uij_values=adp_pars)
+                current_index += 6
             elif atom['adp_type'] == 'Uiso':
-                if atom['label'] in constraint_dict.keys() and 'uij' in constraint_dict[atom['label']].keys():
-                    constraint = constraint_dict[atom['label']]['uij']
-                    if type(constraint).__name__ == 'UEquivConstraint':
-                            bound_index = names.index(constraint.bound_atom_name)
-                            adp_instructions = UEquivTFactor(parent_index=bound_index, scaling_value=FixedValue(value=constraint.multiplicator))
-                else:
-                    adp_par = RefinedValue(par_index=int(current_index), multiplicator=1.0)
-                    adp_instructions = IsoTFactor(uiso_value=adp_par)
-                    parameters[current_index] = float(atom['U_iso_or_equiv'])
-                    current_index += 1
+                adp_par = RefinedValue(par_index=int(current_index), multiplicator=1.0)
+                adp_instructions = IsoTFactor(uiso_value=adp_par)
+                parameters[current_index] = float(atom['U_iso_or_equiv'])
+                current_index += 1
             else:
                 raise NotImplementedError('Unknown ADP type in cif. Please use the Uiso or Uani convention')
 
@@ -389,20 +457,12 @@ def create_construction_instructions(
 
             if atom['label'] in constraint_dict.keys() and 'cijk' in constraint_dict[atom['label']].keys() and atom['label'] in atoms_for_gc3:
                 constraint = constraint_dict[atom['label']]['cijk']
-                instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value) 
-                cijk_instructions = Array(
-                    value_tuple = tuple(constrained_values_to_instruction(par_index, mult, add, constraint, current_index) for par_index, mult, add in instr_zip)
+                cijk_instructions, new_pars = constraint.obj_and_pars(
+                    current_index,
+                    cijk
                 )
-                # we need this construction to unpack lists in indexes for the MultiIndexParameters
-                n_pars = max(max(entry) if is_multientry(entry) else entry for entry in constraint.variable_indexes) + 1
-
-                # MultiIndexParameter can never be unique so we can throw it out
-                u_indexes = [-1 if is_multientry(entry) else entry for entry in constraint.variable_indexes]
-
-                parameters[current_index:current_index + n_pars] = [
-                    cijk[jnp.array(varindex)] for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0
-                ]
-
+                n_pars = len(new_pars)
+                parameters[current_index:current_index + n_pars] = new_pars
                 current_index += n_pars
             elif atom['label'] in atoms_for_gc3:
                 parameters[current_index:current_index + 10] = list(cijk)
@@ -422,17 +482,12 @@ def create_construction_instructions(
 
             if atom['label'] in constraint_dict.keys() and 'dijkl' in constraint_dict[atom['label']].keys() and atom['label'] in atoms_for_gc4:
                 constraint = constraint_dict[atom['label']]['dijkl']
-                instr_zip = zip(constraint.variable_indexes, constraint.multiplicators, constraint.added_value) 
-                dijkl_instructions = Array(
-                    value_tuple=tuple(constrained_values_to_instruction(par_index, mult*1e-3, add, constraint, current_index) for par_index, mult, add in instr_zip)
+                dijkl_instructions, new_pars = constraint.obj_and_pars(
+                    current_index,
+                    dijkl
                 )
-                # we need this construction to unpack lists in indexes for the MultiIndexParameters
-                n_pars = max(max(entry) if is_multientry(entry) else entry for entry in constraint.variable_indexes) + 1
-                # MultiIndexParameter can never be unique so we can throw it out
-                u_indexes = [-1 if is_multientry(entry) else entry for entry in constraint.variable_indexes]
-                parameters[current_index:current_index + n_pars] = [
-                    dijkl[jnp.array(varindex)]*1e3 for index, varindex in zip(*np.unique(u_indexes, return_index=True)) if index >=0
-                ]
+                n_pars = len(new_pars)
+                parameters[current_index:current_index + n_pars] = new_pars
                 current_index += n_pars
             elif atom['label'] in atoms_for_gc4:
                 parameters[current_index:current_index + 15] = list(dijkl*1e3)

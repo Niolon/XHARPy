@@ -237,7 +237,7 @@ class TrigonalPositionConstraint(UserConstraint):
 
 @dataclass
 class TetrahedralPositionConstraint(UserConstraint):
-    """Represents a Constraint where the constrained atom completes a 
+    """Represents a constraint where the constrained atom completes a 
     tetrahedron with the three tetrahedron atoms around bound atom, by averaging
     the directions pointing from the tetrahedron atoms to bound atom and 
     using that direction to place the new atom with the given distance starting

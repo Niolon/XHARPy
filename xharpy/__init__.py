@@ -8,6 +8,7 @@ from .io import(
     shelxl_hkl2pd, fcf2hkl_pd, add_density_entries_from_fcf, xd_hkl2pd,
     cif2tsc
 ) 
+import warnings
 
 try:
     from .refine import refine

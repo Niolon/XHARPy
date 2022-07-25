@@ -230,7 +230,9 @@ def calculate_drk(
 def generate_hm(
     fcf_path: str,
     map_factor: float = 1/3,
-    level_step : float= 0.01
+    level_step : float= 0.01,
+    level_min: float = -1.0,
+    level_max: float = 1.0
 ) -> Dict[str, np.ndarray]:
     """Generates a Henn-Meindl or normal probability plot from the given fcf6
     file. Relies on cctbx for the calculation of the difference electron
@@ -274,8 +276,11 @@ def generate_hm(
     diff_map.apply_volume_scaling()
     real = diff_map.real_map_unpadded()
     arr = real.as_numpy_array()
-    levels = np.arange(-1.0, 1.0 + level_step, level_step)
-    start_at = np.argwhere(levels < arr.min())[-1, 0]
+    levels = np.arange(level_min, level_max + level_step, level_step)
+    try:
+        start_at = np.argwhere(levels < arr.min())[-1, 0]
+    except IndexError:
+        raise ValueError('level_min is larger than minimum value of difference density')
     end_at = np.argwhere(levels > arr.max())[0, 0]
     sum_levels = np.zeros_like(levels)
     for level_index, level in enumerate(levels[start_at:end_at]):

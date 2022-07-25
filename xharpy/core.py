@@ -17,7 +17,6 @@ import pandas as pd
 from collections import namedtuple
 import jax
 import numpy as np
-import numpy.typing as npt
 from copy import deepcopy
 import pickle
 from scipy.optimize import minimize

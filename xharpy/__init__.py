@@ -5,12 +5,26 @@ factors.
 
 from .io import(
     cif2data, lst2constraint_dict, write_cif, write_res, write_fcf,
-    shelxl_hkl2pd, fcf2hkl_pd, add_density_entries_from_fcf, xd_hkl2pd
+    shelxl_hkl2pd, fcf2hkl_pd, add_density_entries_from_fcf, xd_hkl2pd,
+    cif2tsc
 ) 
-from .core import (
+import warnings
+
+try:
+    from .refine import refine
+except:
+    warnings.warn('refine module could not be imported, jax is probably missing')
+
+from .structure.initialise import (
     create_construction_instructions, ConstrainedValues, UEquivConstraint,
     TorsionPositionConstraint, TrigonalPositionConstraint, 
-    TetrahedralPositionConstraint, refine, create_atom_table
+    TetrahedralPositionConstraint
 )
 
-from .quality import calculate_quality_indicators
+from .structure.construct import (
+    create_atom_table
+)
+try:
+    from .quality import calculate_quality_indicators
+except:
+    warnings.warn('quality module could not be imported, jax is probably missing')

@@ -14,8 +14,9 @@ import shlex
 
 from scipy.interpolate import interp1d
 from scipy.integrate import simps
-from ..core import expand_symm_unique, construct_values, AtomInstructions
-
+from ..conversion import expand_symm_unique
+from ..structure.construct import construct_values
+from ..structure.common import AtomInstructions
 
 # This is ugly but works. We cannot call mpiexec globally so we write out 
 # python scripts. GPAW must not be loaded in the main script or mpiexec will

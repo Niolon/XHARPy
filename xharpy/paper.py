@@ -10,8 +10,7 @@ from .io import ciflike_to_dict
 from .conversion import ucif2ucart, cell_constants_to_M
 from scipy.optimize import minimize
 import numpy as np
-import jax
-import jax.numpy as jnp
+from .common_jax import jax, jnp
 import warnings
 import pandas as pd
 from cycler import cycler
@@ -33,35 +32,35 @@ def corr_uij_tric(parameters, uij_neut):
 def corr_uij_mono(parameters, uij_neut):
     scale = parameters[0]
     add = jnp.zeros(6)
-    add = jax.ops.index_add(add, jnp.array([0, 1, 2]), parameters[1:4])
-    add = jax.ops.index_add(add, 4, parameters[4])
+    add = add.at[jnp.array([0, 1, 2])].add(parameters[1:4])
+    add = add.at[4].add(parameters[4])
     return scale * uij_neut + add
 
 def corr_uij_ortho(parameters, uij_neut):
     scale = parameters[0]
     add = jnp.zeros(6)
-    add = jax.ops.index_add(add, jnp.array([0, 1, 2]), parameters[1:])
+    add = add.at[jnp.array([0, 1, 2])].add(parameters[1:])
     return scale * uij_neut + add
 
 def corr_uij_tetra(parameters, uij_neut):
     scale = parameters[0]
     add = jnp.zeros(6)
-    add = jax.ops.index_add(add, jnp.array([0, 1]), parameters[1])
-    add = jax.ops.index_add(add, 2, parameters[2])
+    add = add.at[jnp.array([0, 1])].add(parameters[1])
+    add = add.at[2].add(parameters[2])
     return scale * uij_neut + add
 
 def corr_uij_hexa(parameters, uij_neut):
     scale = parameters[0]
     add = jnp.zeros(6)
-    add = jax.ops.index_add(add, jnp.array([0, 1]), parameters[1])
-    add = jax.ops.index_add(add, 2, parameters[2])
-    add = jax.ops.index_add(add, 5, parameters[1] / 2)
+    add = add.at[jnp.array([0, 1])].add(parameters[1])
+    add = add.at[2].add(parameters[2])
+    add = add.at[5].add(parameters[1] / 2)
     return scale * uij_neut + add
 
 def corr_uij_cubic(parameters, uij_neut):
     scale = parameters[0]
     add = jnp.zeros(6)
-    add = jax.ops.index_add(add, jnp.array([0, 1, 2]), parameters[1])
+    add = add.at[jnp.array([0, 1, 2])].add(parameters[1])
     return scale * uij_neut + add
 
 def corr_uij_tric_nosc(parameters, uij_neut):
@@ -70,31 +69,31 @@ def corr_uij_tric_nosc(parameters, uij_neut):
 
 def corr_uij_mono_nosc(parameters, uij_neut):
     add = jnp.zeros(6)
-    add = jax.ops.index_add(add, jnp.array([0, 1, 2]), parameters[:3])
-    add = jax.ops.index_add(add, 4, parameters[3])
+    add = add.at[jnp.array([0, 1, 2])].add(parameters[:3])
+    add = add.at[4].add(parameters[3])
     return uij_neut + add
 
 def corr_uij_ortho_nosc(parameters, uij_neut):
     add = jnp.zeros(6)
-    add = jax.ops.index_add(add, jnp.array([0, 1, 2]), parameters)
+    add = add.at[jnp.array([0, 1, 2])].add(parameters)
     return uij_neut + add
 
 def corr_uij_tetra_nosc(parameters, uij_neut):
     add = jnp.zeros(6)
-    add = jax.ops.index_add(add, jnp.array([0, 1]), parameters[0])
-    add = jax.ops.index_add(add, 2, parameters[1])
+    add = add.at[jnp.array([0, 1])].add(parameters[0])
+    add = add.at[2].add(parameters[1])
     return uij_neut + add
 
 def corr_uij_hexa_nosc(parameters, uij_neut):
     add = jnp.zeros(6)
-    add = jax.ops.index_add(add, jnp.array([0, 1]), parameters[0])
-    add = jax.ops.index_add(add, 2, parameters[1])
-    add = jax.ops.index_add(add, 5, parameters[0] / 2)
+    add = add.at[jnp.array([0, 1])].add(parameters[0])
+    add = add.at[2].add(parameters[1])
+    add = add.at[5].add(parameters[0] / 2)
     return uij_neut + add
 
 def corr_uij_cubic_nosc(parameters, uij_neut):
     add = jnp.zeros(6)
-    add = jax.ops.index_add(add, jnp.array([0, 1, 2]), parameters[0])
+    add = add.at[jnp.array([0, 1, 2])].add(parameters[0])
     return uij_neut + add
 
 

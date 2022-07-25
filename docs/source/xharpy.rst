@@ -28,14 +28,6 @@ xharpy.conversion module
    :undoc-members:
    :show-inheritance:
 
-xharpy.core module
-------------------
-
-.. automodule:: xharpy.core
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 xharpy.io module
 ----------------
 
@@ -56,6 +48,14 @@ xharpy.quality module
 ---------------------
 
 .. automodule:: xharpy.quality
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   
+xharpy.refine module
+------------------------
+
+.. automodule:: xharpy.refine
    :members:
    :undoc-members:
    :show-inheritance:

@@ -123,3 +123,13 @@ L-Alanin with the Independent Atom Model and Hydrogen Constraints
 - Isotropic Hydrogen Refinement
 - Position constraints for sp3 hydrogen atoms
 - U(equiv) constraints
+
+Export to .tsc file
+===================
+- Folder: L-Alanin_tscexport_gpaw
+- Original data doi: `10.1021/j100315a022 <https://doi.org/10.1021/j100315a022>`_
+- Example for the export of atomic form factory to a .tsc file 
+- Program: GPAW
+- SCAN calculation
+- Using MPI
+- Constant Core calculation

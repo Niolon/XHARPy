@@ -6,7 +6,8 @@ import sys
 import os
 import argparse
 from typing import Any
-from .core import refine, create_construction_instructions
+from .refine import refine
+from .structure.initialise import create_construction_instructions
 from .io import (cif2data, lst2constraint_dict, write_cif, write_fcf, 
                  shelxl_hkl2pd, write_res)
 
@@ -95,7 +96,7 @@ def cli(**kwargs):
     if 'gridspacing' not in kwargs:
         computation_dict['h'] = float(input_with_default(
             'Give the grid-spacing for the FD wavefunction calculation',
-            '0.20'
+            '0.16'
         ))
     else:
         computation_dict['h'] = kwargs['gridspacing'][0]

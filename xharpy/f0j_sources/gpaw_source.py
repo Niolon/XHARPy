@@ -24,7 +24,9 @@ from scipy.interpolate import interp1d
 from scipy.integrate import simps
 import gpaw
 import warnings
-from ..core import expand_symm_unique, construct_values, AtomInstructions
+from ..conversion import expand_symm_unique
+from ..structure.construct import construct_values
+from ..structure.common import AtomInstructions
 
 
 class HirshfeldDensity(RealSpaceDensity):

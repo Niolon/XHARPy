@@ -32,7 +32,7 @@ have a pre-existing constraint_dict to modify, we would generate a new one.
             'xyz': ConstrainedValues(
                 variable_indexes = (-1, 0, -1),
                 multiplicators = (0.0, 1.0, 0.0),
-                added_value = (0.5, 0.0, 0.5),
+                added_values = (0.5, 0.0, 0.5),
                 special_position=True
             )
         }
@@ -63,14 +63,14 @@ with:
     constraint_dict['O2']['uij'] = ConstrainedValues(
         variable_indexes = (0, 1, 2, -1, 3, -1),
         multiplicators = (1.0, 1.0, 1.0, 0.0, 1.0, 0.0),
-        added_value = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        added_values = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
         special_position = True
     )
 
     constraint_dict['O2']['occ'] = ConstrainedValues(
         variable_indexes = (-1),
         multiplicators = (0.0),
-        added_value = (0.5),
+        added_values = (0.5),
         special_position = True
     )
 

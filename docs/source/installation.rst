@@ -111,8 +111,9 @@ Followed by installing the necessary packages
 You can download the XHARPy library from: `https://github.com/Niolon/XHARPy <https://github.com/Niolon/XHARPy>`_.
 You need to add the folder where your xharpy *directory* is located to the 
 $PYTHONPATH. If you are unsure the directory should be one level above the one
-where the ``__init__.py`` is located. As long as there is no installation
-routine you can do this by
+where the ``__init__.py`` is located, so if you have downloaded the complete 
+repository it is the folder containing the docs, examples and xharpy folder.
+As long as there is no installation routine you can do this by:
 
 .. code-block:: console
 

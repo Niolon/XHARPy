@@ -5,22 +5,37 @@ from collections import OrderedDict
 import pandas as pd
 import numpy as np
 from typing import Any, Dict, Union, Tuple, List
-import jax.numpy as jnp
-import jax
+from .common_jax import jnp
 import re
 import warnings
 from io import StringIO
 import pickle
 import textwrap
-from .core import (
-    AtomInstructions, ConstrainedValues, cell_constants_to_M, distance_with_esd,
-    construct_esds, construct_values, u_iso_with_esd, angle_with_esd, calc_f,
-    get_value_or_default, get_parameter_index, create_construction_instructions
+from .defaults import (
+    get_parameter_index, get_value_or_default, XHARPY_VERSION
 )
-from .quality import calculate_quality_indicators
+from .conversion import cell_constants_to_M
+try:
+    from .refine import calc_f
+except:
+    warnings.warn('Refine module could not be imported, jax is probably missing')
+
+from .structure.common import (
+    AtomInstructions, FixedValue, RefinedValue
+)
+from .structure.initialise import (
+    create_construction_instructions, ConstrainedValues
+)
+from .structure.construct import (
+    distance_with_esd, construct_esds, construct_values, u_iso_with_esd,
+    angle_with_esd
+)
+try:
+    from .quality import calculate_quality_indicators
+except:
+    warnings.warn('quality module could not be imported, jax is probably missing')
+
 from .conversion import calc_sin_theta_ov_lambda, cell_constants_to_M
-
-
 
 def ciflike_to_dict(
     filename: str,
@@ -253,8 +268,8 @@ def symm_to_matrix_vector(instruction: str) -> Tuple[jnp.ndarray, jnp.ndarray]:
         size (3) array containing the translation vector for the symmetry element
     """    
     instruction_strings = [val.replace(' ', '').upper() for val in instruction.split(',')]
-    matrix = jnp.zeros((3,3), dtype=np.float64)
-    vector = jnp.zeros(3, dtype=np.float64)
+    matrix = np.zeros((3,3), dtype=np.float64)
+    vector = np.zeros(3, dtype=np.float64)
     for xyz, element in enumerate(instruction_strings):
         # search for fraction in a/b notation
         fraction1 = re.search(r'(-{0,1}\d{1,3})/(\d{1,3})(?![XYZ])', element)
@@ -263,11 +278,11 @@ def symm_to_matrix_vector(instruction: str) -> Tuple[jnp.ndarray, jnp.ndarray]:
         # search for whole numbers
         fraction3 = re.search(r'(-{0,1}\d)(?![XYZ])', element)
         if fraction1:
-            vector = vector.at[xyz].set(float(fraction1.group(1)) / float(fraction1.group(2)))
+            vector[xyz] = float(fraction1.group(1)) / float(fraction1.group(2))
         elif fraction2:
-            vector = vector.at[xyz].set(float(fraction2.group(1)))
+            vector[xyz] = float(fraction2.group(1))
         elif fraction3:
-            vector = vector.at[xyz].set(float(fraction3.group(1)))
+            vector[xyz] = float(fraction3.group(1))
 
         symm = re.findall(r'-{0,1}[\d\.]{0,8}[XYZ]', element)
         for xyz_match in symm:
@@ -278,12 +293,12 @@ def symm_to_matrix_vector(instruction: str) -> Tuple[jnp.ndarray, jnp.ndarray]:
             else:
                 sign = float(xyz_match[:-1])
             if xyz_match[-1] == 'X':
-                matrix = matrix.at[xyz, 0].set(sign)
+                matrix[xyz, 0] = sign
             if xyz_match[-1] == 'Y':
-                matrix = matrix.at[xyz, 1].set(sign)
+                matrix[xyz, 1] = sign
             if xyz_match[-1] == 'Z':
-                matrix = matrix.at[xyz, 2].set(sign)
-    return matrix, vector
+                matrix[xyz, 2] = sign
+    return jnp.array(matrix), jnp.array(vector)
 
 
 def cif2data(
@@ -410,7 +425,7 @@ def instructions_to_constraints(
     """
     variable_indexes = list(range(len(names)))
     multiplicators = [1.0] * len(names)
-    added_value = [0.0] * len(names)
+    added_values = [0.0] * len(names)
     for index, name in enumerate(names):
         if name not in instructions:
             continue
@@ -420,14 +435,14 @@ def instructions_to_constraints(
         if var == '':
             variable_indexes[index] = -1
             multiplicators[index] = 0.0
-            added_value[index] = add
+            added_values[index] = add
         else:
             variable_indexes[index] = variable_indexes[names.index(var)]
             multiplicators[index] = mult
-            added_value[index] = add
+            added_values[index] = add
     return ConstrainedValues(variable_indexes=jnp.array(variable_indexes),
                              multiplicators=jnp.array(multiplicators),
-                             added_value=jnp.array(added_value),
+                             added_values=jnp.array(added_values),
                              special_position=True) 
 
 
@@ -1089,8 +1104,7 @@ def add_from_cif(
 
 def cif2atom_type_table_string(
     cif: OrderedDict,
-    versionmajor: int,
-    versionminor: int,
+    version: str,
     ishar: bool = True
 ) -> str:
     """Helper function to create the atom_type table from a given cif
@@ -1099,10 +1113,8 @@ def cif2atom_type_table_string(
     ----------
     cif : OrderedDict
         The dictionary generated from the read in cif file
-    versionmajor : int
-        Major xharpy version
-    versionminor : int
-        Minor xharpy version number
+    versionmajor : str
+        current XHARPy version
     ishar : bool, optional
         refinement is a Hirshfeld Atom Refinement in XHARPy, by default True
 
@@ -1113,7 +1125,7 @@ def cif2atom_type_table_string(
     """
     table = next(loop for loop in cif['loops'] if 'atom_type_symbol' in loop.columns)
     if ishar:
-        table['atom_type_scat_source'] = f'HAR in XHARPy {versionmajor}.{versionminor}'
+        table['atom_type_scat_source'] = f'HAR in XHARPy {XHARPY_VERSION}'
     else:
         table['atom_type_scat_source'] = 'International Tables Vol C Tables 4.2.6.8 and 6.1.1.4'
     columns = [column for column in table.columns if not column.endswith('_esd')]
@@ -1192,36 +1204,16 @@ def create_atom_site_table_string(
     columns = ['atom_site_' + name for name in columns]
     string = '\nloop_\n _' + '\n _'.join(columns) + '\n'
     cell_mat_m = cell_constants_to_M(*cell)
-    constructed_xyz, _, _, _, constructed_occ = construct_values(parameters, construction_instructions, cell_mat_m)
-    constr_xyz_esd, _, _, _, constructed_occ_esd = construct_esds(var_cov_mat, construction_instructions)
+    constructed_xyz, _, _, _, _ = construct_values(parameters, construction_instructions, cell_mat_m)
+    constr_xyz_esd, _, _, _, _ = construct_esds(var_cov_mat, construction_instructions)
 
-    for index, (xyz, xyz_esd, occ, occ_esd, instr) in enumerate(zip(constructed_xyz, constr_xyz_esd, constructed_occ, constructed_occ_esd, construction_instructions)):
-        if type(instr.uij) is tuple:
-            adp_type = 'Uani'
-        elif type(instr.uij).__name__ == 'Uiso':
-            adp_type = 'Uiso'
-        elif type(instr.uij).__name__ == 'UEquivCalculated':
-            adp_type = 'calc'
-        else:
-            raise NotImplementedError('There was a currently not implemented ADP calculation type')
-
-        if type(instr.occupancy).__name__ == 'FixedParameter':
-            if instr.occupancy.special_position:
-                occupancy = 1.0
-                symmetry_order = int(1 / instr.occupancy.value)
-            else:
-                occupancy = instr.occupancy.value
-                symmetry_order = 1
-        elif type(instr.occupancy).__name__ == 'RefinedParameter':
-            if instr.occupancy.special_position:
-                occupancy = value_with_esd(float(occ/ instr.occupancy.multiplicator), float(occ_esd / instr.occupancy.multiplicator))
-                symmetry_order = int(1 / instr.occupancy.multiplicator)
-            else:
-                occupancy = value_with_esd(float(occ), float(occ_esd))
-                symmetry_order = 1
-        else:
-            raise NotImplementedError('This type of parameter is not implemented in output routine')
-
+    for index, (xyz, xyz_esd, instr) in enumerate(zip(constructed_xyz, constr_xyz_esd, construction_instructions)):
+        adp_type = instr.uij.adp_type
+        occupancy = value_with_esd(
+            instr.occupancy.occupancy(parameters),
+            instr.occupancy.occupancy_esd(var_cov_mat)
+        )
+        symmetry_order = instr.occupancy.symmetry_order()
         position_string = ' '.join(value_with_esd(xyz, xyz_esd))
         uiso, uiso_esd = u_iso_with_esd(instr.name, construction_instructions, parameters, var_cov_mat, cell, cell_esd, crystal_system)
         uiso_string = value_with_esd(float(uiso), float(uiso_esd))
@@ -1772,8 +1764,6 @@ def write_cif(
     source_dataset : Union[str, int], optional
         Dataset to use in the source_cif
     """
-    versionmajor = 0
-    versionminor = 1
 
     if source_cif_path is None:
         source_cif_path = shelx_cif_path
@@ -1876,14 +1866,14 @@ def write_cif(
     ]
     lines = [
         f'\ndata_{cif_dataset}\n',
-        cif_entry_string('audit_creation_method', f'xHARPY {versionmajor}.{versionminor}'),
+        cif_entry_string('audit_creation_method', f'XHARPY {XHARPY_VERSION}'),
         add_from_cif('chemical_name_systematic', source_cif),
         add_from_cif('chemical_name_common', source_cif),
         add_from_cif('chemical_melting_point', source_cif),
         add_from_cif('chemical_formula_moiety', source_cif),
         add_from_cif('chemical_formula_sum', source_cif),
         add_from_cif('chemical_formula_weight', source_cif),
-        cif2atom_type_table_string(shelx_cif, 0, 1, ishar),
+        cif2atom_type_table_string(shelx_cif, XHARPY_VERSION, ishar),
         add_from_cif('space_group_crystal_system', shelx_cif),
         add_from_cif('space_group_IT_number', shelx_cif),
         add_from_cif('space_group_name_H-M_alt', shelx_cif),
@@ -1962,9 +1952,9 @@ systematic absences."""
         add_from_cif('computing_cell_refinement', source_cif),
         add_from_cif('computing_data_reduction', source_cif),
         add_from_cif('computing_structure_solution', source_cif),
-        cif_entry_string('computing_structure_refinement', f'xHARPY {versionmajor}.{versionminor}'),
+        cif_entry_string('computing_structure_refinement', f'xHARPY {XHARPY_VERSION}'),
         cif_entry_string('computing_molecular_graphics', None),
-        cif_entry_string('computing_publication_material', f'xHARPY {versionmajor}.{versionminor}'),
+        cif_entry_string('computing_publication_material', f'xHARPY {XHARPY_VERSION}'),
         '',
         cif_entry_string('atom_sites_solution_hydrogens', 'difmap', False),
         '',
@@ -2150,7 +2140,7 @@ def cif2tsc(
 
         - f0j_source (str) : Can be one of the implemented sources for atomic
           form factors. The most common options are 'gpaw', 'gpaw_mpi' and 'qe'
-        - core (str): can be either 'costant', which means the core densitsy 
+        - core (str): can be either 'constant', which means the core densitsy 
           will be evaluated on a separate spherical grid and assigned to the 
           source atom completely, or 'combine' in which case the core density is
           expanded and partitioned in the same way the valence density is

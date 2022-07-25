@@ -18,6 +18,7 @@ import warnings
 from ..conversion import expand_symm_unique
 from ..structure.construct import construct_values
 from ..structure.common import AtomInstructions
+
 mass_dict = {
     'H': 1.008,  'He': 4.0026, 'Li': 6.9675, 'Be': 9.0122, 'B': 10.814, 'C': 12.011, 'N': 14.007, 'O': 15.999,
     'F': 18.998, 'Ne': 20.18, 'Na': 22.99, 'Mg': 24.306, 'Al': 26.982, 'Si': 28.085, 'P': 30.974, 'S': 32.068,
@@ -129,7 +130,8 @@ def qe_pw_file(
         if section in ('paw_files', 'core_electrons', 'k_points', 
                        'mpicores', 'density_format', 'pw_in_file',
                        'pw_out_file', 'pp_in_file', 'pp_out_file',
-                       'non_convergence'):
+                       'non_convergence', 'pw_executable', 'pp_executable',
+                       'windows'):
             # these are either given in tables in QE or not used here
             continue
         if section in qe_options:
@@ -295,11 +297,15 @@ def qe_density(
         # we have an atomic calculation
         in_pw = 'pw_atomic.in'
         in_pp = 'pp_atomic.in'
+        pw_executable = computation_dict.get('pw_executable', 'pw.x')
+        pp_executable = computation_dict.get('pp_executable', 'pp.x')
         out_pw = '/dev/null'
         out_pp = '/dev/null'
     else:
         in_pw = computation_dict.get('pw_in_file', 'pw.in')
         in_pp = computation_dict.get('pp_in_file', 'pp.in')
+        pw_executable = computation_dict.get('pw_executable', 'pw.x')
+        pp_executable = computation_dict.get('pp_executable', 'pp.x')
         out_pw = computation_dict.get('pw_out_file', 'pw.out')
         out_pp = computation_dict.get('pw_out_file', 'pp.out')
     with open(in_pw, 'w') as fo:
@@ -307,17 +313,34 @@ def qe_density(
     with open(in_pp, 'w') as fo:
         fo.write(qe_pp_file(computation_dict))
     mpicores = computation_dict.get('mpicores', 1)
-    if mpicores == 1:
-        subprocess.call([f'pw.x -i {in_pw} > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
-        subprocess.call([f'pp.x -i {in_pp} > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+
+    if computation_dict.get('windows', False):
+        cwd = os.getcwd()
+        in_pw_w = os.path.join(cwd, in_pw)
+        if out_pw == '/dev/null':
+            out_pw_w = 'NUL'
+        else:
+            out_pw_w = os.path.join(cwd, out_pw)
+        in_pp_w = os.path.join(cwd, in_pp)
+        if out_pp == '/dev/null':
+            out_pp_w = 'NUL'
+        else:
+            out_pp_w = os.path.join(cwd, out_pp)
+        res = subprocess.call(rf'{pw_executable} -i {in_pw_w} > {out_pw_w}', shell=True)
+        assert res in (0, 2), 'Calculation did not finish'
+        res = subprocess.call(rf'{pp_executable} -i {in_pp_w} > {out_pp_w}', shell=True)
+        assert res == 0, 'Density generation failed'
+    elif mpicores == 1:
+        subprocess.call([f'{pw_executable} -i {in_pw} > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+        subprocess.call([f'{pp_executable} -i {in_pp} > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
     elif mpicores == 'auto':
-        subprocess.call([f'mpirun pw.x -i {in_pw} > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
-        subprocess.call([f'mpirun pp.x -i {in_pp} > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+        subprocess.call([f'mpirun {pw_executable} -i {in_pw} > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+        subprocess.call([f'mpirun {pp_executable} -i {in_pp} > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
     else:
         assert type(mpicores) == int, 'mpicores has to either "auto" or int'
         n_cores = mpicores
-        subprocess.call([f'mpirun -n {n_cores} pw.x -i {in_pw} > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
-        subprocess.call([f'mpirun -n {n_cores} pp.x -i {in_pp} > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+        subprocess.call([f'mpirun -n {n_cores} {pw_executable} -i {in_pw} > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+        subprocess.call([f'mpirun -n {n_cores} {pp_executable} -i {in_pp} > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
 
     if out_pw != '/dev/null':
         with open(out_pw) as fo:
@@ -461,6 +484,12 @@ def calc_f0j(
             calculation, by default pw.out
           - pp_out_file (str): Filename for the output file of pp.x,
             by default pp.out
+          - pw_executable (str): Filename or path to the executable of pw,
+            by default pw.x
+          - pp_executable (str): Filename or path to the executable of pp,
+            by default pp.x
+          - windows (bool): If set to True, Windows PowerShell commands will
+            be used to call Quantum Espresso, by default False
           - non_convergence (str): How to deal with non-convergence in SCF
             'exception' will stop the calculation with a ValueError, 'warning'
             will print out a warning module 'print' will only print the warning

@@ -2271,3 +2271,5 @@ def cif2tsc(
     if tsc_core_path is not None:
         f0j_core_out = np.ones_like(f0j) * f0j_core[None,:,:]
         f0j2tsc(tsc_core_path, f0j_core_out, construction_instructions, symm_mats_vecs, index_vec_h, False)
+
+    print('Calculation finished')

@@ -329,10 +329,22 @@ def calc_var_cor_mat(
         sintwotheta = 2 * sintheta * jnp.sqrt(1 - sintheta**2)
         extinction_factors = 0.001 * wavelength**3 / sintwotheta
     
-    construct_values_j = jax.jit(construct_values, static_argnums=(1))
+    #construct_values_j = jax.jit(construct_values, static_argnums=(1))
+    construct_values_j = jax.jit(partial(
+        construct_values,
+        construction_instructions=construction_instructions,
+        cell_mat_m=cell_mat_m
+    ))
 
     def function(parameters, f0j, index):
-        xyz, uij, cijk, dijkl, occupancies = construct_values_j(parameters, construction_instructions, cell_mat_m)
+        #xyz, uij, cijk, dijkl, occupancies = construct_values_j(
+        #    parameters,
+        #    construction_instructions,
+        #    cell_mat_m
+        #)
+        xyz, uij, cijk, dijkl, occupancies = construct_values_j(
+            parameters
+        )
         if core == 'scale':
             f0j = parameters[core_parameter] * f0j + f0j_core[None, :, :]
         elif core == 'constant':

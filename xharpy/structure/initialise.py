@@ -608,7 +608,7 @@ def create_construction_instructions(
                     values=adp,
                     atom_table=atom_table
                 )
-                if isinstance(adp_values, Array):
+                if not isinstance(adp_values, TFactor):
                     # is necessary because TFactors are not the same as
                     # all other AtomicParameters
                     adp_instructions = AnisoTFactor(uij_values=adp_values)

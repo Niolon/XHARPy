@@ -1,8 +1,11 @@
+import contextlib
 import warnings
 
 try:
-    import jax.numpy as jnp
-    import jax
+    with contextlib.redirect_stdout(None):
+        # supress only cpu message
+        import jax.numpy as jnp
+        import jax
     from jax.config import config
     try:
         config.update('jax_enable_x64', True)

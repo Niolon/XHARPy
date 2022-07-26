@@ -125,11 +125,27 @@ L-Alanin with the Independent Atom Model and Hydrogen Constraints
 - U(equiv) constraints
 
 Export to .tsc file
-===================
+-------------------
+
+L-Alanin with GPAW
+******************
 - Folder: L-Alanin_tscexport_gpaw
 - Original data doi: `10.1021/j100315a022 <https://doi.org/10.1021/j100315a022>`_
-- Example for the export of atomic form factory to a .tsc file 
+- Example for the export of atomic form factors to a .tsc file 
+- Running (only) under Linux
 - Program: GPAW
 - SCAN calculation
+- Using MPI
+- Constant Core calculation
+
+
+Urea with Quantum Espresso under Windows
+****************************************
+- Folder: Urea_tscexport_qe_windows
+- Original data doi: `10.1107/S0108767304015120 <https://doi.org/10.1107/S0108767304015120>`_
+- Example for the export of atomic form factors to a .tsc file 
+- Running (only) under Windows
+- Program: Quantum Espresso
+- PBE calculation
 - Using MPI
 - Constant Core calculation

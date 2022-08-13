@@ -8,10 +8,27 @@ array
 from ..common_jax import jnp, jax
 from .common import AtomInstructions
 from ..conversion import ucif2ucart, cell_constants_to_M
-
+from itertools import product
 from typing import List, Tuple
 import numpy as np
 import pandas as pd
+
+def construct_arg_dicts(
+    construction_instructions: List[AtomInstructions],
+    cell_mat_m: jnp.array,
+    index_vec_h: jnp.array,
+):
+    pre_args = {}
+    in_function = {}
+    attributes = ('xyz', 'uij', 'cijkl', 'dijkl', 'occupancy')
+    for instr, attribute in product(construction_instructions, attributes):
+        pre_func_dict = getattr(instr, attribute).pre_cycle_calculated
+        pre_args.update(
+            {key: func(cell_mat_m, index_vec_h) for key, func in pre_func_dict.items()}
+        )
+        in_function.update(getattr(instr, attribute).in_cycle_calculated)
+    return pre_args, in_function
+
 
 def construct_values(
     parameters: jnp.ndarray,

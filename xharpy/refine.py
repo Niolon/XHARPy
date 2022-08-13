@@ -189,6 +189,7 @@ def calc_lsq_factory(
         sintwotheta = 2 * sintheta * jnp.sqrt(1 - sintheta**2)
         extinction_factors = 0.001 * wavelength**3 / sintwotheta
 
+
     #construct_values_j = jax.jit(construct_values, static_argnums=(1))
     construct_values_j = jax.jit(partial(
         construct_values,
@@ -730,6 +731,7 @@ def refine(
         print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)):8.6f}, number of iterations: {x.nit}')
         shift = parameters - x.x
         parameters = jnp.array(x.x) 
+
         #if x.nit == 0:
         #    break
         if x.fun < r_opt_density or refine < min_iter:

@@ -221,8 +221,8 @@ class AtomicProperty(metaclass=ABCMeta):
         which can be used for attributes of AtomicProperties
     """
     derived: bool = abstract_attribute()
-    #pre_cycle_calculated: Dict[str, callable] = {}
-    #in_cycle_calculated: Dict[str, callable] = {} 
+    pre_cycle_calculated: Dict[str, callable] = {}
+    in_cycle_calculated: Dict[str, callable] = {} 
 
     @abstractmethod
     def resolve(self, parameters: jnp.array, **kwargs) -> jnp.array:

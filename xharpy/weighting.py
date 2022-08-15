@@ -3,8 +3,7 @@ only contains a function to calculate weights from given parameters."""
 
 from scipy.optimize import minimize
 import numpy as np
-import jax
-import jax.numpy as jnp
+from .common_jax import jax, jnp
 from .conversion import calc_sin_theta_ov_lambda
 
 def calc_weights(

@@ -1,5 +1,8 @@
 import contextlib
 import warnings
+import logging
+
+logging.basicConfig(filename='xharpy.log', encoding='utf-8', level=logging.ERROR)
 
 try:
     with contextlib.redirect_stdout(None):

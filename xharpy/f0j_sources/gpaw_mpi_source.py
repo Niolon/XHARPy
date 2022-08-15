@@ -23,6 +23,9 @@ from ..structure.common import AtomInstructions
 # not work so the core density calculation needs to be done in the same way
 
 step1_script = """from ase.spacegroup import crystal
+import logging
+
+logging.basicConfig(filename='xharpy.log', encoding='utf-8', level=logging.ERROR)
 from ase.parallel import parprint
 import gpaw
 import warnings
@@ -69,6 +72,9 @@ if __name__ == '__main__':
 """
 
 step2_script = """
+import logging
+
+logging.basicConfig(filename='xharpy.log', encoding='utf-8', level=logging.ERROR)
 
 import gpaw
 from ase.units import Bohr
@@ -82,6 +88,7 @@ from gpaw.mpi import world
 from gpaw.io.logger import GPAWLogger
 import numpy as np
 import pickle
+
 
 class HirshfeldDensity(RealSpaceDensity):
     def __init__(self, calculator, log=None):

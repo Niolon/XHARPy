@@ -19,6 +19,7 @@ core_r_values.pic
 step2.py
 step2_values.pic
 f0j.pic
+xharpy.log
 
 # Files of qe
 pp.in 
@@ -26,6 +27,8 @@ pp.out
 pw.in 
 pw.out
 tmp.pp
+pw_atomic.in 
+pp_atomic.in
 density.cube
 density.xsf
 

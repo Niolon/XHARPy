@@ -979,6 +979,7 @@ def value_with_esd(
             smaller2[indexes] = np.array(esds[indexes]) * 10**(-orders[indexes]) < 2
 
             orders[np.logical_and(smaller2, orders)] -= 1
+            orders[orders > 0] = 0 
         strings = []
         for value, esd, order, index in zip(values, esds, orders, indexes):
             if index:
@@ -1254,7 +1255,7 @@ def create_aniso_table_string(
     _, uij_esds, *_ = construct_esds(var_cov_mat, construction_instructions)
 
     for instr, uij, uij_esd in zip(construction_instructions, uijs, uij_esds):
-        if type(instr.uij) is tuple:
+        if instr.uij.adp_type == 'Uani':
             # we have an anisotropic adp
             uij_string = ' '.join(value_with_esd(uij, uij_esd))
             string += f'{instr.name} {uij_string}\n'

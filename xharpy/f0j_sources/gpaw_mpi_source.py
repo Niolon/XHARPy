@@ -10,6 +10,7 @@ import os
 import pickle
 from typing import Any, Dict, List, Tuple
 import shlex
+import datetime
 
 
 from scipy.interpolate import interp1d
@@ -584,12 +585,16 @@ def calc_f0j(
 
     #time.sleep(1)
 
+    print('  theoretical calculation started at ', datetime.datetime.now())
+
     if ncores is None:
         res = subprocess.run(shlex.split('mpiexec gpaw python step1.py'))
     else:
         res = subprocess.run(f'mpiexec -n {ncores} gpaw python step1.py', shell=True)
 
     assert res.returncode == 0, 'mpiexec failed. Make sure you have not loaded GPAW somewhere in your script or kernel (such as switching the f0j_source from gpaw to gpaw_mpi in jupyter without kernel restart)'
+
+    print('  theoretical calculation ended at ', datetime.datetime.now())
 
     with open('step1.py', 'w') as fo:
         fo.write(step1_script)
@@ -599,12 +604,12 @@ def calc_f0j(
 
     with open('step2.py', 'w') as fo:
         fo.write(step2_script)
-
+    print('  partitioning started at ', datetime.datetime.now())
     res = subprocess.run('python step2.py', shell=True)
     assert res.returncode == 0, 'step 2 failed for some reason'
-
     with open('f0j.pic', 'rb') as fo:
         f0j = pickle.load(fo)
+    print('  partitioning ended at ', datetime.datetime.now())
 
     os.remove('step1.py')
     os.remove('step2.py')

@@ -7,13 +7,13 @@ import numpy as np
 from copy import deepcopy
 import subprocess
 import os
-import time
+import datetime
 import re
 from . import cubetools
 
-from scipy.interpolate import interp1d
+#from scipy.interpolate import interp1d
 from scipy.integrate import simps
-from scipy.ndimage import zoom
+#from scipy.ndimage import zoom
 import warnings
 from ..conversion import expand_symm_unique
 from ..structure.construct import construct_values
@@ -381,7 +381,8 @@ def qe_atomic_density(
     symm_symbols: List[str],
     symm_positions: np.ndarray,
     cell_mat_m: np.ndarray,
-    computation_dict: Dict[str, Any]
+    computation_dict: Dict[str, Any],
+    shape: Tuple[int] = None
 ) -> np.ndarray:
     """
     Generates the atomic function needed for Hirshfeld partitioning by
@@ -414,6 +415,13 @@ def qe_atomic_density(
         at_computation_dict['electrons'] = {}
     if 'control' not in at_computation_dict:
         at_computation_dict['control'] = {}
+
+    if shape is not None:
+        if 'system' not in at_computation_dict:
+            at_computation_dict['system'] = {}
+        at_computation_dict['system']['nr1'] = shape[0]
+        at_computation_dict['system']['nr2'] = shape[1]
+        at_computation_dict['system']['nr3'] = shape[2]
     at_computation_dict['control']['prefix'] = 'adensity'
     at_computation_dict['electrons']['electron_maxstep'] = 0
     at_computation_dict['electrons']['startingwfc'] = 'atomic'
@@ -553,11 +561,13 @@ def calc_f0j(
                                                                                  (np.array(symm_mats_vecs[0]), np.array(symm_mats_vecs[1])),
                                                                                  skip_symm=skip_symm,
                                                                                  magmoms=None)
-
+    print('  theoretical calculation started at ', datetime.datetime.now())
     density = qe_density(symm_symbols, symm_positions, cell_mat_m, computation_dict)
-    print('  calculated density, continuing with partitioning')
+    #print('  calculated density, continuing with partitioning')
+    print('  theoretical calculation ended at ', datetime.datetime.now())
 
-    overall_hdensity = qe_atomic_density(symm_symbols, symm_positions, cell_mat_m, computation_dict)
+    print('  partitioning started at ', datetime.datetime.now())
+    overall_hdensity = qe_atomic_density(symm_symbols, symm_positions, cell_mat_m, computation_dict, density.shape)
     assert -density.shape[0] // 2 < index_vec_h[:,0].min(), 'Your gridspacing is too large.'
     assert density.shape[0] // 2 > index_vec_h[:,0].max(), 'Your gridspacing is too large.'
     assert -density.shape[1] // 2 < index_vec_h[:,1].min(), 'Your gridspacing is too large.'
@@ -566,12 +576,19 @@ def calc_f0j(
     assert density.shape[2] // 2 > index_vec_h[:,2].max(), 'Your gridspacing is too large.'
     f0j = np.zeros((symm_mats_vecs[0].shape[0], positions.shape[0], index_vec_h.shape[0]), dtype=np.complex128)
 
+
     if symm_equiv == 'averaged':
         h, k, l = np.meshgrid(*map(lambda n: np.fft.fftfreq(n, 1/n).astype(np.int64), density.shape), indexing='ij')
         for atom_index, symm_atom_indexes in enumerate(f0j_indexes):
             f0j_sum = np.zeros_like(h, dtype=np.complex128)
             for symm_matrix, symm_atom_index in zip(symm_mats_vecs[0], symm_atom_indexes):
-                atomic_density = qe_atomic_density([symm_symbols[symm_atom_index]], symm_positions[None,symm_atom_index,:],cell_mat_m, computation_dict)
+                atomic_density = qe_atomic_density(
+                    [symm_symbols[symm_atom_index]],
+                    symm_positions[None,symm_atom_index,:],
+                    cell_mat_m,
+                    computation_dict,
+                    density.shape
+                )
                 h_density = density * atomic_density/ overall_hdensity
                 frac_position = symm_positions[symm_atom_index]
                 h_rot, k_rot, l_rot = np.einsum('zx, xy -> zy', index_vec_h, symm_matrix).T.astype(np.int64)
@@ -585,7 +602,13 @@ def calc_f0j(
     elif symm_equiv == 'once':
         h, k, l = np.meshgrid(*map(lambda n: np.fft.fftfreq(n, 1/n).astype(np.int64), density.shape), indexing='ij')
         for atom_index, (symm_atom_index, *_) in enumerate(f0j_indexes):
-            atomic_density = qe_atomic_density([symm_symbols[symm_atom_index]], symm_positions[None,symm_atom_index,:],cell_mat_m, computation_dict)
+            atomic_density = qe_atomic_density(
+                [symm_symbols[symm_atom_index]],
+                symm_positions[None,symm_atom_index,:],
+                cell_mat_m,
+                computation_dict,
+                density.shape
+            )
             h_density = density * atomic_density/ overall_hdensity
             frac_position = symm_positions[symm_atom_index]
             phase_to_zero = np.exp(-2j * np.pi * (frac_position[0] * h + frac_position[1] * k + frac_position[2] * l))
@@ -605,12 +628,19 @@ def calc_f0j(
                     equiv_symm_index, equiv_atom_index = already_known[symm_atom_index]
                     f0j[symm_index, atom_index, :] = f0j[equiv_symm_index, equiv_atom_index, :].copy()
                 else:
-                    atomic_density = qe_atomic_density([symm_symbols[symm_atom_index]], symm_positions[None,symm_atom_index,:],cell_mat_m, computation_dict)
+                    atomic_density = qe_atomic_density(
+                        [symm_symbols[symm_atom_index]],
+                        symm_positions[None,symm_atom_index,:],
+                        cell_mat_m,
+                        computation_dict,
+                        density.shape
+                    )
                     h_density = density * atomic_density/ overall_hdensity
                     frac_position = symm_positions[symm_atom_index]
                     phase_to_zero = np.exp(-2j * np.pi * (frac_position[0] * h_vec + frac_position[1] * k_vec + frac_position[2] * l_vec))
                     f0j[symm_index, atom_index, :] = ((np.fft.ifftn(h_density) * np.prod(density.shape))[h_vec, k_vec, l_vec] * phase_to_zero).copy()
                     already_known[symm_atom_index] = (symm_index, atom_index)
+    print('  partitioning ended at ', datetime.datetime.now())
     return f0j
 
 def calc_f0j_core(

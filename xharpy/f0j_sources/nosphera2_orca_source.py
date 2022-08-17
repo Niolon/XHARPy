@@ -5,6 +5,7 @@ from ..structure.common import AtomInstructions
 from ..structure.construct import construct_values
 from ..io import symm_to_matrix_vector
 from .tsc_file_source import calc_f0j as calc_f0j_tsc
+import datetime
 
 import numpy as np
 import fractions
@@ -434,9 +435,14 @@ loop_
     with open(os.path.join(calc_folder, 'npa2.cif'), 'w') as fo:
         fo.write(cif_string + fragment_output + '\n\n')
 
+    print('  theoretical calculation started at ', datetime.datetime.now())
     subprocess.check_call([f'{orca_path} orca.inp > orca_log.log'], shell=True, cwd=calc_folder)
+    print('  theoretical calculation ended at ', datetime.datetime.now())
+
     time.sleep(1)
+    print('  partitioning started at ', datetime.datetime.now())
     subprocess.check_call(f'{nosphera2_path} -hkl mock.hkl -wfn orca.wfn -cif npa2.cif -asym_cif npa2_asym.cif -multiplicity {multiplicity} -acc {nosphera2_accuracy} -cores {n_cores}', shell=True, stdout=subprocess.DEVNULL, cwd=calc_folder)
+    print('  partitioning ended at ', datetime.datetime.now())
 
     tsc_dict = {
         'file_name': os.path.join(calc_folder, 'experimental.tsc')

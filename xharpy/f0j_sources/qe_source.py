@@ -2,6 +2,7 @@
 as source for the atomic form factors. Still very experimental but works in
 principle."""
 
+import shutil
 from typing import Union, List, Dict, Any, Tuple
 import numpy as np
 from copy import deepcopy
@@ -10,6 +11,9 @@ import os
 import datetime
 import re
 from . import cubetools
+import functools
+from multiprocessing import Pool
+
 
 #from scipy.interpolate import interp1d
 from scipy.integrate import simps
@@ -266,7 +270,8 @@ def qe_density(
     symm_symbols: List[str],
     symm_positions: np.ndarray,
     cell_mat_m: np.ndarray,
-    computation_dict: Dict[str, Any]
+    computation_dict: Dict[str, Any],
+    cwd=os.getcwd()
 ) -> np.ndarray:
     """
     Performs the wavefunction calculation with quantum espresso, generates the
@@ -293,8 +298,8 @@ def qe_density(
         Numpy array containing the density. The overall sum of the array is 
         normalised to the number of electrons.
     """
-    if 'electrons' in computation_dict and computation_dict['electrons'].get('electron_maxstep', 1) == 0:
-        # we have an atomic calculation
+    is_atomic = 'electrons' in computation_dict and computation_dict['electrons'].get('electron_maxstep', 1) == 0
+    if is_atomic:
         in_pw = 'pw_atomic.in'
         in_pp = 'pp_atomic.in'
         pw_executable = computation_dict.get('pw_executable', 'pw.x')
@@ -308,9 +313,16 @@ def qe_density(
         pp_executable = computation_dict.get('pp_executable', 'pp.x')
         out_pw = computation_dict.get('pw_out_file', 'pw.out')
         out_pp = computation_dict.get('pw_out_file', 'pp.out')
-    with open(in_pw, 'w') as fo:
+
+    for filename in (in_pw, in_pp, out_pw, out_pp):
+        if filename == '/dev/null':
+            continue
+        if os.path.exists(filename):
+            os.remove(filename)
+
+    with open(os.path.join(cwd, in_pw), 'w') as fo:
         fo.write(qe_pw_file(symm_symbols, symm_positions, cell_mat_m, computation_dict))
-    with open(in_pp, 'w') as fo:
+    with open(os.path.join(cwd, in_pp), 'w') as fo:
         fo.write(qe_pp_file(computation_dict))
     mpicores = computation_dict.get('mpicores', 1)
 
@@ -330,19 +342,49 @@ def qe_density(
         assert res in (0, 2), 'Calculation did not finish'
         res = subprocess.call(rf'{pp_executable} -i {in_pp_w} > {out_pp_w}', shell=True)
         assert res == 0, 'Density generation failed'
+    elif is_atomic:
+        env = os.environ.copy()
+        env['OMP_NUM_THREADS'] = '1'
+        env['I_MPI_PIN_DOMAIN'] = '1'
+        subprocess.call([f'{pw_executable} -x OMP_NUM_THREADS=1 -i {in_pw} > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True, cwd=cwd, env=env)
+        assert not os.path.exists(os.path.join(cwd, 'CRASH')), 'pw.x crashed during runtime' 
+        subprocess.call([f'{pp_executable} -x OMP_NUM_THREADS=1 -i {in_pp} > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True, cwd=cwd, env=env)
+        assert not os.path.exists(os.path.join(cwd, 'CRASH')), 'pp.x crashed during runtime' 
     elif mpicores == 1:
-        subprocess.call([f'{pw_executable} -i {in_pw} > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
-        subprocess.call([f'{pp_executable} -i {in_pp} > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+        subprocess.call([f'{pw_executable} -i {in_pw} > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True, cwd=cwd)
+        assert not os.path.exists(os.path.join(cwd, 'CRASH')), 'pw.x crashed during runtime' 
+        subprocess.call([f'{pp_executable} -i {in_pp} > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True, cwd=cwd)
+        assert not os.path.exists(os.path.join(cwd, 'CRASH')), 'pp.x crashed during runtime' 
     elif mpicores == 'auto':
-        subprocess.call([f'mpirun {pw_executable} -i {in_pw} > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
-        subprocess.call([f'mpirun {pp_executable} -i {in_pp} > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+        subprocess.call([f'mpirun {pw_executable} -i {in_pw} > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True, cwd=cwd)
+        assert not os.path.exists(os.path.join(cwd, 'CRASH')), 'pp.x crashed during runtime' 
+        subprocess.call([f'mpirun {pp_executable} -i {in_pp} > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True, cwd=cwd)
+        assert not os.path.exists(os.path.join(cwd, 'CRASH')), 'pp.x crashed during runtime' 
     else:
+        env = os.environ.copy()
+        env['OMP_NUM_THREADS'] = '1'
+        env['I_MPI_PIN_DOMAIN'] = '1'
         assert type(mpicores) == int, 'mpicores has to either "auto" or int'
         n_cores = mpicores
-        subprocess.call([f'mpirun -n {n_cores} {pw_executable} -i {in_pw} > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
-        subprocess.call([f'mpirun -n {n_cores} {pp_executable} -i {in_pp} > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+        subprocess.call(
+            [f'mpirun -np {n_cores} {pw_executable} -x OMP_NUM_THREADS=1 -i {in_pw} > {out_pw}'],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            shell=True,
+            env=env
+        )
+        assert not os.path.exists(os.path.join(cwd, 'CRASH')), 'pw.x crashed during runtime' 
+        subprocess.call(
+            [f'mpirun -np {n_cores} {pp_executable} -x OMP_NUM_THREADS=1  -i {in_pp} > {out_pp}'],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            shell=True,
+            env=env
+        )
+        assert not os.path.exists(os.path.join(cwd, 'CRASH')), 'pp.x crashed during runtime' 
 
-    if out_pw != '/dev/null':
+
+    if not is_atomic:
         with open(out_pw) as fo:
             pw_content = fo.read()
         is_converged = re.search('convergence has been achieved in\s+\d+\s+iterations', pw_content) is not None
@@ -362,11 +404,11 @@ def qe_density(
 
     density_format = computation_dict.get('density_format', 'xsf')
     if  density_format == 'xsf':
-        density = read_xsf_density('density.xsf')
-        os.remove('density.xsf')
+        density = read_xsf_density(os.path.join(cwd, 'density.xsf'))
+        os.remove(os.path.join(cwd, 'density.xsf'))
     elif density_format == 'cube':
-        density, _ = cubetools.read_cube('density.cube')
-        os.remove('density.cube')
+        density, _ = cubetools.read_cube(os.path.join(cwd, 'density.cube'))
+        os.remove(os.path.join(cwd, 'density.cube'))
     else:
         raise NotImplementedError('unknown density format allowed options are: xsf, cube')
 
@@ -382,7 +424,8 @@ def qe_atomic_density(
     symm_positions: np.ndarray,
     cell_mat_m: np.ndarray,
     computation_dict: Dict[str, Any],
-    shape: Tuple[int] = None
+    shape: Tuple[int] = None,
+    cwd=os.getcwd()
 ) -> np.ndarray:
     """
     Generates the atomic function needed for Hirshfeld partitioning by
@@ -403,6 +446,10 @@ def qe_atomic_density(
     computation_dict : Dict[str, Any]
         Dictionary with the calculation options, see calc_f0j function for
         options
+    shape : Tuple[int]
+        tuple containing the shape of the desired atomic density. This circumvents
+        an inconsistency of QE on how large the densities arrays are depending
+        on some parameters in the file.
 
     Returns
     -------
@@ -427,7 +474,47 @@ def qe_atomic_density(
     at_computation_dict['electrons']['startingwfc'] = 'atomic'
     at_computation_dict['electrons']['startingpot'] = 'atomic'
     at_computation_dict['electrons']['scf_must_converge'] = False
-    return qe_density(symm_symbols, symm_positions, cell_mat_m, at_computation_dict)
+    return qe_density(symm_symbols, symm_positions, cell_mat_m, at_computation_dict, cwd)
+
+def single_core_function(
+    atom_index,
+    symm_atom_index,
+    symm_mats_vecs,
+    index_vec_h,
+    computation_dict,
+    symm_symbols,
+    symm_positions,
+    cell_mat_m,
+    density,
+    overall_hdensity
+):
+    h, k, l = np.meshgrid(*map(lambda n: np.fft.fftfreq(n, 1/n).astype(np.int64), density.shape), indexing='ij')
+
+    f0j_atom = np.zeros((symm_mats_vecs[0].shape[0], index_vec_h.shape[0]), dtype=np.complex128)
+    sc_computation_dict = deepcopy(computation_dict)
+    sc_computation_dict['control']['pseudo_dir'] = os.path.abspath(sc_computation_dict['control']['pseudo_dir'])
+    # create individual folders for each atom
+    atom_dir = f'atomic_{atom_index}'
+    if not os.path.exists(atom_dir):
+        os.mkdir(atom_dir)
+    atomic_density = qe_atomic_density(
+        [symm_symbols[symm_atom_index]],
+        symm_positions[None,symm_atom_index,:],
+        cell_mat_m,
+        sc_computation_dict,
+        density.shape,
+        atom_dir
+    )
+
+
+    h_density = density * atomic_density / overall_hdensity
+    frac_position = symm_positions[symm_atom_index]
+    phase_to_zero = np.exp(-2j * np.pi * (frac_position[0] * h + frac_position[1] * k + frac_position[2] * l))
+    f0j_symm1 = np.fft.ifftn(h_density) * phase_to_zero * np.prod(h.shape)
+    for symm_index, symm_matrix in enumerate(symm_mats_vecs[0]):
+        h_rot, k_rot, l_rot = np.einsum('zx, xy -> zy', index_vec_h, symm_matrix).T.astype(np.int64)
+        f0j_atom[symm_index, :] = f0j_symm1[h_rot, k_rot, l_rot]
+    return f0j_atom
 
 def calc_f0j(
     cell_mat_m: np.ndarray,
@@ -576,8 +663,27 @@ def calc_f0j(
     assert density.shape[2] // 2 > index_vec_h[:,2].max(), 'Your gridspacing is too large.'
     f0j = np.zeros((symm_mats_vecs[0].shape[0], positions.shape[0], index_vec_h.shape[0]), dtype=np.complex128)
 
+    mpicores = computation_dict.get('mpicores', 1)
 
-    if symm_equiv == 'averaged':
+    if symm_equiv == 'once' and mpicores > 1:
+
+        single_core_function_red = functools.partial(
+            single_core_function,
+            symm_mats_vecs=symm_mats_vecs,
+            index_vec_h=index_vec_h,
+            computation_dict=computation_dict,
+            symm_symbols=symm_symbols,
+            symm_positions=symm_positions,
+            cell_mat_m=cell_mat_m,
+            density=density,
+            overall_hdensity=overall_hdensity
+        )
+        
+        with Pool(mpicores) as p:
+            f0j_atoms = p.starmap(single_core_function_red, enumerate(indexes[0] for indexes in f0j_indexes))
+        for atom_index, f0j_atom in enumerate(f0j_atoms):
+            f0j[:, atom_index, :] = f0j_atom
+    elif symm_equiv == 'averaged':
         h, k, l = np.meshgrid(*map(lambda n: np.fft.fftfreq(n, 1/n).astype(np.int64), density.shape), indexing='ij')
         for atom_index, symm_atom_indexes in enumerate(f0j_indexes):
             f0j_sum = np.zeros_like(h, dtype=np.complex128)

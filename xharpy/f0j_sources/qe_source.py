@@ -135,7 +135,7 @@ def qe_pw_file(
                        'mpicores', 'density_format', 'pw_in_file',
                        'pw_out_file', 'pp_in_file', 'pp_out_file',
                        'non_convergence', 'pw_executable', 'pp_executable',
-                       'windows'):
+                       'windows', 'omp_num_threads'):
             # these are either given in tables in QE or not used here
             continue
         if section in qe_options:
@@ -324,7 +324,16 @@ def qe_density(
         fo.write(qe_pw_file(symm_symbols, symm_positions, cell_mat_m, computation_dict))
     with open(os.path.join(cwd, in_pp), 'w') as fo:
         fo.write(qe_pp_file(computation_dict))
-    mpicores = computation_dict.get('mpicores', 1)
+    mpicores = computation_dict['mpicores']
+    omp_num_threads = computation_dict['omp_num_threads']
+
+    env = os.environ.copy()
+    env['OMP_NUM_THREADS'] = str(omp_num_threads)
+    env['I_MPI_PIN_DOMAIN'] = '1'
+
+    if mpicores > 1:
+        pw_executable = f'mpirun -np {mpicores} ' + pw_executable
+        pp_executable = f'mpirun -np {mpicores} ' + pp_executable
 
     if computation_dict.get('windows', False):
         cwd = os.getcwd()
@@ -342,47 +351,25 @@ def qe_density(
         assert res in (0, 2), 'Calculation did not finish'
         res = subprocess.call(rf'{pp_executable} -i {in_pp_w} > {out_pp_w}', shell=True)
         assert res == 0, 'Density generation failed'
-    elif is_atomic:
-        env = os.environ.copy()
-        env['OMP_NUM_THREADS'] = '1'
-        env['I_MPI_PIN_DOMAIN'] = '1'
-        subprocess.call([f'{pw_executable} -x OMP_NUM_THREADS=1 -i {in_pw} > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True, cwd=cwd, env=env)
-        assert not os.path.exists(os.path.join(cwd, 'CRASH')), 'pw.x crashed during runtime' 
-        subprocess.call([f'{pp_executable} -x OMP_NUM_THREADS=1 -i {in_pp} > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True, cwd=cwd, env=env)
-        assert not os.path.exists(os.path.join(cwd, 'CRASH')), 'pp.x crashed during runtime' 
-    elif mpicores == 1:
-        subprocess.call([f'{pw_executable} -i {in_pw} > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True, cwd=cwd)
-        assert not os.path.exists(os.path.join(cwd, 'CRASH')), 'pw.x crashed during runtime' 
-        subprocess.call([f'{pp_executable} -i {in_pp} > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True, cwd=cwd)
-        assert not os.path.exists(os.path.join(cwd, 'CRASH')), 'pp.x crashed during runtime' 
-    elif mpicores == 'auto':
-        subprocess.call([f'mpirun {pw_executable} -i {in_pw} > {out_pw}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True, cwd=cwd)
-        assert not os.path.exists(os.path.join(cwd, 'CRASH')), 'pp.x crashed during runtime' 
-        subprocess.call([f'mpirun {pp_executable} -i {in_pp} > {out_pp}'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True, cwd=cwd)
-        assert not os.path.exists(os.path.join(cwd, 'CRASH')), 'pp.x crashed during runtime' 
     else:
-        env = os.environ.copy()
-        env['OMP_NUM_THREADS'] = '1'
-        env['I_MPI_PIN_DOMAIN'] = '1'
-        assert type(mpicores) == int, 'mpicores has to either "auto" or int'
-        n_cores = mpicores
         subprocess.call(
-            [f'mpirun -np {n_cores} {pw_executable} -x OMP_NUM_THREADS=1 -i {in_pw} > {out_pw}'],
+            [f'{pw_executable} -x OMP_NUM_THREADS={omp_num_threads} -i {in_pw} > {out_pw}'],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             shell=True,
+            cwd=cwd,
             env=env
         )
         assert not os.path.exists(os.path.join(cwd, 'CRASH')), 'pw.x crashed during runtime' 
         subprocess.call(
-            [f'mpirun -np {n_cores} {pp_executable} -x OMP_NUM_THREADS=1  -i {in_pp} > {out_pp}'],
+            [f'{pp_executable} -x OMP_NUM_THREADS={omp_num_threads} -i {in_pp} > {out_pp}'],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             shell=True,
+            cwd=cwd,
             env=env
         )
-        assert not os.path.exists(os.path.join(cwd, 'CRASH')), 'pp.x crashed during runtime' 
-
+    assert not os.path.exists(os.path.join(cwd, 'CRASH')), 'pp.x crashed during runtime' 
 
     if not is_atomic:
         with open(out_pw) as fo:
@@ -463,6 +450,8 @@ def qe_atomic_density(
     if 'control' not in at_computation_dict:
         at_computation_dict['control'] = {}
 
+    at_computation_dict['mpicores'] = 1
+
     if shape is not None:
         if 'system' not in at_computation_dict:
             at_computation_dict['system'] = {}
@@ -493,10 +482,12 @@ def single_core_function(
     f0j_atom = np.zeros((symm_mats_vecs[0].shape[0], index_vec_h.shape[0]), dtype=np.complex128)
     sc_computation_dict = deepcopy(computation_dict)
     sc_computation_dict['control']['pseudo_dir'] = os.path.abspath(sc_computation_dict['control']['pseudo_dir'])
+    sc_computation_dict['omp_num_threads'] = 1
     # create individual folders for each atom
     atom_dir = f'atomic_{atom_index}'
-    if not os.path.exists(atom_dir):
-        os.mkdir(atom_dir)
+    if os.path.exists(atom_dir):
+        shutil.rmtree(atom_dir)
+    os.mkdir(atom_dir)
     atomic_density = qe_atomic_density(
         [symm_symbols[symm_atom_index]],
         symm_positions[None,symm_atom_index,:],
@@ -505,7 +496,7 @@ def single_core_function(
         density.shape,
         atom_dir
     )
-
+    shutil.rmtree(atom_dir)
 
     h_density = density * atomic_density / overall_hdensity
     frac_position = symm_positions[symm_atom_index]
@@ -628,6 +619,28 @@ def calc_f0j(
         del(computation_dict['skip_symm'])
     else:
         skip_symm = {}
+
+    mpicores = computation_dict.get('mpicores', 1)
+    omp_threads = computation_dict.get('omp_num_threads', os.cpu_count())
+
+    if mpicores == 'auto':
+        mpicores = os.cpu_count() 
+        if mpicores is None:
+            mpicores = 1
+        elif omp_threads != 'auto':
+            mpicores = mpicores // omp_threads
+            if mpicores == 0:
+                mpicores = 1
+    if omp_threads == 'auto':
+        omp_threads = os.cpu_count() // mpicores
+        if omp_threads == 0:
+            omp_threads = 1
+    assert type(mpicores) == int, 'mpicores has to either "auto" or int'
+
+    computation_dict['mpicores'] = mpicores
+    computation_dict['omp_num_threads'] = omp_threads
+
+    
     if restart:
         if 'electrons' not in computation_dict:
             computation_dict['electrons'] = {}
@@ -662,8 +675,6 @@ def calc_f0j(
     assert -density.shape[2] // 2 < index_vec_h[:,2].min(), 'Your gridspacing is too large.'
     assert density.shape[2] // 2 > index_vec_h[:,2].max(), 'Your gridspacing is too large.'
     f0j = np.zeros((symm_mats_vecs[0].shape[0], positions.shape[0], index_vec_h.shape[0]), dtype=np.complex128)
-
-    mpicores = computation_dict.get('mpicores', 1)
 
     if symm_equiv == 'once' and mpicores > 1:
 

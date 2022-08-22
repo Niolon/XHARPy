@@ -31,36 +31,36 @@ def corr_uij_tric(parameters, uij_neut):
 
 def corr_uij_mono(parameters, uij_neut):
     scale = parameters[0]
-    add = jnp.zeros(6)
-    add = add.at[jnp.array([0, 1, 2])].add(parameters[1:4])
+    add = jnp.zeros(6, dtype=jnp.float64)
+    add = add.at[jnp.array([0, 1, 2], dtype=jnp.int64)].add(parameters[1:4])
     add = add.at[4].add(parameters[4])
     return scale * uij_neut + add
 
 def corr_uij_ortho(parameters, uij_neut):
     scale = parameters[0]
-    add = jnp.zeros(6)
-    add = add.at[jnp.array([0, 1, 2])].add(parameters[1:])
+    add = jnp.zeros(6, dtype=jnp.float64)
+    add = add.at[jnp.array([0, 1, 2], dtype=jnp.int64)].add(parameters[1:])
     return scale * uij_neut + add
 
 def corr_uij_tetra(parameters, uij_neut):
     scale = parameters[0]
-    add = jnp.zeros(6)
-    add = add.at[jnp.array([0, 1])].add(parameters[1])
+    add = jnp.zeros(6, dtype=jnp.float64)
+    add = add.at[jnp.array([0, 1], dtype=jnp.int64)].add(parameters[1])
     add = add.at[2].add(parameters[2])
     return scale * uij_neut + add
 
 def corr_uij_hexa(parameters, uij_neut):
     scale = parameters[0]
-    add = jnp.zeros(6)
-    add = add.at[jnp.array([0, 1])].add(parameters[1])
+    add = jnp.zeros(6, dtype=jnp.float64)
+    add = add.at[jnp.array([0, 1], dtype=jnp.int64)].add(parameters[1])
     add = add.at[2].add(parameters[2])
     add = add.at[5].add(parameters[1] / 2)
     return scale * uij_neut + add
 
 def corr_uij_cubic(parameters, uij_neut):
     scale = parameters[0]
-    add = jnp.zeros(6)
-    add = add.at[jnp.array([0, 1, 2])].add(parameters[1])
+    add = jnp.zeros(6, dtype=jnp.float64)
+    add = add.at[jnp.array([0, 1, 2], dtype=jnp.int64)].add(parameters[1])
     return scale * uij_neut + add
 
 def corr_uij_tric_nosc(parameters, uij_neut):
@@ -68,32 +68,32 @@ def corr_uij_tric_nosc(parameters, uij_neut):
     return uij_neut + add
 
 def corr_uij_mono_nosc(parameters, uij_neut):
-    add = jnp.zeros(6)
-    add = add.at[jnp.array([0, 1, 2])].add(parameters[:3])
+    add = jnp.zeros(6, dtype=jnp.float64)
+    add = add.at[jnp.array([0, 1, 2], dtype=jnp.int64)].add(parameters[:3])
     add = add.at[4].add(parameters[3])
     return uij_neut + add
 
 def corr_uij_ortho_nosc(parameters, uij_neut):
-    add = jnp.zeros(6)
-    add = add.at[jnp.array([0, 1, 2])].add(parameters)
+    add = jnp.zeros(6, dtype=jnp.float64)
+    add = add.at[jnp.array([0, 1, 2], dtype=jnp.int64)].add(parameters)
     return uij_neut + add
 
 def corr_uij_tetra_nosc(parameters, uij_neut):
-    add = jnp.zeros(6)
-    add = add.at[jnp.array([0, 1])].add(parameters[0])
+    add = jnp.zeros(6, dtype=jnp.float64)
+    add = add.at[jnp.array([0, 1], dtype=jnp.int64)].add(parameters[0])
     add = add.at[2].add(parameters[1])
     return uij_neut + add
 
 def corr_uij_hexa_nosc(parameters, uij_neut):
-    add = jnp.zeros(6)
-    add = add.at[jnp.array([0, 1])].add(parameters[0])
+    add = jnp.zeros(6, dtype=jnp.float64)
+    add = add.at[jnp.array([0, 1], dtype=jnp.int64)].add(parameters[0])
     add = add.at[2].add(parameters[1])
     add = add.at[5].add(parameters[0] / 2)
     return uij_neut + add
 
 def corr_uij_cubic_nosc(parameters, uij_neut):
-    add = jnp.zeros(6)
-    add = add.at[jnp.array([0, 1, 2])].add(parameters[0])
+    add = jnp.zeros(6, dtype=jnp.float64)
+    add = add.at[jnp.array([0, 1, 2], dtype=jnp.int64)].add(parameters[0])
     return uij_neut + add
 
 
@@ -109,14 +109,14 @@ def gen_lsq(
     return lsq
 
 func_start = {
-    'triclinic': (corr_uij_tric, corr_uij_tric_nosc, jnp.array([1] + [0] * 6)),
-    'monoclinic': (corr_uij_mono, corr_uij_mono_nosc, jnp.array([1] + [0] * 4)),
-    'orthorhombic': (corr_uij_ortho, corr_uij_ortho_nosc, jnp.array([1] + [0] * 3)),
-    'tetragonal': (corr_uij_tetra, corr_uij_tetra_nosc, jnp.array([1] + [0] * 2)),
-    'rhombohedral': (corr_uij_tric, corr_uij_tric_nosc, jnp.array([1] + [0] * 6)),
-    'trigonal': (corr_uij_tric, corr_uij_tric_nosc, jnp.array([1] + [0] * 6)),
-    'hexagonal': (corr_uij_hexa, corr_uij_hexa_nosc, jnp.array([1] + [0] * 2)),
-    'cubic': (corr_uij_cubic, corr_uij_cubic_nosc, jnp.array([1] + [0] * 1))
+    'triclinic': (corr_uij_tric, corr_uij_tric_nosc, jnp.array([1] + [0] * 6, dtype=jnp.float64)),
+    'monoclinic': (corr_uij_mono, corr_uij_mono_nosc, jnp.array([1] + [0] * 4, dtype=jnp.float64)),
+    'orthorhombic': (corr_uij_ortho, corr_uij_ortho_nosc, jnp.array([1] + [0] * 3, dtype=jnp.float64)),
+    'tetragonal': (corr_uij_tetra, corr_uij_tetra_nosc, jnp.array([1] + [0] * 2, dtype=jnp.float64)),
+    'rhombohedral': (corr_uij_tric, corr_uij_tric_nosc, jnp.array([1] + [0] * 6, dtype=jnp.float64)),
+    'trigonal': (corr_uij_tric, corr_uij_tric_nosc, jnp.array([1] + [0] * 6, dtype=jnp.float64)),
+    'hexagonal': (corr_uij_hexa, corr_uij_hexa_nosc, jnp.array([1] + [0] * 2, dtype=jnp.float64)),
+    'cubic': (corr_uij_cubic, corr_uij_cubic_nosc, jnp.array([1] + [0] * 1, dtype=jnp.float64))
 }
 
 def calc_s12(mat_u1, mat_u2):
@@ -209,9 +209,14 @@ def calculate_agreement(
 
     bond_table_neut = next(loop for loop in cif_neut['loops'] if 'geom_bond_distance' in loop.columns)
     bond_table_neut.columns = [name[10:] for name in bond_table_neut.columns]
-    h_bond_table_neut = bond_table_neut[bond_table_neut['atom_site_label_1'].isin(hydrogen_atoms)].copy()
-    h_bond_table_neut = h_bond_table_neut.rename(columns={'atom_site_label_1': 'atom_site_label_2', 'atom_site_label_2': 'atom_site_label_1'})
-    h_bond_table_neut = h_bond_table_neut.append(bond_table_neut[bond_table_neut['atom_site_label_2'].isin(hydrogen_atoms)])
+    h_bond_table_neut1 = bond_table_neut[bond_table_neut['atom_site_label_1'].isin(hydrogen_atoms)].copy()
+    h_bond_table_neut1 = h_bond_table_neut1.rename(columns={'atom_site_label_1': 'atom_site_label_2', 'atom_site_label_2': 'atom_site_label_1'})
+
+    h_bond_table_neut = pd.concat((
+        bond_table_neut[bond_table_neut['atom_site_label_2'].isin(hydrogen_atoms)],
+        h_bond_table_neut1
+    ))
+
     bond_pairs = [(el1, el2) for el1, el2 in zip(h_bond_table_neut['atom_site_label_1'],
                                                  h_bond_table_neut['atom_site_label_2'])]
     cell_neut = np.array([cif_neut[key] for key in cell_keys])
@@ -239,10 +244,12 @@ def calculate_agreement(
     bond_table['atom_site_label_1'] = [rename_dict.get(label, label) for label in bond_table['atom_site_label_1']]
     bond_table['atom_site_label_2'] = [rename_dict.get(label, label) for label in bond_table['atom_site_label_2']]
     
-    h_bond_table = bond_table[bond_table['atom_site_label_1'].isin(hydrogen_atoms)]
-    h_bond_table = h_bond_table.rename(columns={'atom_site_label_1': 'atom_site_label_2', 'atom_site_label_2': 'atom_site_label_1'})
-    h_bond_table = h_bond_table.append(bond_table[bond_table['atom_site_label_2'].isin(hydrogen_atoms)])
-
+    h_bond_table1 = bond_table[bond_table['atom_site_label_1'].isin(hydrogen_atoms)]
+    h_bond_table1 = h_bond_table1.rename(columns={'atom_site_label_1': 'atom_site_label_2', 'atom_site_label_2': 'atom_site_label_1'})
+    h_bond_table = pd.concat((
+        bond_table[bond_table['atom_site_label_2'].isin(hydrogen_atoms)],
+        h_bond_table1
+    ))
     cell = np.array([cif[key] for key in cell_keys])
     cell_esd = np.array([cif.get(key + '_esd', 0.0) for key in cell_keys])
     h_indexes = [list(uij_table['label'].values).index(atom) for atom in hydrogen_atoms]
@@ -256,8 +263,8 @@ def calculate_agreement(
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         weights = np.array(1 / (uij_neut_esd**2 + uij_esd**2))
-    weights = np.nan_to_num(weights, 0)
-    weights[weights > 1e30] = 0
+    weights = np.nan_to_num(weights, 0.0)
+    weights[weights > 1e30] = 0.0
     corr_func, corr_func_nosc, start = func_start[lattice.lower()]
     
     lsq_func_nosc = gen_lsq(corr_func_nosc, jnp.array(weights))

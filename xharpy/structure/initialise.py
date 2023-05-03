@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from ..better_abc import ABCMeta, abstractmethod
 
 from ..conversion import cell_constants_to_M
-from ..defaults import get_parameter_index
+from ..defaults import get_parameter_index, get_value_or_default
 from ..common_jax import jnp
 from .common import (
     AtomInstructions, AtomicProperty, FixedValue, RefinedValue, MultiIndexValue,
@@ -566,6 +566,12 @@ def create_construction_instructions(
     if extinction_index is not None:
         parameters[extinction_index] = exti0
         current_index += 1
+
+    tds_indexes = get_parameter_index('tds', refinement_dict)
+    if tds_indexes is not None:
+        parameters[tds_indexes] = 0.0
+        current_index += 2
+
     known_torsion_indexes = {}
     if cell is None:
         cell_mat_m = None
@@ -600,7 +606,7 @@ def create_construction_instructions(
                 )
                 current_index += 3
             
-            if atom['label'] in constraint_dict.keys() and 'uij' in constraint_dict[atom['label']].keys():
+            if atom['adp_type'] != 'Uiso' and atom['label'] in constraint_dict.keys() and 'uij' in constraint_dict[atom['label']].keys():
                 adp = jnp.array(atom[['U_11', 'U_22', 'U_33', 'U_23', 'U_13', 'U_12']].values.astype(np.float64))
                 constraint = constraint_dict[atom['label']]['uij']
                 adp_values, new_pars = constraint.obj_and_pars(

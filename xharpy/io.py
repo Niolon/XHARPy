@@ -363,7 +363,7 @@ def cif2data(
     atom_table = [table for table in cif['loops'] if 'atom_site_label' in table.columns][0].copy()
     atom_table.columns = [label.replace('atom_site_', '') for label in atom_table.columns]
     if 'type_symbol' not in atom_table:
-        atom_table['type_symbol'] = [str(re.match(r'([A-Za-z]{1,2})\d', line['label']).groups(1)[0]) for _, line in atom_table.iterrows()]
+        atom_table['type_symbol'] = [str(re.match(r'([A-Za-z]{1,2})\d*', line['label']).groups(1)[0]) for _, line in atom_table.iterrows()]
     if 'site_symmetry_order' in atom_table:
         atom_table['occupancy'] /= atom_table['site_symmetry_order']
     atom_table = atom_table.rename({'thermal_displace_type': 'adp_type'}, axis=1).copy()
@@ -729,6 +729,20 @@ def write_fcf(
         hkl['esd_int'] = np.array(esd_int / parameters[0] * np.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0))
     else:
         raise NotImplementedError('Extinction correction method is not implemented in fcf routine')
+
+    tds = get_value_or_default('tds', refinement_dict)
+    if tds == 'Zavodnik':
+        tds_indexes = get_parameter_index('tds', refinement_dict)
+        
+        a_tds = parameters[tds_indexes[0]]
+        b_tds = parameters[tds_indexes[1]]
+        sin_th_ov_lam = np.linalg.norm(np.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2
+        hkl['intensity'] /= 1 + a_tds * sin_th_ov_lam**2 + b_tds * sin_th_ov_lam**3
+        hkl['esd_int'] /= 1 + a_tds * sin_th_ov_lam**2 + b_tds * sin_th_ov_lam**3
+    elif tds == 'none':
+        pass
+    else: 
+        raise NotImplementedError('tds correction is not implemented in fcf routine')
 
     if fcf_mode == 6:
         dispersion_real = jnp.array([atom.dispersion_real for atom in construction_instructions])

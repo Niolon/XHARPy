@@ -450,7 +450,7 @@ def create_atom_table(
     ]] = np.array(dijkl_esd)
     atom_table_new['occupancy'] = np.array(occ)
     atom_table_new['occupancy_esd'] = np.array(occ_esd)
-    atom_table_new['adp_type'] = ['Uani' if type(instr.uij) in (tuple, list) else 'Uiso' for instr in construction_instructions]
+    atom_table_new['adp_type'] = [instr.uij.adp_type for instr in construction_instructions]
     atom_table_new['type_scat_dispersion_real'] = [instr.dispersion_real for instr in construction_instructions]
     atom_table_new['type_scat_dispersion_imag'] = [instr.dispersion_imag for instr in construction_instructions]
 

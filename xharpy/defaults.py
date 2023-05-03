@@ -1,4 +1,5 @@
 from typing import Dict, Any, Union
+from .common_jax import jnp
 
 XHARPY_VERSION = '0.2.0'
 
@@ -35,7 +36,8 @@ def get_value_or_default(
         'restraints': [],
         'flack': False,
         'core_io': ('none', 'core.pic'),
-        'cutoff': ('none', 'none', 0.0)
+        'cutoff': ('none', 'none', 0.0),
+        'tds': 'none'
     }
     return refinement_dict.get(parameter_name, defaults[parameter_name])
 
@@ -60,13 +62,17 @@ def get_parameter_index(
         Integer with the index of the parameter in the parameter array if the
         value is actually refined. None if value is not refined.
     """
-    order = [
+    n_vars = [
         ('overall scaling', True),
         ('flack', get_value_or_default('flack', refinement_dict)),
         ('core', get_value_or_default('core', refinement_dict) == 'scale'),
-        ('extinction', get_value_or_default('extinction', refinement_dict) != 'none')
+        ('extinction', get_value_or_default('extinction', refinement_dict) != 'none'),
+        ('tds', int(get_value_or_default('tds', refinement_dict) != 'none') * 2)
     ]
-    index = [name for name, _ in order].index(parameter_name)
-    if not order[index][1]:
+    index = [name for name, _ in n_vars].index(parameter_name)
+    if int(n_vars[index][1]) == 0:
         return None
-    return sum([int(val) for _, val in order][:index])
+
+    start = sum([int(val) for _, val in n_vars][:index])
+    return_val = list(start + vindex for vindex in range(int(n_vars[index][1])))
+    return jnp.array(return_val)

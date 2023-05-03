@@ -26,7 +26,7 @@ from ..structure.common import AtomInstructions
 step1_script = """from ase.spacegroup import crystal
 import logging
 
-logging.basicConfig(filename='xharpy.log', encoding='utf-8', level=logging.ERROR)
+#logging.basicConfig(filename='xharpy.log', encoding='utf-8', level=logging.ERROR)
 from ase.parallel import parprint
 import gpaw
 import warnings
@@ -75,7 +75,7 @@ if __name__ == '__main__':
 step2_script = """
 import logging
 
-logging.basicConfig(filename='xharpy.log', encoding='utf-8', level=logging.ERROR)
+#logging.basicConfig(filename='xharpy.log', encoding='utf-8', level=logging.ERROR)
 
 import gpaw
 from ase.units import Bohr

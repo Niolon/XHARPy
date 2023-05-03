@@ -550,14 +550,8 @@ def shelxl_hkl2pd(hkl_name: str) -> pd.DataFrame:
 
     # if zero line in there use as end
     content = content.split('   0   0   0    0.00    0.00')[0]
-    df = pd.read_csv(StringIO(content), sep='\s+', header=None)
-    if len(df.columns) == 5:
-        df.columns = ['h', 'k', 'l', 'intensity', 'esd_int']
-    elif len(df.columns) == 6:
-        warnings.warn('There is a batch_no in the hkl file. Be sure that the hkl file is merged and in the SHELX format.')
-        df.columns = ['h', 'k', 'l', 'intensity', 'esd_int', 'batch_no']
-    else:
-        raise ValueError('Could not read hkl_file, more than 6 or less than 5 columns found')
+    df = pd.read_fwf(StringIO(content), widths=(4,4,4,8,8))
+    df.columns = ['h', 'k', 'l', 'intensity', 'esd_int']
     return df
 
 def xd_hkl2pd(

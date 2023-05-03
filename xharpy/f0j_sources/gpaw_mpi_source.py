@@ -247,12 +247,12 @@ def density_to_f0j(save, gridinterpolation, explicit_core, index_vec_h, symm_mat
     partitioning = HirshfeldPartitioning(calc)
     partitioning.initialize()
     overall_hdensity = partitioning.hdensity.get_density(list(range(symm_positions.shape[0])), gridrefinement=gridinterpolation, skip_core=explicit_core)[0]
-    assert -density.shape[0] // 2 < index_vec_h[:,0].min(), 'Your gridspacing is too large.'
-    assert density.shape[0] // 2 > index_vec_h[:,0].max(), 'Your gridspacing is too large.'
-    assert -density.shape[1] // 2 < index_vec_h[:,1].min(), 'Your gridspacing is too large.'
-    assert density.shape[1] // 2 > index_vec_h[:,1].max(), 'Your gridspacing is too large.'
-    assert -density.shape[2] // 2 < index_vec_h[:,2].min(), 'Your gridspacing is too large.'
-    assert density.shape[2] // 2 > index_vec_h[:,2].max(), 'Your gridspacing is too large.'
+    assert -density.shape[0] // 2 < index_vec_h[:,0].min(), 'Your gridspacing is too large or wrongly read value for h in hkl.'
+    assert density.shape[0] // 2 > index_vec_h[:,0].max(), 'Your gridspacing is too large or wrongly read value for h in hkl.'
+    assert -density.shape[1] // 2 < index_vec_h[:,1].min(), 'Your gridspacing is too large or wrongly read value for k in hkl.'
+    assert density.shape[1] // 2 > index_vec_h[:,1].max(), 'Your gridspacing is too large or wrongly read value for k in hkl.'
+    assert -density.shape[2] // 2 < index_vec_h[:,2].min(), 'Your gridspacing is too large or wrongly read value for l in hkl.'
+    assert density.shape[2] // 2 > index_vec_h[:,2].max(), 'Your gridspacing is too large or wrongly read value for l in hkl.'
     f0j = np.zeros((symm_mats_vecs[0].shape[0], positions.shape[0], index_vec_h.shape[0]), dtype=np.complex128)
 
     if symm_equiv == 'averaged':

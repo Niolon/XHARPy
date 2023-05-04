@@ -101,6 +101,16 @@ def calculate_quality_indicators(
     else:
         raise NotImplementedError('Extinction correction method is not implemented in fcf routine')
 
+    tds = get_value_or_default('tds', refinement_dict)
+    if tds == 'Zavodnik':
+        tds_indexes = get_parameter_index('tds', refinement_dict)
+        a_tds = parameters[tds_indexes[0]] 
+        b_tds = parameters[tds_indexes[1]]
+        sin_th_ov_lam = np.linalg.norm(np.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2
+        hkl['intensity'] /= 1 + a_tds * sin_th_ov_lam**2 + b_tds * sin_th_ov_lam**3
+        hkl['esd_int'] /= 1 + a_tds * sin_th_ov_lam**2 + b_tds * sin_th_ov_lam**3
+
+
     intensities = hkl['intensity'].values
     esd_int = hkl['esd_int'].values
 

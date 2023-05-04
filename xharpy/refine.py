@@ -189,6 +189,11 @@ def calc_lsq_factory(
         sintwotheta = 2 * sintheta * jnp.sqrt(1 - sintheta**2)
         extinction_factors = 0.001 * wavelength**3 / sintwotheta
 
+    tds = get_value_or_default('tds', refinement_dict)
+
+    if tds == 'Zavodnik':
+        tds_indexes = get_parameter_index('tds', refinement_dict)
+        sin_th_ov_lam = jnp.linalg.norm(jnp.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2
 
     #construct_values_j = jax.jit(construct_values, static_argnums=(1))
     construct_values_j = jax.jit(partial(
@@ -230,6 +235,12 @@ def calc_lsq_factory(
             i_calc0 = jnp.abs(structure_factors)**2             
             intensities_calc = parameters[0] * i_calc0 / (1 + parameters[extinction_parameter] * i_calc0)
             #restraint_addition = 0
+
+        if tds == 'Zavodnik':
+            a_tds = parameters[tds_indexes[0]] 
+            b_tds = parameters[tds_indexes[1]]
+            intensities_calc = intensities_calc * (1 + a_tds * sin_th_ov_lam**2 + b_tds * sin_th_ov_lam**3)
+
   
         if flack_parameter is not None:
             structure_factors2 = calc_f(
@@ -253,6 +264,9 @@ def calc_lsq_factory(
                 i_calc02 = jnp.abs(structure_factors2)**2             
                 intensities_calc2 = parameters[0] * i_calc02 / (1 + parameters[extinction_parameter] * i_calc02)
                 #restraint_addition = 0
+
+            if tds == 'Zavodnik':
+                intensities_calc2 = intensities_calc2 * (1 + a_tds * sin_th_ov_lam**2 + b_tds * sin_th_ov_lam**3)
 
             lsq = jnp.sum(weights * (intensities_obs - parameters[flack_parameter] * intensities_calc2 - (1 - parameters[flack_parameter]) * intensities_calc)**2) 
         else:
@@ -329,6 +343,12 @@ def calc_var_cor_mat(
         sintheta = jnp.linalg.norm(jnp.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2 * wavelength
         sintwotheta = 2 * sintheta * jnp.sqrt(1 - sintheta**2)
         extinction_factors = 0.001 * wavelength**3 / sintwotheta
+
+    tds = get_value_or_default('tds', refinement_dict)
+
+    if tds == 'Zavodnik':
+        tds_indexes = get_parameter_index('tds', refinement_dict)
+        sin_th_ov_lam = jnp.linalg.norm(jnp.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2
     
     #construct_values_j = jax.jit(construct_values, static_argnums=(1))
     construct_values_j = jax.jit(partial(
@@ -376,6 +396,12 @@ def calc_var_cor_mat(
             i_calc0 = jnp.abs(structure_factors)**2             
             intensities_calc = parameters[0] * i_calc0 / (1 + parameters[extinction_parameter] * i_calc0)
             #restraint_addition = 0
+
+        if tds == 'Zavodnik':
+            a_tds = parameters[tds_indexes[0]] 
+            b_tds = parameters[tds_indexes[1]]
+            intensities_calc = intensities_calc * (1 + a_tds * sin_th_ov_lam**2 + b_tds * sin_th_ov_lam**3)
+
             
         if flack_parameter is not None:
             structure_factors2 = calc_f(
@@ -399,6 +425,10 @@ def calc_var_cor_mat(
                 i_calc02 = jnp.abs(structure_factors2)**2             
                 intensities_calc2 = parameters[0] * i_calc02 / (1 + parameters[extinction_parameter] * i_calc02)
                 #restraint_addition = 0
+
+            if tds == 'Zavodnik':
+                intensities_calc2 = intensities_calc2 * (1 + a_tds * sin_th_ov_lam**2 + b_tds * sin_th_ov_lam**3)
+
             return parameters[flack_parameter] * intensities_calc2[0] - (1 - parameters[flack_parameter]) * intensities_calc[0]
         else:
             return intensities_calc[0]
@@ -792,7 +822,8 @@ def refine(
         'f0j_anom': f0j_all,
         'shift_ov_su': shift_ov_su,
         'start': start,
-        'end': end
+        'end': end,
+        'wR2 (approx)': np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2))
     }
     return parameters, var_cov_mat, additional_information
 

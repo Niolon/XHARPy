@@ -276,6 +276,12 @@ check
     calculation, by default pw.out
   - pp_out_file (str): Filename for the output file of pp.x,
     by default pp.out
+  - pw_executable (str): Filename or path to the executable of pw,
+    by default pw.x
+  - pp_executable (str): Filename or path to the executable of pp,
+    by default pp.x
+  - windows (bool): If set to True, Windows PowerShell commands will
+    be used to call Quantum Espresso, by default False
   - non_convergence (str): How to deal with non-convergence in SCF
     'exception' will stop the calculation with a ValueError, 'warning'
     will print out a warning module 'print' will only print the warning

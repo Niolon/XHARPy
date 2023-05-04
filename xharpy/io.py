@@ -537,8 +537,7 @@ def shelxl_hkl2pd(hkl_name: str) -> pd.DataFrame:
     Returns
     -------
     hkl: pd.DataFrame
-        Dataframe with named columns: 'h', 'k', 'l', 'intensity', 'esd_int' and
-        possibly 'batch_no' if six columns are present in the file.
+        Dataframe with named columns: 'h', 'k', 'l', 'intensity', 'esd_int'
 
     Raises
     ------
@@ -550,7 +549,7 @@ def shelxl_hkl2pd(hkl_name: str) -> pd.DataFrame:
 
     # if zero line in there use as end
     content = content.split('   0   0   0    0.00    0.00')[0]
-    df = pd.read_fwf(StringIO(content), widths=(4,4,4,8,8))
+    df = pd.read_fwf(StringIO(content), widths=(4,4,4,8,8), header=None)
     df.columns = ['h', 'k', 'l', 'intensity', 'esd_int']
     return df
 
@@ -2058,7 +2057,9 @@ def f0j2tsc(
         size (K, N, H) array of atomic form factors for all reflections and symmetry
         generated atoms within the unit cells. Atoms on special positions are 
         present multiple times and have the atomic form factor of the full atom.
-        Can be obtained from a calc_f0j function or the information dict of a 
+        Can be obtained from a calc_f0j function or the informationdispersion_real = jnp.array([atom.dispersion_real for atom in construction_instructions])
+        dispersion_imag = jnp.array([atom.dispersion_imag for atom in construction_instructions])
+        f_dash = dispersion_real + 1j * dispersion_imag     dict of a 
         refinement
     construction_instructions : List[AtomInstructions]
         List of instructions for reconstructing the atomic parameters from the

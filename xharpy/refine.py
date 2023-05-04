@@ -822,7 +822,8 @@ def refine(
         'f0j_anom': f0j_all,
         'shift_ov_su': shift_ov_su,
         'start': start,
-        'end': end
+        'end': end,
+        'wR2 (approx)': np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2))
     }
     return parameters, var_cov_mat, additional_information
 

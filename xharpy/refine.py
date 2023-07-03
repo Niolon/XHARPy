@@ -88,7 +88,7 @@ def calc_f(
                                                       vec_h_symm,
                                                       vec_h_symm,
                                                       u_mats * jnp.outer(lengths_star, lengths_star)))
-
+    """
     gram_charlier3_indexes = jnp.array([[[0, 3, 5], [3, 4, 9], [5, 9, 6]],
                                         [[3, 4, 9], [4, 1, 7], [9, 7, 8]],
                                         [[5, 9, 6], [9, 7, 8], [6, 8, 2]]])
@@ -97,8 +97,21 @@ def calc_f(
                                vec_h_symm,
                                vec_h_symm,
                                cijk[:, gram_charlier3_indexes])
+    """
+    cijk_inner_sum = ( 
+        1 * cijk[None,:, None, 0] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,0]
+        + 1 * cijk[None,:, None, 1] * vec_h_symm[:,None,:,1] * vec_h_symm[:,None,:,1] * vec_h_symm[:,None,:,1]
+        + 1 * cijk[None,:, None, 2] * vec_h_symm[:,None,:,2] * vec_h_symm[:,None,:,2] * vec_h_symm[:,None,:,2]
+        + 3 * cijk[None,:, None, 3] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,1]
+        + 3 * cijk[None,:, None, 4] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,1] * vec_h_symm[:,None,:,1]
+        + 3 * cijk[None,:, None, 5] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,2]
+        + 3 * cijk[None,:, None, 6] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,2] * vec_h_symm[:,None,:,2]
+        + 3 * cijk[None,:, None, 7] * vec_h_symm[:,None,:,1] * vec_h_symm[:,None,:,1] * vec_h_symm[:,None,:,2]
+        + 3 * cijk[None,:, None, 8] * vec_h_symm[:,None,:,1] * vec_h_symm[:,None,:,2] * vec_h_symm[:,None,:,2]
+        + 6 * cijk[None,:, None, 9] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,1] * vec_h_symm[:,None,:,2]       
+    )
     gram_charlier3 = (4.0j * jnp.pi**3 / 3) * cijk_inner_sum
-    gram_charlier4_indexes = jnp.array([[[[0, 3, 5],    [3, 9, 12],   [5, 12, 10]],
+    """gram_charlier4_indexes = jnp.array([[[[0, 3, 5],    [3, 9, 12],   [5, 12, 10]],
                                          [[3, 9, 12],   [9, 4, 13],  [12, 13, 14]],
                                          [[5, 12, 10], [12, 13, 14], [10, 14, 6]]],
                                         [[[3, 9, 12],  [9, 4, 13],   [12, 13, 14]],
@@ -113,6 +126,24 @@ def calc_f(
                                  vec_h_symm,
                                  vec_h_symm,
                                  dijkl[:, gram_charlier4_indexes])
+    """
+    dijkl_inner_sum = (
+        1 * dijkl[None,:, None, 0] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,0]
+        + 1 * dijkl[None,:, None, 1] * vec_h_symm[:,None,:,1] * vec_h_symm[:,None,:,1] * vec_h_symm[:,None,:,1] * vec_h_symm[:,None,:,1]
+        + 1 * dijkl[None,:, None, 2] * vec_h_symm[:,None,:,2] * vec_h_symm[:,None,:,2] * vec_h_symm[:,None,:,2] * vec_h_symm[:,None,:,2]
+        + 4 * dijkl[None,:, None, 3] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,1]
+        + 4 * dijkl[None,:, None, 4] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,1] * vec_h_symm[:,None,:,1] * vec_h_symm[:,None,:,1]
+        + 4 * dijkl[None,:, None, 5] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,2]
+        + 4 * dijkl[None,:, None, 6] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,2] * vec_h_symm[:,None,:,2] * vec_h_symm[:,None,:,2]
+        + 4 * dijkl[None,:, None, 7] * vec_h_symm[:,None,:,1] * vec_h_symm[:,None,:,1] * vec_h_symm[:,None,:,1] * vec_h_symm[:,None,:,2]
+        + 4 * dijkl[None,:, None, 8] * vec_h_symm[:,None,:,1] * vec_h_symm[:,None,:,2] * vec_h_symm[:,None,:,2] * vec_h_symm[:,None,:,2]
+        + 6 * dijkl[None,:, None, 9] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,1] * vec_h_symm[:,None,:,1]
+        + 6 * dijkl[None,:, None, 10] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,2] * vec_h_symm[:,None,:,2]
+        + 6 * dijkl[None,:, None, 11] * vec_h_symm[:,None,:,1] * vec_h_symm[:,None,:,1] * vec_h_symm[:,None,:,2] * vec_h_symm[:,None,:,2]
+        + 12 * dijkl[None,:, None, 12] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,1] * vec_h_symm[:,None,:,2]
+        + 12 * dijkl[None,:, None, 13] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,1] * vec_h_symm[:,None,:,1] * vec_h_symm[:,None,:,2]
+        + 12 * dijkl[None,:, None, 14] * vec_h_symm[:,None,:,0] * vec_h_symm[:,None,:,1] * vec_h_symm[:,None,:,2] * vec_h_symm[:,None,:,2]
+    )
     gram_charlier4 = (2.0 * jnp.pi**4 / 3.0) * dijkl_inner_sum
     gc_factor = 1 - gram_charlier3 + gram_charlier4
 

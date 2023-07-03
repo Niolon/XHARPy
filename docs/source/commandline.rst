@@ -8,7 +8,7 @@ terminal by typing (make sure you are in the correct conda environment):
 
 .. code-block:: console
 
-    python -m xharpy.cli
+    python -m xharpy.cli_refine
 
 You can either give the needed value with the prompts in the command line
 interface or as arguments when you call the cli. For a list of available options
@@ -16,7 +16,7 @@ type:
 
 .. code-block:: console
 
-    python -m xharpy.cli --help
+    python -m xharpy.cli_refine --help
 
 The command line interface is only meant as a quick tool to try out the 
 refinement. For anything where a more complete access to the options of GPAW are

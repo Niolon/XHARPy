@@ -7,8 +7,9 @@ import logging
 try:
     with contextlib.redirect_stdout(None):
         # supress only cpu message
-        import jax.numpy as jnp
         import jax
+        jax.config.update('jax_platform_name', 'cpu')
+        import jax.numpy as jnp
     from jax.config import config
     try:
         config.update('jax_enable_x64', True)

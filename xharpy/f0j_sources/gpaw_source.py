@@ -98,7 +98,7 @@ class HirshfeldDensity(RealSpaceDensity):
         par = self.calculator.parameters
         setups = Setups(Z_a, par.setups, par.basis,
                         XC(par.xc),
-                        self.calculator.wfs.world)
+                        world=self.calculator.wfs.world)
 
         # initialize
         self.initialize(setups,
@@ -107,10 +107,16 @@ class HirshfeldDensity(RealSpaceDensity):
         self.set_mixer(None)
         rank_a = self.gd.get_ranks_from_positions(spos_ac)
         self.set_positions(spos_ac, AtomPartition(self.gd.comm, rank_a))
-        basis_functions = BasisFunctions(self.gd,
-                                         [setup.phit_j
-                                          for setup in self.setups],
-                                         cut=True)
+        try:
+            basis_functions = BasisFunctions(self.gd,
+                                            [setup.phit_j
+                                            for setup in self.setups],
+                                            cut=True)
+        except:
+            basis_functions = BasisFunctions(self.gd,
+                                            [setup.basis_functions_J
+                                            for setup in self.setups],
+                                            cut=True)
         basis_functions.set_positions(spos_ac)
         self.initialize_from_atomic_densities(basis_functions)
 

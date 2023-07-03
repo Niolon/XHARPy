@@ -138,7 +138,7 @@ class HirshfeldDensity(RealSpaceDensity):
         par = self.calculator.parameters
         setups = Setups(Z_a, par.setups, par.basis,
                         XC(par.xc),
-                        self.calculator.wfs.world)
+                        world=self.calculator.wfs.world)
 
         # initialize
         self.initialize(setups,
@@ -147,10 +147,16 @@ class HirshfeldDensity(RealSpaceDensity):
         self.set_mixer(None)
         rank_a = self.gd.get_ranks_from_positions(spos_ac)
         self.set_positions(spos_ac, AtomPartition(self.gd.comm, rank_a))
-        basis_functions = BasisFunctions(self.gd,
-                                         [setup.phit_j
-                                          for setup in self.setups],
-                                         cut=True)
+        try:
+            basis_functions = BasisFunctions(self.gd,
+                                            [setup.phit_j
+                                            for setup in self.setups],
+                                            cut=True)
+        except:
+            basis_functions = BasisFunctions(self.gd,
+                                            [setup.basis_functions_J
+                                            for setup in self.setups],
+                                            cut=True)
         basis_functions.set_positions(spos_ac)
         self.initialize_from_atomic_densities(basis_functions)
 
@@ -549,11 +555,14 @@ def calc_f0j(
     # This utter disaster is necessary because mpiexec cannot be called once gpaw has been loaded
     # Calling mpi on everything does not seem to play well with the custom Hirshfeld partitioning and possibly jax
 
+    if magmoms_symm is not None:
+        magmoms_symm = np.array(magmoms_symm)
+
     step1_dict = {
         'kw_crystal': {
             'symbols': symm_symbols,
-            'basis': symm_positions %1,
-            'cell': cell_mat_m.T,
+            'basis': np.array(symm_positions %1),
+            'cell': np.array(cell_mat_m.T),
             'magmoms': magmoms_symm
         },
         'kw_gpaw': computation_dict,
@@ -565,12 +574,12 @@ def calc_f0j(
         'save': save,
         'gridinterpolation': gridinterpolation,
         'explicit_core': explicit_core,
-        'index_vec_h': index_vec_h,
-        'symm_mats_vecs': symm_mats_vecs,
-        'symm_positions': symm_positions,
-        'positions': positions,
+        'index_vec_h': np.array(index_vec_h),
+        'symm_mats_vecs': tuple(np.array(arr) for arr in symm_mats_vecs),
+        'symm_positions': np.array(symm_positions),
+        'positions': np.array(positions),
         'symm_equiv': symm_equiv,
-        'f0j_indexes': f0j_indexes
+        'f0j_indexes': np.array(f0j_indexes)
     }
 
     if save == 'none' or save is None:

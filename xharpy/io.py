@@ -1455,6 +1455,11 @@ def create_distance_table(
     dist_symm_mats_vecs = [
         site_symm2mat_vec(bond[2], symm_mats_vecs) for bond in bonds
     ]
+    bond_atom_names = [atom_names[0] for atom_names in bonds]
+    bond_atom_names += [atom_names[1] for atom_names in bonds]
+    if not any(instr.element == 'H' for instr in construction_instructions if instr.name in bond_atom_names):
+        warnings.warn('There are no bonds to hydrogen atoms in your template cif file. XHARPy only outputs bond lengths for bonds in the template cif. Check that this is expected behaviour.')
+
     distances_esds = [
         distance_with_esd(
             bond[0],

@@ -249,7 +249,13 @@ You might notice that we need an original cif file (the library was developed
 with SHELXL) to generate the new cif file. The reason is that the write-routine
 does currently not calculate all values by itself. Additional values such as 
 crystal size can also be added to the original cif file and will be then copied 
-to the new one.
+to the new one. 
+
+The cif file is also used to look up the bond and angle tables. XHARPy will then
+output recalculated values for existing bonds. However, only bonds that are in
+the original cif file will be output. Therefore, you need to make sure that 
+your X-H bonds are in the bond table of your template cif. If needed, just add
+bonds with arbitrary values for the bond lengths.
 
 Fcf files can be written as fcf mode 4 or 6 with the two commands:
 

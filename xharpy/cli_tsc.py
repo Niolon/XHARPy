@@ -96,13 +96,18 @@ def cli(**kwargs):
     }
 
     if 'resolution' not in kwargs:
-        export_dict['resolution_limit'] = input_with_default(
+        resolution_limit =  input_with_default(
             'Give the maximum resolution in Angstrom up to which the tsc file should be generated',
-            0.45,
+            '0.45',
             auto_default
         )
     else:
-        export_dict['resolution_limit'] = float(kwargs['resolution'][0])
+        resolution_limit = kwargs['resolution'][0]
+
+    if resolution_limit == 'cif':
+        export_dict['resolution_limit'] = 'cif'
+    else:
+        export_dict['resolution_limit']= float(resolution_limit)
 
     if 'mpi_cores' not in kwargs:
         mpi_string = input_with_default(

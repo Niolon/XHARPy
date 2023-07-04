@@ -2164,8 +2164,10 @@ def cif2tsc(
           which is the action that is taken with the core density. The 
           second argument in the tuple is the filename, to which the core
           density is saved to or loaded from 
-        - resolution_limit (float) : resolution limit in Angstrom up to which
-          the atomic form factors are evaluated, by default 0.40
+        - resolution_limit (Union[float, str]) : resolution limit up to which 
+          the atomic form factors are evaluated. Can either be a float which is 
+          the value in Angstrom or the string 'cif' in which case the 
+          value will be inferred from the cif entries, by default 0.40
 
     computation_dict : Dict[str, Any]
         Dict with options that are passed on to the f0j_source. See the 
@@ -2185,14 +2187,56 @@ def cif2tsc(
     core = get_value_or_default('core', export_dict)
     core_io, core_file = get_value_or_default('core_io', export_dict)
     reslim = export_dict.get('resolution_limit', 0.40)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        atom_table, cell, cell_std, symm_mats_vecs, symm_strings, wavelength = cif2data(cif_path, cif_dataset)
+    #with warnings.catch_warnings():
+    #    warnings.simplefilter("ignore")
+    #    atom_table, cell, cell_std, symm_mats_vecs, symm_strings, wavelength = cif2data(cif_path, cif_dataset)
+
+    cif = ciflike_to_dict(cif_path, return_descr=cif_dataset)
+    cell = np.array([cif['cell_length_a'],
+                     cif['cell_length_b'],
+                     cif['cell_length_c'],
+                     cif['cell_angle_alpha'],
+                     cif['cell_angle_beta'],
+                     cif['cell_angle_gamma']])
+
+    # find atom_site table
+    complete_atom_table = [table for table in cif['loops'] if 'atom_site_label' in table.columns][0].copy()
+    complete_atom_table.columns = [label.replace('atom_site_', '') for label in complete_atom_table.columns]
+    atom_table = complete_atom_table[['label', 'type_symbol', 'fract_x', 'fract_y', 'fract_z']].copy()
+    atom_table['adp_type'] = 'Uiso'
+    atom_table['U_iso_or_equiv'] = np.nan
+    atom_table['occupancy'] = np.nan
+
     atom_table['type_scat_dispersion_real'] = 0.0
     atom_table['type_scat_dispersion_imag'] = 0.0
 
+    symmetry_table = [table for table in cif['loops'] if 'space_group_symop_operation_xyz' in table.columns or 'symmetry_equiv_pos_as_xyz' in table.columns][0].copy()
+    symmetry_table = symmetry_table.rename({'symmetry_equiv_pos_as_xyz': 'space_group_symop_operation_xyz'}, axis=1)
+    symm_list = [symm_to_matrix_vector(instruction) for instruction in symmetry_table['space_group_symop_operation_xyz'].values]
+    symm_mats_r, symm_vecs_t = zip(*symm_list) # basically transposes the lists
+    symm_mats_r = np.array(symm_mats_r)
+    symm_vecs_t = np.array(symm_vecs_t)
+    symm_mats_vecs = (symm_mats_r, symm_vecs_t)
+
     cell_mat_m = cell_constants_to_M(*cell)
     cell_mat_f = np.linalg.inv(cell_mat_m).T
+
+    # get resolution limits from cif if required
+    if reslim == 'cif':
+        if 'reflns_d_resolution_high' in cif:
+            reslim = cif['reflns_d_resolution_high'] - 0.03
+        elif 'diffrn_reflns_theta_max' in cif and 'diffrn_radiation_wavelength' in cif:
+            theta = np.deg2rad(cif['diffrn_reflns_theta_max'])
+            reslim = cif['diffrn_radiation_wavelength'] / (2 * np.sin(theta)) - 0.03
+        elif all(f'diffrn_reflns_limit_{entry}' in cif for entry in ('h_min', 'k_min', 'l_min', 'h_max', 'k_max', 'l_max')):
+            abs_hmax = max((abs(cif['diffrn_reflns_limit_h_max']), abs(cif['diffrn_reflns_limit_h_min'])))
+            abs_kmax = max((abs(cif['diffrn_reflns_limit_k_max']), abs(cif['diffrn_reflns_limit_k_min'])))
+            abs_lmax = max((abs(cif['diffrn_reflns_limit_l_max']), abs(cif['diffrn_reflns_limit_l_min'])))
+            reslim = 1 / np.linalg.norm(cell_mat_f @ np.array([abs_hmax, abs_kmax, abs_lmax])) - 0.03
+        else:
+            raise NotImplementedError('Could not determine the resolution from the given cif entries. Give either reflns_d_resolution_high, diffrn_reflns_theta_max and diffrn_radiation_wavelength or the diffrn_reflns_limit_ entries.')
+        
+        print(f'Using a resolution limit of {reslim:6.3f} Ang')
 
     a_star, b_star, c_star = np.linalg.norm(cell_mat_f, axis=1)
     hmax = int(np.ceil(1 / reslim / a_star)) + 1

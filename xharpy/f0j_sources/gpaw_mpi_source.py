@@ -702,9 +702,9 @@ def calc_f0j_core(
 
     value_dict = {
         'symm_symbols': symm_symbols,
-        'symm_positions': symm_positions,
-        'cell_mat_m': cell_mat_m,
-        'index_vec_h': index_vec_h,
+        'symm_positions': np.array(symm_positions),
+        'cell_mat_m': np.array(cell_mat_m),
+        'index_vec_h': np.array(index_vec_h),
         'element_symbols': element_symbols,
         'computation_dict': computation_dict,
         'core_grid': core_grid

@@ -2224,19 +2224,24 @@ def cif2tsc(
     # get resolution limits from cif if required
     if reslim == 'cif':
         if 'reflns_d_resolution_high' in cif:
-            reslim = cif['reflns_d_resolution_high'] - 0.03
+            reslim = cif['reflns_d_resolution_high'] - 0.01
         elif 'diffrn_reflns_theta_max' in cif and 'diffrn_radiation_wavelength' in cif:
             theta = np.deg2rad(cif['diffrn_reflns_theta_max'])
-            reslim = cif['diffrn_radiation_wavelength'] / (2 * np.sin(theta)) - 0.03
-        elif all(f'diffrn_reflns_limit_{entry}' in cif for entry in ('h_min', 'k_min', 'l_min', 'h_max', 'k_max', 'l_max')):
-            abs_hmax = max((abs(cif['diffrn_reflns_limit_h_max']), abs(cif['diffrn_reflns_limit_h_min'])))
-            abs_kmax = max((abs(cif['diffrn_reflns_limit_k_max']), abs(cif['diffrn_reflns_limit_k_min'])))
-            abs_lmax = max((abs(cif['diffrn_reflns_limit_l_max']), abs(cif['diffrn_reflns_limit_l_min'])))
-            reslim = 1 / np.linalg.norm(cell_mat_f @ np.array([abs_hmax, abs_kmax, abs_lmax])) - 0.03
+            reslim = cif['diffrn_radiation_wavelength'] / (2 * np.sin(theta)) - 0.01
+        elif any('refln_index_h' in loop.columns for loop in cif['loops']):
+            refln_table = next(loop for loop in cif['loops'] if 'refln_index_h' in loop.columns)
+            hkl = refln_table[['refln_index_h', 'refln_index_k', 'refln_index_l']].values
+            r_star = np.linalg.norm(np.einsum('xy, zy -> zx', cell_mat_f, hkl), axis=1)
+            reslim = 1 / r_star.max() - 0.01
+        elif any('diffrn_refln_index_h' in loop.columns for loop in cif['loops']):
+            diffrn_refln_table = next(loop for loop in cif['loops'] if 'diffrn_refln_index_h' in loop.columns)
+            hkl = refln_table[['diffrn_refln_index_h', 'diffrn_refln_index_k', 'diffrn_refln_index_l']].values
+            r_star = np.linalg.norm(np.einsum('xy, zy -> zx', cell_mat_f, hkl), axis=1)
+            reslim = 1 / r_star.max() - 0.01
         else:
-            raise NotImplementedError('Could not determine the resolution from the given cif entries. Give either reflns_d_resolution_high, diffrn_reflns_theta_max and diffrn_radiation_wavelength or the diffrn_reflns_limit_ entries.')
+            raise NotImplementedError('Could not determine the resolution from the given cif entries. Give either reflns_d_resolution_high, diffrn_reflns_theta_max and diffrn_radiation_wavelength or the (diffrn_)refln_index entries.')
         
-        print(f'Using a resolution limit of {reslim:6.3f} Ang')
+        print(f'Using a resolution limit of {reslim:6.3f} Ang (slightly extended to be sure)')
 
     a_star, b_star, c_star = np.linalg.norm(cell_mat_f, axis=1)
     hmax = int(np.ceil(1 / reslim / a_star)) + 1

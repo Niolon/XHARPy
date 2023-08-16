@@ -95,6 +95,7 @@ In Anaconda create and activate a new environment using
 If you want to get everything as quickly as possible just type:
 
 .. code-block:: console
+
    conda install python=3.11 numpy scipy pandas jax cctbx ase gpaw qe
 
 This will install the somewhat new versions which should work at the time of writing (16. August 2023).

@@ -42,7 +42,7 @@ def ciflike_to_dict(
     return_descr: Union[str, int, None] = None,
     resolve_esd: bool =True
 ) -> Union[Dict[str, Dict], Dict]:
-    """Function to read in cif or cif-like (e.g. fcf) files. Can return all 
+    """Function to read in cif or cif-like (e.g. fcf) files. Can return all
     structures contained in the file. To return only the data of one structure
     use return_descr to select by dataset name or index.
 
@@ -52,8 +52,8 @@ def ciflike_to_dict(
         Path to a cif or cif-like file
     return_descr : Union[str, int, None], optional
         Can be used to only return a specific dataset from the cif file
-        if a string is given as argument, the dataset with that name is 
-        returned. An integer will return the dataset by index (i.e. 0 will give 
+        if a string is given as argument, the dataset with that name is
+        returned. An integer will return the dataset by index (i.e. 0 will give
         the first dataset in the file), None will return a dict with all
         datasets, with the dataset name as key, by default None
     resolve_esd : bool, optional
@@ -64,18 +64,18 @@ def ciflike_to_dict(
     Returns
     -------
     cif_content: Union[Dict[str, Dict], Dict]
-        Returns a dictionary of dataset_name, dataset_dict pairs or a single 
+        Returns a dictionary of dataset_name, dataset_dict pairs or a single
         dataset as OrderedDict. Within the dataset all entries are given as
         key, value pairs with the key being the entry in the cif_file without
         the preceding underscore. The routine will try to cast the value into
         a float, int or string, depending on whether digits, digits and a dot
         or other characters are present. All loops are given as a list of pandas
-        DataFrame objects under the 'loops' keyword. 
+        DataFrame objects under the 'loops' keyword.
 
     Raises
     ------
     e
-        If an exception occurs it is raised after printing the line in the cif 
+        If an exception occurs it is raised after printing the line in the cif
         file for debugging purposes
     ValueError
         The return_descr was in an invalid type
@@ -189,7 +189,7 @@ def ciflike_to_dict(
         print('Error in Line {index}')
         print(line)
         raise e
-    
+
     # We might have a final loop
     if in_loop:
         in_loop = False
@@ -231,7 +231,7 @@ def split_error(string: str) -> Union[Tuple[float, float], Tuple[int, int]]:
     Union[Tuple[float, float], Tuple[int, int]]
         Pair of floats if a '.' was present in string, otherwise a pair of ints
         containing the value and its esd
-    """    
+    """
     int_search = re.search(r'([\-\d]*)\((\d*)\)', string)
     search = re.search(r'(\-{0,1})([\d]*)\.(\d*)\((\d*)\)', string)
     if search is not None:
@@ -247,7 +247,7 @@ def split_error(string: str) -> Union[Tuple[float, float], Tuple[int, int]]:
         return int(value), int(error)
     else:
         # no error found
-        return float(string), 0.0  
+        return float(string), 0.0
 
 
 def symm_to_matrix_vector(instruction: str) -> Tuple[jnp.ndarray, jnp.ndarray]:
@@ -257,16 +257,16 @@ def symm_to_matrix_vector(instruction: str) -> Tuple[jnp.ndarray, jnp.ndarray]:
     Parameters
     ----------
     instruction : str
-        Instruction string containing symmetry instruction for all three 
+        Instruction string containing symmetry instruction for all three
         coordinates separated by comma signs (e.g -x, -y, 0.5+z)
 
     Returns
     -------
-    symm_matrix: jnp.ndarray, 
+    symm_matrix: jnp.ndarray,
         size (3, 3) array containing the symmetry matrix for the symmetry element
     symm_vector: jnp.ndarray
         size (3) array containing the translation vector for the symmetry element
-    """    
+    """
     instruction_strings = [val.replace(' ', '').upper() for val in instruction.split(',')]
     matrix = np.zeros((3,3), dtype=np.float64)
     vector = np.zeros(3, dtype=np.float64)
@@ -318,11 +318,11 @@ def cif2data(
     Parameters
     ----------
     cif_path : str
-        Path to the cif file, that should be used as source for the structure 
+        Path to the cif file, that should be used as source for the structure
         information
     cif_dataset : Union[str, int], optional
         dataset within that cif file, that is supposed to be used, when a string
-        is passed as the argument, the dataset is selected by name. When an 
+        is passed as the argument, the dataset is selected by name. When an
         integer is passed it is selected by index. If you have named with
         numbering, pass the number as a string (e.g. '2'), by default 0
 
@@ -346,7 +346,7 @@ def cif2data(
         new cif file
     wavelength: float
         Measurement wavelength in Angstroem
-    """    
+    """
     cif = ciflike_to_dict(cif_path, return_descr=cif_dataset)
     cell = np.array([cif['cell_length_a'],
                      cif['cell_length_b'],
@@ -443,16 +443,16 @@ def instructions_to_constraints(
     return ConstrainedValues(variable_indexes=jnp.array(variable_indexes),
                              multiplicators=jnp.array(multiplicators),
                              added_values=jnp.array(added_values),
-                             special_position=True) 
+                             special_position=True)
 
 
 
 def lst2constraint_dict(filename: str) -> Dict[str, Dict[str, ConstrainedValues]]:
-    """Helper function to create a constraint dict for the refinement if atoms 
+    """Helper function to create a constraint dict for the refinement if atoms
     on special positions are present. Make sure that atoms on special positions
     are actually refined in SHELXL as you plan to refine them  in the refinement
     in XHARPy. Use AFIX 1 if hydrogen atoms are located on special positions,
-    but you want to refine them anisotropically in the Hirshfeld refinement or 
+    but you want to refine them anisotropically in the Hirshfeld refinement or
     add the ConstraintValues variables manually. As SHELXL cannot refine Gram-
     Charlier parameters, these need to be added manually for the time being.
 
@@ -466,11 +466,11 @@ def lst2constraint_dict(filename: str) -> Dict[str, Dict[str, ConstrainedValues]
     constraint_dict: Dict[str, Dict[str, ConstrainedValues]]
         Dictionary containing the generated constraints for the individual atoms
         and parameters
-    """    
+    """
     with open(filename) as fo:
         lst_content = fo.read()
 
-    find = re.search(r'Special position constraints.*?\n\n\n', lst_content, flags=re.DOTALL)  
+    find = re.search(r'Special position constraints.*?\n\n\n', lst_content, flags=re.DOTALL)
     if find is None:
         return {}
 
@@ -526,7 +526,7 @@ def lst2constraint_dict(filename: str) -> Dict[str, Dict[str, ConstrainedValues]
 
 def shelxl_hkl2pd(hkl_name: str) -> pd.DataFrame:
     """Helper function to read in a shelx-style .hkl file as dataframe. Note
-    that XHARPy does expect a merged hkl file, using an unmerged file will 
+    that XHARPy does expect a merged hkl file, using an unmerged file will
     be very slow and lead to unexpected esd values.
 
     Parameters
@@ -543,7 +543,7 @@ def shelxl_hkl2pd(hkl_name: str) -> pd.DataFrame:
     ------
     ValueError
         Number of columns is unexpected for a SHELX hkl file
-    """    
+    """
     with open(hkl_name, 'r') as fo:
         content = fo.read()
 
@@ -598,7 +598,7 @@ def fcf2hkl_pd(
         Path to the fcf file
     fcf_dataset : Union[str, int], optional
         dataset within that fcf file, that is supposed to be used, when a string
-        is passed as the argument, the dataset is selected by name. When an 
+        is passed as the argument, the dataset is selected by name. When an
         integer is passed it is selected by index. If you have named with
         numbering, pass the number as a string (e.g. '2'), by default 0
     Returns
@@ -659,7 +659,7 @@ def write_fcf(
     wavelength : float
         Measurement wavelength in Angstroem
     refinement_dict : Dict[str, Any]
-        Dictionary with refinement options. For detailed options see refinement 
+        Dictionary with refinement options. For detailed options see refinement
         function in core
     symm_strings : List[str]
         strings containing the symmetry information of the unit cell in the
@@ -726,7 +726,7 @@ def write_fcf(
     tds = get_value_or_default('tds', refinement_dict)
     if tds == 'Zavodnik':
         tds_indexes = get_parameter_index('tds', refinement_dict)
-        
+
         a_tds = parameters[tds_indexes[0]]
         b_tds = parameters[tds_indexes[1]]
         sin_th_ov_lam = np.linalg.norm(np.einsum('xy, zy -> zx', cell_mat_f, index_vec_h), axis=1) / 2
@@ -734,13 +734,13 @@ def write_fcf(
         hkl['esd_int'] /= 1 + a_tds * sin_th_ov_lam**2 + b_tds * sin_th_ov_lam**3
     elif tds == 'none':
         pass
-    else: 
+    else:
         raise NotImplementedError('tds correction is not implemented in fcf routine')
 
     if fcf_mode == 6:
         dispersion_real = jnp.array([atom.dispersion_real for atom in construction_instructions])
         dispersion_imag = jnp.array([atom.dispersion_imag for atom in construction_instructions])
-        f_dash = dispersion_real + 1j * dispersion_imag        
+        f_dash = dispersion_real + 1j * dispersion_imag
 
         hkl['abs(f_calc)'] = np.abs(structure_factors)
 
@@ -960,7 +960,7 @@ def value_with_esd(
     values: np.ndarray,
     esds: np.ndarray
 ) -> Union[List[str], str]:
-    """Create string or strings with the values und estimated standard 
+    """Create string or strings with the values und estimated standard
     deviation in the format xxx.xx(y). Will round to 6 digits if esd is
     nan or zero. Can only handle one-dimensional arrays. So loop outside for use
 
@@ -986,7 +986,7 @@ def value_with_esd(
             smaller2[indexes] = np.array(esds[indexes]) * 10**(-orders[indexes]) < 2
 
             orders[np.logical_and(smaller2, orders)] -= 1
-            orders[orders > 0] = 0 
+            orders[orders > 0] = 0
         strings = []
         for value, esd, order, index in zip(values, esds, orders, indexes):
             if index:
@@ -1031,10 +1031,10 @@ def cif_entry_string(
     name : str
         Name of the cif entry without preceding underscore
     value : Union[None, str, float, int]
-        Value corresponding to the cif entry in one of the given types. 
+        Value corresponding to the cif entry in one of the given types.
     string_sign : bool, optional
         Embed an entry of type cif 'like this', Lots of options in cif file are
-        formatted without the string sign if there is a limited number of 
+        formatted without the string sign if there is a limited number of
         options. Can also be used to write out numerical values with esd,
         by default True
 
@@ -1104,7 +1104,7 @@ def add_from_cif(
                 value_with_esd(cif[name], cif[std_name]),
                 False
             )
-    try: 
+    try:
         return cif_entry_string(name, cif[name], string_sign)
     except KeyError:
         return cif_entry_string(name, None)
@@ -1173,8 +1173,8 @@ def create_atom_site_table_string(
     parameters: jnp.ndarray,
     construction_instructions: List[AtomInstructions],
     cell: jnp.ndarray,
-    cell_esd: jnp.ndarray, 
-    var_cov_mat: jnp.ndarray, 
+    cell_esd: jnp.ndarray,
+    var_cov_mat: jnp.ndarray,
     crystal_system: str
 ) -> str:
     """Helper function to create the atom_site table from the refined parameters
@@ -1193,7 +1193,7 @@ def create_atom_site_table_string(
     var_cov_mat : jnp.ndarray
         variance covariance matrix of the final refinement step
     crystal_system : str
-        Crystal system of the evaluated structure. Possible values are: 
+        Crystal system of the evaluated structure. Possible values are:
         'triclinic', 'monoclinic' 'orthorhombic', 'tetragonal', 'hexagonal',
         'trigonal' and 'cubic'. Is considered for the esd calculation.
 
@@ -1436,7 +1436,7 @@ def create_distance_table(
         array with the estimated standard deviation of the lattice constants
         (Angstroem, Degree)
     crystal_system : str
-        Crystal system of the evaluated structure. Possible values are: 
+        Crystal system of the evaluated structure. Possible values are:
         'triclinic', 'monoclinic' 'orthorhombic', 'tetragonal', 'hexagonal',
         'trigonal' and 'cubic'. Is considered for the esd calculation.
 
@@ -1465,10 +1465,10 @@ def create_distance_table(
             bond[0],
             bond[1],
             construction_instructions,
-            parameters, 
-            var_cov_mat, 
-            cell, 
-            cell_esd, 
+            parameters,
+            var_cov_mat,
+            cell,
+            cell_esd,
             crystal_system,
             symm2[0],
             symm2[1]
@@ -1476,10 +1476,10 @@ def create_distance_table(
     ]
     distances, distance_esds = zip(*distances_esds)
     distance_esds = np.array(distance_esds)
-    distance_esds[distance_esds < 1e-12] = np.nan 
+    distance_esds[distance_esds < 1e-12] = np.nan
     distance_strings = value_with_esd(np.array(distances), distance_esds)
     string += ''.join([
-        f'{atom1} {atom2} {distance_string} {symm_code}\n' 
+        f'{atom1} {atom2} {distance_string} {symm_code}\n'
         for (atom1, atom2, symm_code), distance_string in zip(bonds, distance_strings)
     ])
     return string
@@ -1500,7 +1500,7 @@ def create_angle_table(
     Parameters
     ----------
     bonds : List[Tuple[str, str, str, str, str]]
-        List with tuples of atom names. Angles spanned the atoms 
+        List with tuples of atom names. Angles spanned the atoms
         are output to the angle table and two cif symmetry codes for the
         first and third atom of the angle
     construction_instructions : List[AtomInstructions]
@@ -1515,7 +1515,7 @@ def create_angle_table(
         array with the estimated standard deviation of the lattice constants
         (Angstroem, Degree)
     crystal_system : str
-        Crystal system of the evaluated structure. Possible values are: 
+        Crystal system of the evaluated structure. Possible values are:
         'triclinic', 'monoclinic' 'orthorhombic', 'tetragonal', 'hexagonal',
         'trigonal' and 'cubic'. Is considered for the esd calculation.
 
@@ -1557,7 +1557,7 @@ def create_angle_table(
         ) for angle, symm1, symm3 in zip(angles, angle_symm_mats_vecs1, angle_symm_mats_vecs3)]
     angle_vals, angle_esds = zip(*angles_esds)
     angle_esds = np.array(angle_esds)
-    angle_esds[angle_esds < 1e-12] = np.nan # account for numerical noise 
+    angle_esds[angle_esds < 1e-12] = np.nan # account for numerical noise
 
     angle_strings = value_with_esd(np.array(angle_vals), np.array(angle_esds))
     string += ''.join([
@@ -1627,7 +1627,7 @@ def create_diff_density_entries(symm_mats_vecs, index_vec_h, scaled_intensity, s
         hkl_symm, unique_indexes = np.unique(hkl_symm, axis=0, return_index=True)
         shifts = 2 * np.pi * np.einsum('x, ax -> a', hkl_ind, symm_vecs)[unique_indexes]
         full_angle = 2 * np.pi * np.einsum('ax, xijk -> aijk', hkl_symm, xyz) + angle - shifts[:, None, None, None]
-        
+
         diff += deltaf * np.sum(np.cos(full_angle), axis=0)
     diff = diff / np.linalg.det(cell_mat_m)
 
@@ -1658,7 +1658,7 @@ def create_extinction_entries(
     var_cov_mat : jnp.ndarray
         variance covariance matrix of the final refinement step
     refinement_dict : Dict[str, Any]
-        Dictionary with refinement options. For detailed options see refinement 
+        Dictionary with refinement options. For detailed options see refinement
         function in core
     Returns
     -------
@@ -1676,8 +1676,8 @@ def create_extinction_entries(
         coeff = '.'
     else:
         extinction_parameter = get_parameter_index('extinction', refinement_dict)
-        exti = parameters[extinction_parameter]
-        esd = np.sqrt(var_cov_mat[extinction_parameter, extinction_parameter])
+        exti = float(parameters[extinction_parameter])
+        esd = float(np.sqrt(var_cov_mat[extinction_parameter, extinction_parameter]))
         coeff = value_with_esd(np.array([exti]), np.array([esd]))[0]
         if extinction == 'shelxl':
             method = 'SHELXL-2018/3 (Sheldrick 2018)'
@@ -1764,7 +1764,7 @@ def write_cif(
     var_cov_mat : jnp.ndarray
         [description]
     refinement_dict : Dict[str, Any]
-        Dictionary with refinement options. For detailed options see refinement 
+        Dictionary with refinement options. For detailed options see refinement
         function in core
     computation_dict : Dict[str, Any]
         Dict with options of the to the f0j_source.
@@ -1954,7 +1954,7 @@ def write_cif(
         add_from_cif('reflns_Friedel_fraction_max', shelx_cif),
         add_from_cif('reflns_Friedel_fraction_full', shelx_cif),
         cif_entry_string(
-            'reflns_special_details', 
+            'reflns_special_details',
             """ _reflns_Friedel_fraction is defined as the number of unique
 Friedel pairs measured divided by the number that would be
 possible theoretically, ignoring centric projections and
@@ -1993,7 +1993,7 @@ systematic absences."""
         create_gc3_table_string(parameters, construction_instructions, cell, var_cov_mat),
         create_gc4_table_string(parameters, construction_instructions, cell, var_cov_mat),
         cif_entry_string('geom_special_details', """All esds are estimated using the full variance-covariance matrix.
-Correlations between cell parameters are taken into account in the 
+Correlations between cell parameters are taken into account in the
 calculation of derivatives used for the error propagation to the esds
 of U(iso), distances and angles. Otherwise, the esds of the cell
 parameters are assumed to be independent."""),
@@ -2011,7 +2011,7 @@ def add_density_entries_from_fcf(
     fcf6_path: str,
 ):
     """Adds the density entries to a cif file starting from the fcf6 file.
-    This is necessary because so far the difference density calculation 
+    This is necessary because so far the difference density calculation
     is not working properly. This introduces a dependency on the rather
     large cctbx/iotbx library
 
@@ -2060,11 +2060,11 @@ def f0j2tsc(
         Path to file, where the .tsc should be written
     f0j : np.ndarray
         size (K, N, H) array of atomic form factors for all reflections and symmetry
-        generated atoms within the unit cells. Atoms on special positions are 
+        generated atoms within the unit cells. Atoms on special positions are
         present multiple times and have the atomic form factor of the full atom.
         Can be obtained from a calc_f0j function or the informationdispersion_real = jnp.array([atom.dispersion_real for atom in construction_instructions])
         dispersion_imag = jnp.array([atom.dispersion_imag for atom in construction_instructions])
-        f_dash = dispersion_real + 1j * dispersion_imag     dict of a 
+        f_dash = dispersion_real + 1j * dispersion_imag     dict of a
         refinement
     construction_instructions : List[AtomInstructions]
         List of instructions for reconstructing the atomic parameters from the
@@ -2075,7 +2075,7 @@ def f0j2tsc(
     index_vec_h : np.ndarray
         size (H) vector containing Miller indicees of the measured reflections
     remove_anom : bool, optional
-        Determines, whether the dispersion correction should be subtracted. 
+        Determines, whether the dispersion correction should be subtracted.
         Should be True if you obtained the f0j values from a refinement,
         Should be False if you obtained them from a calc_f0j function, by
         default True
@@ -2104,11 +2104,11 @@ def f0j2tsc(
 
         for label, column in zip(labels, f0j_slice):
             new_df[label] = column
-            
+
         df_list.append(new_df)
-    
+
     hkl_df = pd.concat(df_list, ignore_index=True)
-        
+
     hkl_df = hkl_df.drop_duplicates(subset=['refl_h', 'refl_k', 'refl_l'], ignore_index=True)
 
     complex_entries = [' '.join([f'{np.real(val):10.8e},{np.imag(val):10.8e}' for val in row])
@@ -2129,15 +2129,15 @@ def f0j2tsc(
         fo.write(out_data)
 
 def cif2tsc(
-    tsc_path: str, 
-    cif_path: str, 
-    cif_dataset: Union[str, int], 
-    export_dict: Dict[str, Any], 
+    tsc_path: str,
+    cif_path: str,
+    cif_dataset: Union[str, int],
+    export_dict: Dict[str, Any],
     computation_dict: Dict[str, Any],
     tsc_core_path: str = None,
 ) -> None:
     """Can be used to create a tsc file directly from a given cif file
-    and the necessary options. 
+    and the necessary options.
 
     Parameters
     ----------
@@ -2146,7 +2146,7 @@ def cif2tsc(
     cif_path : str
         Path to the input cif file
     cif_dataset : Union[str, int]
-        indentifier of dataset in cif file. If this parameter is a string, the 
+        indentifier of dataset in cif file. If this parameter is a string, the
         function will search for data\_*cif_dataset* and use the values.
         An integer will be interpreted as an index, starting with 0 as usual in
         python.
@@ -2155,22 +2155,22 @@ def cif2tsc(
 
         - f0j_source (str) : Can be one of the implemented sources for atomic
           form factors. The most common options are 'gpaw', 'gpaw_mpi' and 'qe'
-        - core (str): can be either 'constant', which means the core densitsy 
-          will be evaluated on a separate spherical grid and assigned to the 
+        - core (str): can be either 'constant', which means the core densitsy
+          will be evaluated on a separate spherical grid and assigned to the
           source atom completely, or 'combine' in which case the core density is
           expanded and partitioned in the same way the valence density is
         - core_io (Tuple[str, str]):
           Expects a tuple where the first entry can be 'save', 'load', 'none'
-          which is the action that is taken with the core density. The 
+          which is the action that is taken with the core density. The
           second argument in the tuple is the filename, to which the core
-          density is saved to or loaded from 
-        - resolution_limit (Union[float, str]) : resolution limit up to which 
-          the atomic form factors are evaluated. Can either be a float which is 
-          the value in Angstrom or the string 'cif' in which case the 
+          density is saved to or loaded from
+        - resolution_limit (Union[float, str]) : resolution limit up to which
+          the atomic form factors are evaluated. Can either be a float which is
+          the value in Angstrom or the string 'cif' in which case the
           value will be inferred from the cif entries, by default 0.40
 
     computation_dict : Dict[str, Any]
-        Dict with options that are passed on to the f0j_source. See the 
+        Dict with options that are passed on to the f0j_source. See the
         individual calc_f0j functions for a more detailed description
 
     Raises
@@ -2178,7 +2178,7 @@ def cif2tsc(
     NotImplementedError
         f0j_source not implemented
     ValueError
-        Tried to load core density, but core density does not have the same 
+        Tried to load core density, but core density does not have the same
         number of entries as the hkl indicees
     NotImplementedError
         Type of core description not implemented
@@ -2240,7 +2240,7 @@ def cif2tsc(
             reslim = 1 / r_star.max() - 0.01
         else:
             raise NotImplementedError('Could not determine the resolution from the given cif entries. Give either reflns_d_resolution_high, diffrn_reflns_theta_max and diffrn_radiation_wavelength or the (diffrn_)refln_index entries.')
-        
+
         print(f'Using a resolution limit of {reslim:6.3f} Ang (slightly extended to be sure)')
 
     a_star, b_star, c_star = np.linalg.norm(cell_mat_f, axis=1)
@@ -2314,11 +2314,11 @@ def cif2tsc(
         #f0j_core = None
     else:
         raise NotImplementedError('Choose either constant or combine for core description')
-        
+
     print('Calculating density')
 
     f0j = calc_f0j(
-        cell_mat_m,           
+        cell_mat_m,
         construction_instructions,
         parameters,
         index_vec_h,

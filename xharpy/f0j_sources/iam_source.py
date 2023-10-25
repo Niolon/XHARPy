@@ -1,4 +1,4 @@
-"""This module will generate independent atom model atomic form factors for 
+"""This module will generate independent atom model atomic form factors for
 the given atoms. Mainly kept to give the possibility to compare to other
 implementations of the independent atom model, which usually should be faster.
 """
@@ -80,7 +80,7 @@ element_parameters = {
     'Al3+':  [np.array([4.174480, 3.387600, 1.202960, 0.528137]),
               np.array([1.938160, 4.145530, 0.228753, 8.285240]),
               0.706786],
-    'Siv':   [np.array([6.291500, 3.035300, 1.989100, 1.541000]),
+    'Si':    [np.array([6.291500, 3.035300, 1.989100, 1.541000]),
               np.array([2.438600, 32.333700, 0.678500, 81.693700]),
               1.140700],
     'Sival': [np.array([5.662690, 3.071640, 2.624460, 1.393200]),
@@ -687,7 +687,7 @@ def calc_f0j(
     -------
     f0j : np.ndarray
         size (K, N, H) array of atomic form factors for all reflections and symmetry
-        generated atoms within the unit cells. Atoms on special positions are 
+        generated atoms within the unit cells. Atoms on special positions are
         present multiple times and have the atomic form factor of the full atom.
     """
 
@@ -711,7 +711,7 @@ def calc_f0j_core(
 def generate_cif_output(
     computation_dict: Dict[str, Any]
 ) -> str:
-    """Generates at string, that details the computation options for use in the 
+    """Generates at string, that details the computation options for use in the
     cif generation routine.
 
     Parameters
@@ -724,6 +724,6 @@ def generate_cif_output(
     cif_string: str
         The string that will be added to the cif-file
     """
-    addition = f"""  - Refinement was done using structure factors
+    addition = """  - Refinement was done using structure factors
     as usual for an IAM refinement"""
     return addition

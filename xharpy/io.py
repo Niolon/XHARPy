@@ -1132,6 +1132,8 @@ def cif2atom_type_table_string(
         Formatted atom_type table
     """
     table = next(loop for loop in cif['loops'] if 'atom_type_symbol' in loop.columns)
+    if 'atom_type_description' not in table:
+        table['atom_type_description'] = table['atom_type_symbol']
     if ishar:
         table['atom_type_scat_source'] = f'HAR in XHARPy {XHARPY_VERSION}'
     else:

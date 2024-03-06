@@ -106,7 +106,10 @@ def ciflike_to_dict(
                 if len(current_loop_lines) > 0:
                     new_df = pd.DataFrame(current_loop_lines)
                     for key in new_df:
-                        new_df[key] = pd.to_numeric(new_df[key], errors='ignore')
+                        try:
+                            new_df[key] = pd.to_numeric(new_df[key], errors='raise')
+                        except ValueError:
+                            pass
                     if resolve_esd:
                         for column in new_df.columns:
                             if new_df[column].dtype != 'O':

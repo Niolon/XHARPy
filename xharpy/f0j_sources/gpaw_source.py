@@ -1,6 +1,6 @@
 """This module provides the necessary functions for calculating atomic form
 factors using the GPAW library in single-core mode on a rectangular grid for the
-valence density and a spherical grid for the core densities. 
+valence density and a spherical grid for the core densities.
 """
 
 from typing import Any, Dict, List, Tuple, Union
@@ -21,7 +21,7 @@ from ase import Atoms
 from ase.spacegroup import crystal
 
 from scipy.interpolate import interp1d
-from scipy.integrate import simps
+from scipy.integrate import simpson
 import gpaw
 import warnings
 from ..conversion import expand_symm_unique
@@ -38,12 +38,12 @@ class HirshfeldDensity(RealSpaceDensity):
         try:
             RealSpaceDensity.__init__(self, dens.gd, dens.finegd,
                                     dens.nspins, collinear=True, charge=0.0,
-                                    stencil=dens.stencil, 
+                                    stencil=dens.stencil,
                                     redistributor=dens.redistributor)
         except:
             RealSpaceDensity.__init__(self, dens.gd, dens.finegd,
                                     dens.nspins, collinear=True, charge=0.0,
-                                    stencil=2, 
+                                    stencil=2,
                                     redistributor=dens.redistributor)
         self.log = GPAWLogger(world=world)
         if log is None:
@@ -223,8 +223,8 @@ def calc_f0j(
     restart: bool = True,
     explicit_core: bool = True
 )-> np.ndarray:
-    """Calculate the atomic form factor or atomic valence form factors using 
-    GPAW. 
+    """Calculate the atomic form factor or atomic valence form factors using
+    GPAW.
 
     Parameters
     ----------
@@ -245,19 +245,19 @@ def calc_f0j(
         will use and exclude the following options from the dictionary and pass
         the rest onto the GPAW calculator without further checks.
 
-          - save_file (str): Path to the file that is used for saving and 
+          - save_file (str): Path to the file that is used for saving and
             loading DFT results, by default 'gpaw_result.gpw'
-          - gridinterpolation (1, 2, 4): Using GPAWs interpolation this is the 
+          - gridinterpolation (1, 2, 4): Using GPAWs interpolation this is the
             factor by which the grid from the wave function will be interpolated
-            for the calculation of atomic form factors with FFT. This can be 
+            for the calculation of atomic form factors with FFT. This can be
             reduced if you run out of memory for this step. Allowed values are
             1, 2, and 4, by default 4
           - symm_equiv (str): The atomic form factors of symmetry equivalent
             atoms can be calculated individually for each atom ('individually')
             or they can be calculated once for each atom in the asymmetric unit
-            and expanded to the other atoms ('once'), finally they can be 
+            and expanded to the other atoms ('once'), finally they can be
             averaged between symmetry equivalent atoms and expanded afterwards
-            ('averaged'). Once should be sufficient for most structures and 
+            ('averaged'). Once should be sufficient for most structures and
             saves time. Try one of the other options if you suspect problems,
             by default 'once'
           - skip_symm (Dict[int, List[int]]): Can used to prevent the
@@ -265,33 +265,33 @@ def calc_f0j(
             as given in the construction_instructions with the symmetry
             operations of the indexes given in the list, which correspond to the
             indexes in the symm_mats_vecs object. This has proven to be
-            successful for the calculation of atoms disordered on special 
+            successful for the calculation of atoms disordered on special
             positions. Can not be used with if symm_equiv is 'individually',
-            by default {} 
-          - core_grid (Union[str, int]): Determines how the core grid is build 
+            by default {}
+          - core_grid (Union[str, int]): Determines how the core grid is build
             on which the core density is evaluated 'rgd' will use the default
-            grid from GPAW, an integer k will span a grid of 2**k + 1 points, 
+            grid from GPAW, an integer k will span a grid of 2**k + 1 points,
             where the first point is 0 and all other points are determined by
             exp(-ai) * r_max, where ai is a np linspace between 1.25 * k and 0,
             by default 'rgd'
           - magmoms (np.ndarray): Experimental: starting values for magnetic
-            moments of atoms. These will be expanded to atoms in the unit cell 
+            moments of atoms. These will be expanded to atoms in the unit cell
             by just applying the same magnetic moment to all symmetry equivalent
             atoms. This is probably too simplistic and will fail.
 
-        For the allowed options of the GPAW calculator consult: 
+        For the allowed options of the GPAW calculator consult:
         https://wiki.fysik.dtu.dk/gpaw/documentation/basic.html
     restart : bool, optional
         If true, the DFT calculation will be restarted from a previous calculation
     explicit_core : bool, optional
-        If True the frozen core density is assumed to be calculated separately, 
+        If True the frozen core density is assumed to be calculated separately,
         therefore only the valence density will be split up, by default True
 
     Returns
     -------
     f0j : np.ndarray
         size (K, N, H) array of atomic form factors for all reflections and symmetry
-        generated atoms within the unit cells. Atoms on special positions are 
+        generated atoms within the unit cells. Atoms on special positions are
         present multiple times and have the atomic form factor of the full atom.
     """
     computation_dict = computation_dict.copy()
@@ -319,7 +319,7 @@ def calc_f0j(
     else:
         symm_equiv = 'once'
     if 'skip_symm' in computation_dict:
-        assert len(computation_dict['skip_symm']) == 0 or symm_equiv in ('once', 'averaged'), 'skip_symm does need symm_equiv once or averaged' 
+        assert len(computation_dict['skip_symm']) == 0 or symm_equiv in ('once', 'averaged'), 'skip_symm does need symm_equiv once or averaged'
         skip_symm = computation_dict['skip_symm']
         del(computation_dict['skip_symm'])
     else:
@@ -429,7 +429,7 @@ def calc_f0j(
             f0j_symm1 = np.fft.ifftn(h_density) * phase_to_zero * np.prod(h.shape)
             for symm_index, symm_matrix in enumerate(symm_mats_vecs[0]):
                 h_rot, k_rot, l_rot = np.einsum('zx, xy -> zy', index_vec_h, symm_matrix).T.astype(np.int64)
-                f0j[symm_index, atom_index, :] = f0j_symm1[h_rot, k_rot, l_rot]    
+                f0j[symm_index, atom_index, :] = f0j_symm1[h_rot, k_rot, l_rot]
     elif symm_equiv == 'individually':
         #TODO Is a discrete Fourier Transform just of the hkl we need possibly faster? Can we then interpolate the density to get even better factors?
         # This could also save memory, fft is O(NlogN) naive dft is probably N^2
@@ -471,14 +471,14 @@ def f_core_from_spline(
         needs to be identical to the one used in the spline
     k : int, optional
         determines the number of distance points used for the evaluation
-        as 2**k + 1. The first point is always zero, the other points are 
-        determined by np.exp(-1 * np.linspace(1.25 * k, 0.0 , 2**k)) * r_max, 
+        as 2**k + 1. The first point is always zero, the other points are
+        determined by np.exp(-1 * np.linspace(1.25 * k, 0.0 , 2**k)) * r_max,
         by default 13
 
     Returns
     -------
     f0j_core: np.ndarray
-        calculated core atomic form factors for the reciprocal distances given 
+        calculated core atomic form factors for the reciprocal distances given
         in g_k
     """
     if type(grid) is int:
@@ -494,7 +494,7 @@ def f_core_from_spline(
     j0[gr == 0] = 1
     y00_factor = 0.5 * np.pi**(-0.5)
     int_me = 4 * np.pi * r**2  * spline.map(r) * j0
-    return simps(int_me, x=r) * y00_factor
+    return simpson(int_me, x=r) * y00_factor
 
 
 def calc_f0j_core(
@@ -506,7 +506,7 @@ def calc_f0j_core(
     computation_dict: Dict[str, Any]
 ) -> np.ndarray:
     """Calculate the core atomic form factors on an exponential spherical grid.
-    Up to 5000 reflections every reflection will be calculated explicitely. 
+    Up to 5000 reflections every reflection will be calculated explicitely.
     Above that a spline will be generated from 5000 points on an exponential
     grid. The spline is then used to calculate the individual atomic core form
     factor values.
@@ -546,7 +546,7 @@ def calc_f0j_core(
     )
 
     core_grid = computation_dict.get('core_grid', 'rgd')
-    
+
     computation_dict = computation_dict.copy()
     non_gpaw_keys = [
         'gridinterpolation',
@@ -592,11 +592,11 @@ def calc_f0j_core(
             g_max = g_ks.max() * Bohr + 0.1
             #x_inv = np.linspace(-0.5, g_max, n_steps * n_per_step)
             k = np.log(n_steps * n_per_step)
-            x_inv = np.exp(-1 * np.linspace(1.25 * k, 0.0, n_steps * n_per_step)) * g_max 
+            x_inv = np.exp(-1 * np.linspace(1.25 * k, 0.0, n_steps * n_per_step)) * g_max
             x_inv[0] = 0
             f0j = np.zeros(n_steps * n_per_step)
             for index in range(n_steps):
-               f0j[index * n_per_step:(index + 1) * n_per_step] = f_core_from_spline(nc, x_inv[index * n_per_step:(index + 1) * n_per_step], grid=core_grid) 
+               f0j[index * n_per_step:(index + 1) * n_per_step] = f_core_from_spline(nc, x_inv[index * n_per_step:(index + 1) * n_per_step], grid=core_grid)
             f0j_core[name] = interp1d(x_inv, f0j, kind='cubic')(g_ks * Bohr)
         else:
             print(f'  calculating the core structure factor for {name}')
@@ -615,7 +615,7 @@ def calc_f0j_core(
 def generate_cif_output(
     computation_dict: Dict[str, Any]
 ) -> str:
-    """Generates at string, that details the computation options for use in the 
+    """Generates at string, that details the computation options for use in the
     cif generation routine.
 
     Parameters

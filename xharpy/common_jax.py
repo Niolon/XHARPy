@@ -8,15 +8,11 @@ try:
     with contextlib.redirect_stdout(None):
         # supress only cpu message
         import jax
-        jax.config.update('jax_platform_name', 'cpu')
         import jax.numpy as jnp
-    from jax.config import config
-    try:
-        config.update('jax_enable_x64', True)
-    except:
-        warnings.warn('Could not activate 64 bit mode of jax. Might run in 32 bit instead.')
 
-except:
+except ImportError:
     import numpy as jnp
     import unittest.mock as jax
     warnings.warn('Jax was not found. Refinement will not be available')
+
+__all__ = ['jax', 'jnp']

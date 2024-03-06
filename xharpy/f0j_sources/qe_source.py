@@ -1,4 +1,4 @@
-"""This module provides the necessary function to do use Quantum Espresso 
+"""This module provides the necessary function to do use Quantum Espresso
 as source for the atomic form factors. Still very experimental but works in
 principle."""
 
@@ -16,7 +16,7 @@ from multiprocessing import Pool
 
 
 #from scipy.interpolate import interp1d
-from scipy.integrate import simps
+from scipy.integrate import simpson
 #from scipy.ndimage import zoom
 import warnings
 from ..conversion import expand_symm_unique
@@ -30,10 +30,10 @@ mass_dict = {
     'Mn': 54.938, 'Fe': 55.845, 'Co': 58.933, 'Ni': 58.693, 'Cu': 63.546, 'Zn': 65.38, 'Ga': 69.723, 'Ge': 72.63,
     'As': 74.922, 'Se': 78.971, 'Br': 79.904, 'Kr': 83.798, 'Rb': 85.468, 'Sr': 87.62, 'Y': 88.906, 'Zr': 91.224,
     'Nb': 92.906, 'Mo': 95.95, 'Tc': np.nan, 'Ru': 101.07, 'Rh': 102.91, 'Pd': 106.42, 'Ag': 107.87, 'Cd': 112.41,
-    'In': 114.82, 'Sn': 118.71, 'Sb': 121.76, 'Te': 127.6, 'I': 126.9, 'Xe': 131.29, 'Cs': 132.91, 'Ba': 137.33, 
+    'In': 114.82, 'Sn': 118.71, 'Sb': 121.76, 'Te': 127.6, 'I': 126.9, 'Xe': 131.29, 'Cs': 132.91, 'Ba': 137.33,
     'La': 138.91, 'Ce': 140.12, 'Pr': 140.91, 'Nd': 144.24, 'Pm': np.nan, 'Sm': 150.36, 'Eu': 151.96, 'Gd': 157.25,
-    'Tb': 158.93, 'Dy': 162.5, 'Ho': 164.93, 'Er': 167.26, 'Tm': 168.93, 'Yb': 173.05, 'Lu': 174.97, 'Hf': 178.49, 
-    'Ta': 180.95, 'W': 183.84, 'Re': 186.21, 'Os': 190.23, 'Ir': 192.22, 'Pt': 195.08, 'Au': 196.97, 'Hg': 200.59, 
+    'Tb': 158.93, 'Dy': 162.5, 'Ho': 164.93, 'Er': 167.26, 'Tm': 168.93, 'Yb': 173.05, 'Lu': 174.97, 'Hf': 178.49,
+    'Ta': 180.95, 'W': 183.84, 'Re': 186.21, 'Os': 190.23, 'Ir': 192.22, 'Pt': 195.08, 'Au': 196.97, 'Hg': 200.59,
     'Tl': 204.39, 'Pb': 207.2, 'Bi': 208.98, 'Po': 209.98, 'At': np.nan, 'Rn': np.nan, 'Fr': np.nan, 'Ra': np.nan,
     'Ac': np.nan, 'Th': 232.04, 'Pa': 231.04, 'U': 238.03
 }
@@ -100,11 +100,11 @@ def qe_pw_file(
     symm_symbols : List[str]
         Atom Type indicators for the symmetry expanded atoms in the unit cell
     symm_positions : np.ndarray
-        atomic positions in fractional coordinates for the symmetry expanded 
+        atomic positions in fractional coordinates for the symmetry expanded
         atoms in the unit cell.
     cell_mat_m : np.ndarray
-        size (3, 3) array with the unit cell vectors as row vectors, only used 
-        if ibrav != 0 
+        size (3, 3) array with the unit cell vectors as row vectors, only used
+        if ibrav != 0
     computation_dict : Dict[str, Any]
         Dictionary with the calculation options, see calc_f0j function for
         options
@@ -131,7 +131,7 @@ def qe_pw_file(
         }
     }
     for section, secval in computation_dict.items():
-        if section in ('paw_files', 'core_electrons', 'k_points', 
+        if section in ('paw_files', 'core_electrons', 'k_points',
                        'mpicores', 'density_format', 'pw_in_file',
                        'pw_out_file', 'pp_in_file', 'pp_out_file',
                        'non_convergence', 'pw_executable', 'pp_executable',
@@ -177,7 +177,7 @@ def qe_pw_file(
     return '\n\n'.join(output) + '\n\n'
 
 def qe_pp_file(computation_dict: Dict[str, Any]) -> str:
-    """Creates an input file for pp.x 
+    """Creates an input file for pp.x
 
     Parameters
     ----------
@@ -208,7 +208,7 @@ def qe_pp_file(computation_dict: Dict[str, Any]) -> str:
         # we have precalculated core electrons -> FT(core) has been done separately
         qe_options['inputpp']['plot_num'] = 17
 
-    density_format = computation_dict.get('density_format', 'xsf') 
+    density_format = computation_dict.get('density_format', 'xsf')
     if density_format == 'xsf':
         qe_options['plot']['output_format'] = 5
         qe_options['plot']['fileout'] = 'density.xsf'
@@ -216,7 +216,7 @@ def qe_pp_file(computation_dict: Dict[str, Any]) -> str:
         pass # is used as the default above
     else:
         raise NotImplementedError('unknown density format allowed options are: xsf, cube')
-    
+
 
     lines = []
     for section, sec_vals in qe_options.items():
@@ -246,7 +246,7 @@ def read_xsf_density(filename: str) -> np.ndarray:
 
     with open(filename, 'r') as fo:
         content = fo.read()
-    
+
     start_expr = r'BEGIN_DATAGRID_3D_\w+\n'
     points_expr = r'\s*(\d+)\s+(\d+)\s+(\d+)\s*\n'
     origin_expr = r'\s*([\d\.\-]+)\s+([\d\.\-]+)\s+([\d\.\-]+)\s*\n'
@@ -265,7 +265,7 @@ def read_xsf_density(filename: str) -> np.ndarray:
     data = np.array([float(val) for val in finds[15].strip().split()])
     density = np.reshape(data, n_points, order='F')[:-1, :-1, :-1]
     return density.copy()
-    
+
 def qe_density(
     symm_symbols: List[str],
     symm_positions: np.ndarray,
@@ -283,11 +283,11 @@ def qe_density(
     symm_symbols : List[str]
         Atom Type indicators for the symmetry expanded atoms in the unit cell
     symm_positions : np.ndarray
-        atomic positions in fractional coordinates for the symmetry expanded 
+        atomic positions in fractional coordinates for the symmetry expanded
         atoms in the unit cell.
     cell_mat_m : np.ndarray
-        size (3, 3) array with the unit cell vectors as row vectors, only used 
-        if ibrav != 0 
+        size (3, 3) array with the unit cell vectors as row vectors, only used
+        if ibrav != 0
     computation_dict : Dict[str, Any]
         Dictionary with the calculation options, see calc_f0j function for
         options
@@ -295,7 +295,7 @@ def qe_density(
     Returns
     -------
     density : np.ndarray
-        Numpy array containing the density. The overall sum of the array is 
+        Numpy array containing the density. The overall sum of the array is
         normalised to the number of electrons.
     """
     is_atomic = 'electrons' in computation_dict and computation_dict['electrons'].get('electron_maxstep', 1) == 0
@@ -360,7 +360,7 @@ def qe_density(
             cwd=cwd,
             env=env
         )
-        assert not os.path.exists(os.path.join(cwd, 'CRASH')), 'pw.x crashed during runtime' 
+        assert not os.path.exists(os.path.join(cwd, 'CRASH')), 'pw.x crashed during runtime'
         subprocess.call(
             [f'{pp_executable} -x OMP_NUM_THREADS={omp_num_threads} -i {in_pp} > {out_pp}'],
             stdout=subprocess.DEVNULL,
@@ -369,7 +369,7 @@ def qe_density(
             cwd=cwd,
             env=env
         )
-    assert not os.path.exists(os.path.join(cwd, 'CRASH')), 'pp.x crashed during runtime' 
+    assert not os.path.exists(os.path.join(cwd, 'CRASH')), 'pp.x crashed during runtime'
 
     if not is_atomic:
         with open(out_pw) as fo:
@@ -416,8 +416,8 @@ def qe_atomic_density(
 ) -> np.ndarray:
     """
     Generates the atomic function needed for Hirshfeld partitioning by
-    setting the quantum espresso options to 0 calculation steps and 
-    initialisation to atomic. Subsequently, generates the density cube file 
+    setting the quantum espresso options to 0 calculation steps and
+    initialisation to atomic. Subsequently, generates the density cube file
     with or without the core density and finally loads the
     density with cubetools.
 
@@ -428,8 +428,8 @@ def qe_atomic_density(
     symm_positions : np.ndarray
         atomic positions in fractional coordinates for the evaluated atom(s)
     cell_mat_m : np.ndarray
-        size (3, 3) array with the unit cell vectors as row vectors, only used 
-        if ibrav != 0 
+        size (3, 3) array with the unit cell vectors as row vectors, only used
+        if ibrav != 0
     computation_dict : Dict[str, Any]
         Dictionary with the calculation options, see calc_f0j function for
         options
@@ -517,8 +517,8 @@ def calc_f0j(
     restart: bool = True,
     explicit_core: bool = True
 )-> np.ndarray:
-    """Calculate the atomic form factor or atomic valence form factors using 
-    Quantum espresso. 
+    """Calculate the atomic form factor or atomic valence form factors using
+    Quantum espresso.
 
     Parameters
     ----------
@@ -539,7 +539,7 @@ def calc_f0j(
         will use and exclude the following options from the dictionary and write
         the rest into the quantum-espresso pw.x output file without further
         check
-        
+
           - mpicores (Union[str, int]): The number of cores used for the pw.x
             and pp.x calculation in Quantum Espresso, 'auto' will mpiexec let
             select this option. However sometimes it has proven faster to
@@ -549,9 +549,9 @@ def calc_f0j(
           - symm_equiv (str): The atomic form factors of symmetry equivalent
             atoms can be calculated individually for each atom ('individually')
             or they can be calculated once for each atom in the asymmetric unit
-            and expanded to the other atoms ('once'), finally they can be 
+            and expanded to the other atoms ('once'), finally they can be
             averaged between symmetry equivalent atoms and expanded afterwards
-            ('averaged'). Once should be sufficient for most structures and 
+            ('averaged'). Once should be sufficient for most structures and
             saves time. Try one of the other options if you suspect problems,
             by default 'once'
           - skip_symm (Dict[int, List[int]]): Can used to prevent the
@@ -559,14 +559,14 @@ def calc_f0j(
             as given in the construction_instructions with the symmetry
             operations of the indexes given in the list, which correspond to the
             indexes in the symm_mats_vecs object. This has proven to be
-            successful for the calculation of atoms disordered on special 
+            successful for the calculation of atoms disordered on special
             positions. Can not be used with if symm_equiv is 'individually',
-            by default {} 
-          - pw_in_file (str): Filename for the input file of the pw.x scf 
+            by default {}
+          - pw_in_file (str): Filename for the input file of the pw.x scf
             calculation, by default pw.in
           - pp_in_file (str): Filename for the input file of pp.x, by default
             pp.in
-          - pw_out_file (str): Filename for the output file of the pw.x scf 
+          - pw_out_file (str): Filename for the output file of the pw.x scf
             calculation, by default pw.out
           - pp_out_file (str): Filename for the output file of pp.x,
             by default pp.out
@@ -580,9 +580,9 @@ def calc_f0j(
             'exception' will stop the calculation with a ValueError, 'warning'
             will print out a warning module 'print' will only print the warning
             in the usual text, by default 'exception'
-        
+
         K-points are organised into their own entry 'k_points' which is a dict
-        'mode' is the selection mode, and 'input' is the output after the 
+        'mode' is the selection mode, and 'input' is the output after the
         K_POINTS entry in the pw.x output file.
 
         The other options are organised as subdicts with the naming of the
@@ -593,14 +593,14 @@ def calc_f0j(
     restart : bool, optional
         If true, the DFT calculation will be restarted from a previous calculation
     explicit_core : bool, optional
-        If True the frozen core density is assumed to be calculated separately, 
+        If True the frozen core density is assumed to be calculated separately,
         therefore only the valence density will be split up, by default True
 
     Returns
     -------
     f0j : np.ndarray
         size (K, N, H) array of atomic form factors for all reflections and symmetry
-        generated atoms within the unit cells. Atoms on special positions are 
+        generated atoms within the unit cells. Atoms on special positions are
         present multiple times and have the atomic form factor of the full atom.
     """
 
@@ -614,7 +614,7 @@ def calc_f0j(
     else:
         symm_equiv = 'once'
     if 'skip_symm' in computation_dict:
-        assert len(computation_dict['skip_symm']) == 0 or symm_equiv in ('once', 'averaged'), 'skip_symm does need symm_equiv once or averaged' 
+        assert len(computation_dict['skip_symm']) == 0 or symm_equiv in ('once', 'averaged'), 'skip_symm does need symm_equiv once or averaged'
         skip_symm = computation_dict['skip_symm']
         del(computation_dict['skip_symm'])
     else:
@@ -624,7 +624,7 @@ def calc_f0j(
     omp_threads = computation_dict.get('omp_num_threads', os.cpu_count())
 
     if mpicores == 'auto':
-        mpicores = os.cpu_count() 
+        mpicores = os.cpu_count()
         if mpicores is None:
             mpicores = 1
         elif omp_threads != 'auto':
@@ -640,7 +640,7 @@ def calc_f0j(
     computation_dict['mpicores'] = mpicores
     computation_dict['omp_num_threads'] = omp_threads
 
-    
+
     if restart:
         if 'electrons' not in computation_dict:
             computation_dict['electrons'] = {}
@@ -689,7 +689,7 @@ def calc_f0j(
             density=density,
             overall_hdensity=overall_hdensity
         )
-        
+
         with Pool(mpicores) as p:
             f0j_atoms = p.starmap(single_core_function_red, enumerate(indexes[0] for indexes in f0j_indexes))
         for atom_index, f0j_atom in enumerate(f0j_atoms):
@@ -768,7 +768,7 @@ def calc_f0j_core(
     computation_dict: Dict[str, Any]
 ) -> Tuple[np.ndarray, Dict[str, Any]]:
     """Reads the .upf files given in the computation_dict and fourier transforms
-    the core charges on the grid given in that file. A direct space transform 
+    the core charges on the grid given in that file. A direct space transform
     will be used to add the number of core_electrons to the returned
     computation_dict for correct normalisation of densities in the calc_f0j
     function
@@ -792,7 +792,7 @@ def calc_f0j_core(
 
     Returns
     -------
-    f0j_core : np.ndarray, 
+    f0j_core : np.ndarray,
         size (N, H) array of atomic core form factors calculated separately
     computation_dict: Dict[str, Any]
         original computation dict with added core electrons.
@@ -828,7 +828,7 @@ def calc_f0j_core(
             r = np.array([float(val) for val in mesh_search.group(1).strip().split()])
         else:
             raise ValueError('No entry <PP_R> found in upf_file')
-        core_electrons[element_symbol] = simps(4 * np.pi * r**2 * core, r)
+        core_electrons[element_symbol] = simpson(4 * np.pi * r**2 * core, r)
 
         #r[0] = 0
         gr = r[None,:] * g_k[:,None]
@@ -836,7 +836,7 @@ def calc_f0j_core(
         j0[gr != 0] = np.sin(2 * np.pi * gr[gr != 0]) / (2 * np.pi * gr[gr != 0])
         j0[gr == 0] = 1
         int_me = 4 * np.pi * r**2  * core * j0
-        core_factors_element[element_symbol] = simps(int_me, x=r)
+        core_factors_element[element_symbol] = simpson(int_me, x=r)
     computation_dict['core_electrons'] = core_electrons
     return np.array([core_factors_element[symbol] for symbol in element_symbols]), computation_dict
 
@@ -844,7 +844,7 @@ def calc_f0j_core(
 def generate_cif_output(
     computation_dict: Dict[str, Any]
 ) -> str:
-    """Generates at string, that details the computation options for use in the 
+    """Generates at string, that details the computation options for use in the
     cif generation routine.
 
     Parameters

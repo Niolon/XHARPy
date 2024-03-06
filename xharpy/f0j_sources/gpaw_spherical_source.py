@@ -1,7 +1,7 @@
 """This module provides the possibility of calculating atomic form factors by
 expanding a GPAW LCAO density onto a spherical grid as defined by HORTON.
 I could find no improvement over the rectangular grid and LCAO mode in GPAW
-did give worse results compared to finite difference. Kept as reference, so 
+did give worse results compared to finite difference. Kept as reference, so
 that all results in the PAW-HAR publication can be reproduced with the XHARPy
 library."""
 
@@ -18,7 +18,7 @@ from ase import Atoms
 from ase.spacegroup import crystal
 
 from scipy.interpolate import interp1d
-from scipy.integrate import simps
+from scipy.integrate import simpson
 from scipy.special import spherical_jn
 import gpaw
 import warnings
@@ -43,8 +43,8 @@ def calc_f0j(
     restart: bool = True,
     explicit_core: bool = True
 )-> np.ndarray:
-    """Calculate the atomic form factor or atomic valence form factors using 
-    GPAW and a spherical grid expansion onto a grid as implemented in HORTON. 
+    """Calculate the atomic form factor or atomic valence form factors using
+    GPAW and a spherical grid expansion onto a grid as implemented in HORTON.
 
     Parameters
     ----------
@@ -65,7 +65,7 @@ def calc_f0j(
         will use and exclude the following options from the dictionary and pass
         the rest onto the GPAW calculator without further checks.
 
-          - save_file (str): Path to the file that is used for saving and 
+          - save_file (str): Path to the file that is used for saving and
             loading DFT results, by default 'gpaw_result.gpw'
 
           - spherical_grid (str): Can be used to select a grid. Possible options
@@ -77,27 +77,27 @@ def calc_f0j(
             as given in the construction_instructions with the symmetry
             operations of the indexes given in the list, which correspond to the
             indexes in the symm_mats_vecs object. This has proven to be
-            successful for the calculation of atoms disordered on special 
-            positions. Can only be used with average_symmequiv, by default {} 
+            successful for the calculation of atoms disordered on special
+            positions. Can only be used with average_symmequiv, by default {}
 
           - magmoms (np.ndarray): Experimental: starting values for magnetic
-            moments of atoms. These will be expanded to atoms in the unit cell 
+            moments of atoms. These will be expanded to atoms in the unit cell
             by just applying the same magnetic moment to all symmetry equivalent
             atoms. This is probably too simplistic and will fail.
 
-        For the allowed options of the GPAW calculator consult: 
+        For the allowed options of the GPAW calculator consult:
         https://wiki.fysik.dtu.dk/gpaw/documentation/basic.html
     restart : bool, optional
         If true, the DFT calculation will be restarted from a previous calculation
     explicit_core : bool, optional
-        If True the frozen core density is assumed to be calculated separately, 
+        If True the frozen core density is assumed to be calculated separately,
         therefore only the valence density will be split up, by default True
 
     Returns
     -------
     f0j : np.ndarray
         size (K, N, H) array of atomic form factors for all reflections and symmetry
-        generated atoms within the unit cells. Atoms on special positions are 
+        generated atoms within the unit cells. Atoms on special positions are
         present multiple times and have the atomic form factor of the full atom.
     """
     computation_dict = computation_dict.copy()
@@ -126,7 +126,7 @@ def calc_f0j(
     else:
         grid_name = 'fine'
     if 'skip_symm' in computation_dict:
-        assert len(computation_dict['skip_symm']) == 0, 'skip_symm not allowed in this mode' 
+        assert len(computation_dict['skip_symm']) == 0, 'skip_symm not allowed in this mode'
         skip_symm = computation_dict['skip_symm']
         del(computation_dict['skip_symm'])
     else:
@@ -193,7 +193,7 @@ def calc_f0j(
 
     with pkg_resources.open_binary('xharpy.f0j_sources.rho', 'spherical_rho.pic') as fo:
         atomic_dict = pickle.load(fo)
-        
+
     spline_dict = {}
     #for symbol in set([setup.symbol for setup in calc.density.setups]):
     for setup in calc.density.setups:
@@ -259,7 +259,7 @@ def calc_f0j(
 
             phis, phits, nc, *_ = setup.get_partial_waves()
             basis_funcs = setup.basis.tosplines()
-            center_distances = np.linalg.norm(np.einsum('xy, yk -> xk', cell_mat_m / Bohr, position_sc[:, None] + supercell_base[:, :]) - center[:, None], axis=0) 
+            center_distances = np.linalg.norm(np.einsum('xy, yk -> xk', cell_mat_m / Bohr, position_sc[:, None] + supercell_base[:, :]) - center[:, None], axis=0)
             supercell = supercell_base[:,center_distances < grid_vals['highlim'] + setup.basis.rgd.r_g[-1]]
             position_supercell = np.einsum('xy, yzk -> xzk', cell_mat_m / Bohr, position_sc[:, None, None] + supercell[:, :, None]) - grid[:, None, :]
             distances = np.linalg.norm(position_supercell, axis=0)
@@ -316,7 +316,7 @@ def calc_f0j(
         h_density = density_atom * spline_at(distances) / collect_har
         if explicit_core:
             print(f'  Integrated Hirshfeld Charge: {setup_at.Z - setup_at.Nc - np.real(sp_grid.integrate(h_density)):6.4f}')
-        else:   
+        else:
             print(f'  Integrated Hirshfeld Charge: {setup_at.Z - np.real(sp_grid.integrate(h_density)):6.4f}')
         f0j[:, z_atom_index, :] = np.array([[sp_grid.integrate(h_density * np.exp(2j * np.pi * np.einsum('x, zx -> z', vec, sp_grid.points - sp_grid.center))) for vec in vec_s] for vec_s in vec_s_symm])
     return f0j
@@ -333,7 +333,7 @@ def f_core_from_spline(spline, g_k, k=13):
     j0[gr == 0] = 1
     y00_factor = 0.5 * np.pi**(-0.5)
     int_me = 4 * np.pi * r**2  * spline.map(r) * j0
-    return simps(int_me, x=r) * y00_factor
+    return simpson(int_me, x=r) * y00_factor
 
 
 def calc_f0j_core(
@@ -345,7 +345,7 @@ def calc_f0j_core(
     computation_dict: Dict[str, Any]
 ) -> np.ndarray:
     """Calculate the core atomic form factors on an exponential spherical grid.
-    Up to 5000 reflections every reflection will be calculated explicitely. 
+    Up to 5000 reflections every reflection will be calculated explicitely.
     Above that a spline will be generated from 5000 points on an exponential
     grid. The spline is then used to calculate the individual atomic core form
     factor values.
@@ -425,11 +425,11 @@ def calc_f0j_core(
             g_max = g_ks.max() * Bohr + 0.1
             #x_inv = np.linspace(-0.5, g_max, n_steps * n_per_step)
             k = np.log(n_steps * n_per_step)
-            x_inv = np.exp(-1 * np.linspace(1.25 * k, 0.0, n_steps * n_per_step)) * g_max 
+            x_inv = np.exp(-1 * np.linspace(1.25 * k, 0.0, n_steps * n_per_step)) * g_max
             x_inv[0] = 0
             f0j = np.zeros(n_steps * n_per_step)
             for index in range(n_steps):
-               f0j[index * n_per_step:(index + 1) * n_per_step] = f_core_from_spline(nc, x_inv[index * n_per_step:(index + 1) * n_per_step], k=19) 
+               f0j[index * n_per_step:(index + 1) * n_per_step] = f_core_from_spline(nc, x_inv[index * n_per_step:(index + 1) * n_per_step], k=19)
             f0j_core[name] = interp1d(x_inv, f0j, kind='cubic')(g_ks * Bohr)
         else:
             print(f'  Calculating the core structure factor for {name}')
@@ -448,7 +448,7 @@ def calc_f0j_core(
 def generate_cif_output(
     computation_dict: Dict[str, Any]
 ) -> str:
-    """Generates at string, that details the computation options for use in the 
+    """Generates at string, that details the computation options for use in the
     cif generation routine.
 
     Parameters

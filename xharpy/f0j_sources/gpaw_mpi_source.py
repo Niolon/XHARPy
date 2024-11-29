@@ -42,7 +42,7 @@ if __name__ == '__main__':
     if not value_dict['restart']:
         atoms = crystal(**value_dict['kw_crystal'])
         calc = gpaw.GPAW(**value_dict['kw_gpaw'])
-        atoms.set_calculator(calc)
+        atoms.calc = calc
         e1 = atoms.get_potential_energy()
     else:
         try:
@@ -58,7 +58,7 @@ if __name__ == '__main__':
             parprint('  failed to load the density from previous calculation. Starting from scratch')
             atoms = crystal(**value_dict['kw_crystal'])
             calc = gpaw.GPAW(**value_dict['kw_gpaw'])
-            atoms.set_calculator(calc)
+            atoms.calc = calc
             e1 = atoms.get_potential_energy()
 
     e1 = atoms.get_potential_energy()
@@ -351,7 +351,7 @@ if __name__ == '__main__':
                     basis=value_dict['symm_positions'] % 1,
                     cell=value_dict['cell_mat_m'].T)
     calc = gpaw.GPAW(**value_dict['computation_dict'])
-    atoms.set_calculator(calc)
+    atoms.calc = calc
     calc.initialize(atoms)
     cell_inv = np.linalg.inv(atoms.cell.T).T
     g_k3 = np.einsum('xy, zy -> zx', cell_inv, value_dict['index_vec_h'])

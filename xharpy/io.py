@@ -584,7 +584,7 @@ def xd_hkl2pd(
     if options[1] != 'F^2' or options[3] != '7':
         raise NotImplementedError('Currently only F^2 and NDAT 7 is implemented')
 
-    hkl = pd.read_csv(path, skiprows=1, header=None, sep='\s+')
+    hkl = pd.read_csv(path, skiprows=1, header=None, sep=r'\s+')
     hkl.columns = ['h', 'k', 'l', 'dataset', 'intensity', 'esd_int', 'scale']
     return hkl
 
@@ -1695,7 +1695,7 @@ def create_extinction_entries(
         cif_entry_string('refine_ls_extinction_method', method , False)
     ]
     if extinction == 'shelxl':
-        entries.append(cif_entry_string('refine_ls_extinction_expression', 'Fc^*^=kFc[1+0.001xFc^2^\l^3^/sin(2\q)]^-1/4^'
+        entries.append(cif_entry_string('refine_ls_extinction_expression', r'Fc^*^=kFc[1+0.001xFc^2^\l^3^/sin(2\q)]^-1/4^'
 ))
     return '\n'.join(entries)
 
@@ -1954,7 +1954,7 @@ def write_cif(
         '',
         cif_entry_string('reflns_number_total', len(hkl)),
         cif_entry_string('reflns_number_gt', int(np.sum(hkl['strong_condition']))),
-        cif_entry_string('reflns_threshold_expression', 'I > 2\s(I)'),
+        cif_entry_string('reflns_threshold_expression', r'I > 2\s(I)'),
         add_from_cif('reflns_Friedel_coverage', shelx_cif),
         add_from_cif('reflns_Friedel_fraction_max', shelx_cif),
         add_from_cif('reflns_Friedel_fraction_full', shelx_cif),
@@ -1980,7 +1980,7 @@ systematic absences."""
         cif_entry_string('refine_ls_structure_factor_coef', 'Fsqd', False),
         cif_entry_string('refine_ls_matrix_type', 'full'), # TODO is full?
         cif_entry_string('refine_ls_weighting_scheme', 'sigma', False),
-        cif_entry_string('refine_ls_weighting_details', 'w=1/[\s^2^(Fo^2^)]'),
+        cif_entry_string('refine_ls_weighting_details', r'w=1/[\s^2^(Fo^2^)]'),
         cif_entry_string('refine_ls_hydrogen_treatment', 'refall', False),
         create_extinction_entries(parameters, var_cov_mat, refinement_dict),
         cif_entry_string('refine_ls_number_reflns', len(hkl)),
@@ -2141,7 +2141,7 @@ def cif2tsc(
     computation_dict: Dict[str, Any],
     tsc_core_path: str = None,
 ) -> None:
-    """Can be used to create a tsc file directly from a given cif file
+    r"""Can be used to create a tsc file directly from a given cif file
     and the necessary options.
 
     Parameters

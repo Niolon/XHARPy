@@ -160,7 +160,7 @@ def calc_f0j(
                         cell=cell_mat_m.T,
                         magmoms=magmoms_symm)
         calc = gpaw.GPAW(**computation_dict)
-        atoms.set_calculator(calc)
+        atoms.calc = calc
         e1 = atoms.get_potential_energy()
     else:
         try:
@@ -178,7 +178,7 @@ def calc_f0j(
                             basis=symm_positions % 1,
                             cell=cell_mat_m.T)
             calc = gpaw.GPAW(**computation_dict)
-            atoms.set_calculator(calc)
+            atoms.calc = calc
             e1 = atoms.get_potential_energy()
 
     e1 = atoms.get_potential_energy()
@@ -404,7 +404,7 @@ def calc_f0j_core(
                     basis=symm_positions % 1,
                     cell=cell_mat_m.T)
     calc = gpaw.GPAW(**computation_dict)
-    atoms.set_calculator(calc)
+    atoms.calc = calc
     calc.initialize(atoms)
     cell_inv = np.linalg.inv(atoms.cell.T).T
     g_k3 = np.einsum('xy, zy -> zx', cell_inv, index_vec_h)

@@ -828,7 +828,7 @@ def calc_f0j_core(
             r = np.array([float(val) for val in mesh_search.group(1).strip().split()])
         else:
             raise ValueError('No entry <PP_R> found in upf_file')
-        core_electrons[element_symbol] = simpson(4 * np.pi * r**2 * core, r)
+        core_electrons[element_symbol] = simpson(4 * np.pi * r**2 * core, x=r)
 
         #r[0] = 0
         gr = r[None,:] * g_k[:,None]

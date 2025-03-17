@@ -7,7 +7,7 @@ index_vec_h
 from .common import Value, Array
 from ..common_jax import jnp, jax
 from ..conversion import cell_constants_to_M, ucif2ucart
-from ..better_abc import ABC, ABCMeta, abstract_attribute, abstractmethod
+from ..better_abc import ABCMeta, abstract_attribute, abstractmethod
 from collections import namedtuple
 from dataclasses import dataclass
 

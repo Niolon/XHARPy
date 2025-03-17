@@ -1,10 +1,7 @@
 """Is meant as the module for handling weights in XHARPy. Currently 
 only contains a function to calculate weights from given parameters."""
 
-from scipy.optimize import minimize
-import numpy as np
-from .common_jax import jax, jnp
-from .conversion import calc_sin_theta_ov_lambda
+from .common_jax import jnp
 
 def calc_weights(
     wght_parameters: jnp.ndarray,

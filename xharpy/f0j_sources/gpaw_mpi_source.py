@@ -13,8 +13,6 @@ import shlex
 import datetime
 
 
-from scipy.interpolate import interp1d
-from scipy.integrate import simpson
 from ..conversion import expand_symm_unique
 from ..structure.construct import construct_values
 from ..structure.common import AtomInstructions

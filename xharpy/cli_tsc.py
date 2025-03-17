@@ -6,8 +6,6 @@ import sys
 import os
 import argparse
 from typing import Any
-from .refine import refine
-from .structure.initialise import create_construction_instructions
 from .io import (cif2tsc)
 
 

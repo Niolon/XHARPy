@@ -1,6 +1,5 @@
 from typing import List, Tuple, Dict, Any
 
-from ..conversion import cell_constants_to_M
 from ..structure.common import AtomInstructions
 from ..structure.construct import construct_values
 from ..io import symm_to_matrix_vector

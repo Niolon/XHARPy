@@ -635,7 +635,7 @@ def calc_f0j(
         omp_threads = os.cpu_count() // mpicores
         if omp_threads == 0:
             omp_threads = 1
-    assert type(mpicores) == int, 'mpicores has to either "auto" or int'
+    assert type(mpicores) is int, 'mpicores has to either "auto" or int'
 
     computation_dict['mpicores'] = mpicores
     computation_dict['omp_num_threads'] = omp_threads

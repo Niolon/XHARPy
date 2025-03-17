@@ -3,7 +3,7 @@ and its analysis from the XHARPy library.
 """
 import warnings
 import datetime
-from typing import Callable, List, Dict, Tuple, Optional, Union, Any
+from typing import Callable, List, Dict, Tuple, Optional, Any
 import pandas as pd
 from .common_jax import jax, jnp
 import numpy as np
@@ -14,9 +14,9 @@ from scipy.optimize import minimize
 
 from .defaults import get_parameter_index, get_value_or_default
 from .structure.common import AtomInstructions
-from .structure.construct import construct_values, construct_esds
+from .structure.construct import construct_values
 from .restraints import resolve_restraints
-from .conversion import calc_sin_theta_ov_lambda, ucif2ucart, cell_constants_to_M
+from .conversion import calc_sin_theta_ov_lambda, cell_constants_to_M
 
 @jax.jit
 def calc_f(
@@ -615,7 +615,6 @@ def refine(
     computation_dict = deepcopy(computation_dict)
     print('Preparing')
     index_vec_h = jnp.array(hkl[['h', 'k', 'l']].values.copy())
-    type_symbols = [atom.element for atom in construction_instructions]
     parameters = jnp.array(parameters)
     constructed_xyz, constructed_uij, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
 
@@ -626,9 +625,7 @@ def refine(
     if f0j_source == 'gpaw':
         from .f0j_sources.gpaw_source import calc_f0j, calc_f0j_core
     elif f0j_source == 'iam':
-        from .f0j_sources.iam_source import calc_f0j, calc_f0j_core
-    elif f0j_source == 'gpaw_spherical':
-        from .f0j_sources.gpaw_spherical_source import calc_f0j, calc_f0j_core
+        from .f0j_sources.iam_source import calc_f0j
     elif f0j_source == 'qe':
         from .f0j_sources.qe_source import calc_f0j, calc_f0j_core
     elif f0j_source == 'gpaw_mpi':
@@ -782,7 +779,7 @@ def refine(
 
     r_opt_density = 1e10
     for refine in range(max_iter):
-        print(f'  minimizing least squares sum')
+        print('  minimizing least squares sum')
         x = minimize(calc_lsq,
                      parameters,
                      jac=grad_calc_lsq,

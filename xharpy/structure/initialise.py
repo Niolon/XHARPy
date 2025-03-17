@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from ..better_abc import ABCMeta, abstractmethod
 
 from ..conversion import cell_constants_to_M
-from ..defaults import get_parameter_index, get_value_or_default
+from ..defaults import get_parameter_index
 from ..common_jax import jnp
 from .common import (
     AtomInstructions, AtomicProperty, FixedValue, RefinedValue, MultiIndexValue,
@@ -577,7 +577,6 @@ def create_construction_instructions(
         cell_mat_m = None
     else:
         cell_mat_m = cell_constants_to_M(*cell)
-    names = list(atom_table['label'])
     common_occupancy_indexes = {}
 
     construction_instructions = [None] * len(atom_table)

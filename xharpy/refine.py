@@ -263,7 +263,7 @@ def calc_lsq_factory(
             i_calc0 = jnp.abs(structure_factors)**2
             intensities_calc = parameters[0] * i_calc0 / jnp.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0)
         elif extinction == 'secondary':
-            i_calc0 = jnp.abs(structure_factors)**2             
+            i_calc0 = jnp.abs(structure_factors)**2
             intensities_calc = parameters[0] * i_calc0 / (1 + parameters[extinction_parameter] * i_calc0)
             #restraint_addition = 0
 
@@ -301,8 +301,12 @@ def calc_lsq_factory(
 
             lsq = jnp.sum(weights * (intensities_obs - parameters[flack_parameter] * intensities_calc2 - (1 - parameters[flack_parameter]) * intensities_calc)**2) 
         else:
-            lsq = jnp.sum(weights * (intensities_obs - intensities_calc)**2) 
-        return lsq * (1 + resolve_restraints(xyz, uij, restraint_instr_ind, cell_mat_m) / (len(intensities_obs) - len(parameters)))
+            lsq = jnp.sum(weights * (intensities_obs - intensities_calc)**2)
+        if len(restraint_instr_ind) > 0:
+            restraint_factor = 1 + resolve_restraints(xyz, uij, restraint_instr_ind, cell_mat_m) / (len(intensities_obs) - len(parameters))
+        else:
+            restraint_factor = 1
+        return np.real(lsq) * restraint_factor
     return jax.jit(function)
 
 def calc_var_cor_mat(
@@ -469,7 +473,7 @@ def calc_var_cor_mat(
 
     # TODO: Figure out a way to make this more efficient
     for index, weight in enumerate(weights):
-        val = grad_func(parameters, jnp.array(f0j), index)[:, None]
+        val = grad_func(parameters, jnp.array(f0j, dtype=jnp.complex128), index)[:, None]
         collect += weight * (val @ val.T)
 
     lsq_func = calc_lsq_factory(
@@ -483,7 +487,7 @@ def calc_var_cor_mat(
         refinement_dict,
         wavelength
     )
-    chi_sq = lsq_func(parameters, jnp.array(f0j)) / (index_vec_h.shape[0] - len(parameters))
+    chi_sq = lsq_func(parameters, jnp.array(f0j, dtype=jnp.complex128)) / (index_vec_h.shape[0] - len(parameters))
 
     return chi_sq * jnp.linalg.inv(collect)
 
@@ -768,11 +772,13 @@ def refine(
             parameters_new = parameters.at[index].set(value)
         return calc_lsq(parameters_new, f0j), grad_calc_lsq(parameters_new, f0j)[:len(x)]
     print('step 0: Optimizing scaling')
-    x = minimize(minimize_scaling,
-                 args=(jnp.array(parameters)),
-                 x0=parameters[0],
-                 jac=True,
-                 options={'gtol': 1e-8 * jnp.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)})
+    x = minimize(
+        minimize_scaling,
+        args=(jnp.array(parameters)),
+        x0=parameters[0],
+        jac=True,
+        options={'gtol': 1e-8 * jnp.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)}
+    )
     for index, val in enumerate(x.x):
         parameters = parameters.at[index].set(val)
     print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)):8.6f}, number of iterations: {x.nit}')
@@ -784,7 +790,7 @@ def refine(
                      parameters,
                      jac=grad_calc_lsq,
                      method='BFGS',
-                     args=(jnp.array(f0j)),
+                     args=(jnp.array(f0j, dtype=jnp.complex128)),
                      options={'gtol': 1e-13 * jnp.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)})
         print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)):8.6f}, number of iterations: {x.nit}')
         shift = parameters - x.x

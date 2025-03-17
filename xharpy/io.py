@@ -1680,7 +1680,7 @@ def create_extinction_entries(
         method = 'none'
         coeff = '.'
     else:
-        extinction_parameter = get_parameter_index('extinction', refinement_dict)
+        extinction_parameter = get_parameter_index('extinction', refinement_dict)[0]
         exti = float(parameters[extinction_parameter])
         esd = float(np.sqrt(var_cov_mat[extinction_parameter, extinction_parameter]))
         coeff = value_with_esd(np.array([exti]), np.array([esd]))[0]

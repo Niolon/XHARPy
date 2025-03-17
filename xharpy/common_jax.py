@@ -7,6 +7,7 @@ try:
     with contextlib.redirect_stdout(None):
         # supress only cpu message
         import jax
+        jax.config.update("jax_enable_x64", True)
         import jax.numpy as jnp
 
 except ImportError:

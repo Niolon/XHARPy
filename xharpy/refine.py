@@ -3,7 +3,7 @@ and its analysis from the XHARPy library.
 """
 import warnings
 import datetime
-from typing import Callable, List, Dict, Tuple, Optional, Union, Any
+from typing import Callable, List, Dict, Tuple, Optional, Any
 import pandas as pd
 from .common_jax import jax, jnp
 import numpy as np
@@ -14,9 +14,9 @@ from scipy.optimize import minimize
 
 from .defaults import get_parameter_index, get_value_or_default
 from .structure.common import AtomInstructions
-from .structure.construct import construct_values, construct_esds
+from .structure.construct import construct_values
 from .restraints import resolve_restraints
-from .conversion import calc_sin_theta_ov_lambda, ucif2ucart, cell_constants_to_M
+from .conversion import calc_sin_theta_ov_lambda, cell_constants_to_M
 
 @jax.jit
 def calc_f(
@@ -263,7 +263,7 @@ def calc_lsq_factory(
             i_calc0 = jnp.abs(structure_factors)**2
             intensities_calc = parameters[0] * i_calc0 / jnp.sqrt(1 + parameters[extinction_parameter] * extinction_factors * i_calc0)
         elif extinction == 'secondary':
-            i_calc0 = jnp.abs(structure_factors)**2             
+            i_calc0 = jnp.abs(structure_factors)**2
             intensities_calc = parameters[0] * i_calc0 / (1 + parameters[extinction_parameter] * i_calc0)
             #restraint_addition = 0
 
@@ -301,8 +301,12 @@ def calc_lsq_factory(
 
             lsq = jnp.sum(weights * (intensities_obs - parameters[flack_parameter] * intensities_calc2 - (1 - parameters[flack_parameter]) * intensities_calc)**2) 
         else:
-            lsq = jnp.sum(weights * (intensities_obs - intensities_calc)**2) 
-        return lsq * (1 + resolve_restraints(xyz, uij, restraint_instr_ind, cell_mat_m) / (len(intensities_obs) - len(parameters)))
+            lsq = jnp.sum(weights * (intensities_obs - intensities_calc)**2)
+        if len(restraint_instr_ind) > 0:
+            restraint_factor = 1 + resolve_restraints(xyz, uij, restraint_instr_ind, cell_mat_m) / (len(intensities_obs) - len(parameters))
+        else:
+            restraint_factor = 1
+        return np.real(lsq) * restraint_factor
     return jax.jit(function)
 
 def calc_var_cor_mat(
@@ -469,7 +473,7 @@ def calc_var_cor_mat(
 
     # TODO: Figure out a way to make this more efficient
     for index, weight in enumerate(weights):
-        val = grad_func(parameters, jnp.array(f0j), index)[:, None]
+        val = grad_func(parameters, jnp.array(f0j, dtype=jnp.complex128), index)[:, None]
         collect += weight * (val @ val.T)
 
     lsq_func = calc_lsq_factory(
@@ -483,7 +487,7 @@ def calc_var_cor_mat(
         refinement_dict,
         wavelength
     )
-    chi_sq = lsq_func(parameters, jnp.array(f0j)) / (index_vec_h.shape[0] - len(parameters))
+    chi_sq = lsq_func(parameters, jnp.array(f0j, dtype=jnp.complex128)) / (index_vec_h.shape[0] - len(parameters))
 
     return chi_sq * jnp.linalg.inv(collect)
 
@@ -615,7 +619,6 @@ def refine(
     computation_dict = deepcopy(computation_dict)
     print('Preparing')
     index_vec_h = jnp.array(hkl[['h', 'k', 'l']].values.copy())
-    type_symbols = [atom.element for atom in construction_instructions]
     parameters = jnp.array(parameters)
     constructed_xyz, constructed_uij, *_ = construct_values(parameters, construction_instructions, cell_mat_m)
 
@@ -626,9 +629,7 @@ def refine(
     if f0j_source == 'gpaw':
         from .f0j_sources.gpaw_source import calc_f0j, calc_f0j_core
     elif f0j_source == 'iam':
-        from .f0j_sources.iam_source import calc_f0j, calc_f0j_core
-    elif f0j_source == 'gpaw_spherical':
-        from .f0j_sources.gpaw_spherical_source import calc_f0j, calc_f0j_core
+        from .f0j_sources.iam_source import calc_f0j
     elif f0j_source == 'qe':
         from .f0j_sources.qe_source import calc_f0j, calc_f0j_core
     elif f0j_source == 'gpaw_mpi':
@@ -771,23 +772,25 @@ def refine(
             parameters_new = parameters.at[index].set(value)
         return calc_lsq(parameters_new, f0j), grad_calc_lsq(parameters_new, f0j)[:len(x)]
     print('step 0: Optimizing scaling')
-    x = minimize(minimize_scaling,
-                 args=(jnp.array(parameters)),
-                 x0=parameters[0],
-                 jac=True,
-                 options={'gtol': 1e-8 * jnp.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)})
+    x = minimize(
+        minimize_scaling,
+        args=(jnp.array(parameters)),
+        x0=parameters[0],
+        jac=True,
+        options={'gtol': 1e-8 * jnp.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)}
+    )
     for index, val in enumerate(x.x):
         parameters = parameters.at[index].set(val)
     print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)):8.6f}, number of iterations: {x.nit}')
 
     r_opt_density = 1e10
     for refine in range(max_iter):
-        print(f'  minimizing least squares sum')
+        print('  minimizing least squares sum')
         x = minimize(calc_lsq,
                      parameters,
                      jac=grad_calc_lsq,
                      method='BFGS',
-                     args=(jnp.array(f0j)),
+                     args=(jnp.array(f0j, dtype=jnp.complex128)),
                      options={'gtol': 1e-13 * jnp.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)})
         print(f'  wR2: {np.sqrt(x.fun / np.sum(hkl["intensity"].values**2 / hkl["esd_int"].values**2)):8.6f}, number of iterations: {x.nit}')
         shift = parameters - x.x

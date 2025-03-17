@@ -217,15 +217,15 @@ def calculate_agreement(
         h_bond_table_neut1
     ))
 
-    bond_pairs = [(el1, el2) for el1, el2 in zip(h_bond_table_neut['atom_site_label_1'],
-                                                 h_bond_table_neut['atom_site_label_2'])]
+    # bond_pairs = [(el1, el2) for el1, el2 in zip(h_bond_table_neut['atom_site_label_1'],
+    #                                              h_bond_table_neut['atom_site_label_2'])]
     cell_neut = np.array([cif_neut[key] for key in cell_keys])
-    cell_neut_esd = np.array([cif_neut.get(key + '_esd', 0.0) for key in cell_keys])
-    h_indexes_neut = [list(uij_table_neut['label'].values).index(atom) for atom in hydrogen_atoms]
+    # cell_neut_esd = np.array([cif_neut.get(key + '_esd', 0.0) for key in cell_keys])
+    # h_indexes_neut = [list(uij_table_neut['label'].values).index(atom) for atom in hydrogen_atoms]
     non_h_indexes_neut = [list(uij_table_neut['label'].values).index(atom) for atom in non_hydrogen_atoms]
     try:
         lattice = cif_neut['space_group_crystal_system']
-    except:
+    except KeyError:
         lattice = cif_neut['symmetry_cell_setting']
 
     
@@ -251,8 +251,8 @@ def calculate_agreement(
         h_bond_table1
     ))
     cell = np.array([cif[key] for key in cell_keys])
-    cell_esd = np.array([cif.get(key + '_esd', 0.0) for key in cell_keys])
-    h_indexes = [list(uij_table['label'].values).index(atom) for atom in hydrogen_atoms]
+    # cell_esd = np.array([cif.get(key + '_esd', 0.0) for key in cell_keys])
+    # h_indexes = [list(uij_table['label'].values).index(atom) for atom in hydrogen_atoms]
     non_h_indexes = [list(uij_table['label'].values).index(atom) for atom in non_hydrogen_atoms]
     uij = jnp.array(uij_table.loc[non_h_indexes, uij_keys].values)
     uij_esd = jnp.array(uij_table.loc[non_h_indexes, uij_esd_keys].values)
@@ -398,7 +398,7 @@ def calculate_agreement(
         esd_int = fcf['refln_F_squared_sigma'].values
         try:
             f_calc = fcf['refln_F_calc'].values
-        except:
+        except KeyError:
             f_calc = np.sqrt(fcf['refln_F_squared_calc'].values)
     except StopIteration:
         fcf = next(loop for loop in ciflike_to_dict(fcf_path, har_key)['loops'] if 'diffrn_refln_F_meas' in loop.columns)
@@ -409,7 +409,7 @@ def calculate_agreement(
     f_obs = np.sign(intensity) * np.sqrt(np.abs(intensity))
     f_obs_safe = np.array(f_obs)
     f_obs_safe[f_obs_safe == 0] = 1e-9
-    sigma_f_obs = 0.5 * esd_int / np.abs(f_obs_safe)
+    # sigma_f_obs = 0.5 * esd_int / np.abs(f_obs_safe)
 
     i_over_2sigma = intensity / esd_int > 2
     collect['R(F)'] = np.sum(np.abs(np.abs(f_obs) - np.abs(f_calc))) / np.sum(np.abs(f_obs))
@@ -447,10 +447,10 @@ def plot_heatmap(ax, table, columns, rows, cm, cmap_type='diverging', esds=None)
     if cmap_type == 'diverging':
         larger = np.maximum.reduce((np.abs(tmax), np.abs(tmin)))
         show_table = table / larger
-        im = ax.matshow(show_table, aspect='auto', cmap=cm, vmax=1, vmin=-1)
+        ax.matshow(show_table, aspect='auto', cmap=cm, vmax=1, vmin=-1)
     else:
         show_table = (table - tmin) / (tmax - tmin)
-        im = ax.matshow(show_table, aspect='auto', cmap=cm)
+        ax.matshow(show_table, aspect='auto', cmap=cm)
 
     # We want to show all ticks...
     ax.set_xticks(np.arange(len(columns)))
@@ -484,19 +484,19 @@ def plot_heatmap(ax, table, columns, rows, cm, cmap_type='diverging', esds=None)
                 continue
 
             if esds is None:
-                text = ax.text(j, i, f'{table[i, j]:4.2f}',
-                               ha='center', va='center', color=color)
+                ax.text(j, i, f'{table[i, j]:4.2f}',
+                        ha='center', va='center', color=color)
             elif orders[i, j] >= 0:
-                text = ax.text(j, i, f'{int(np.round(table[i, j], int(-orders[i,j])))}({int(esd_table[i, j] * 10**orders[i, j])})',
-                               ha='center', va='center', color=color)
+                ax.text(j, i, f'{int(np.round(table[i, j], int(-orders[i,j])))}({int(esd_table[i, j] * 10**orders[i, j])})',
+                        ha='center', va='center', color=color)
             elif int(orders[i, j]) == -1 and esd_table[i, j] > 9:
-                text = ax.text(j, i, f'{np.round(table[i, j], 1)}({esd_table[i, j] / 10})',
-                               ha='center', va='center', color=color)
+                ax.text(j, i, f'{np.round(table[i, j], 1)}({esd_table[i, j] / 10})',
+                        ha='center', va='center', color=color)
             
             else:
                 template = f'{{val:{int(-orders[i, j] + 2)}.{int(-orders[i, j])}f}}({{esd_val}})'
-                text = ax.text(j, i, template.format(**{'val':table[i, j], 'esd_val': esd_table[i, j]}),
-                               ha='center', va='center', color=color)     
+                ax.text(j, i, template.format(**{'val':table[i, j], 'esd_val': esd_table[i, j]}),
+                        ha='center', va='center', color=color)     
 
 
 def figure_height(n_dataset):

@@ -12,12 +12,12 @@ from typing import Any, Dict, List, Tuple
 import shlex
 import datetime
 
-
-from scipy.interpolate import interp1d
-from scipy.integrate import simpson
 from ..conversion import expand_symm_unique
 from ..structure.construct import construct_values
 from ..structure.common import AtomInstructions
+
+exec_env = os.environ.copy()
+exec_env['OMPI_MCA_mca_base_component_show_load_errors'] = "0"
 
 # This is ugly but works. We cannot call mpiexec globally so we write out
 # python scripts. GPAW must not be loaded in the main script or mpiexec will
@@ -597,9 +597,9 @@ def calc_f0j(
     print('  theoretical calculation started at ', datetime.datetime.now())
 
     if ncores is None:
-        res = subprocess.run(shlex.split('mpiexec gpaw python step1.py'))
+        res = subprocess.run(shlex.split('mpiexec gpaw python step1.py'), env=exec_env)
     else:
-        res = subprocess.run(f'mpiexec -n {ncores} gpaw python step1.py', shell=True)
+        res = subprocess.run(f'mpiexec -n {ncores} gpaw python step1.py', shell=True, env=exec_env)
 
     assert res.returncode == 0, 'mpiexec failed. Make sure you have not loaded GPAW somewhere in your script or kernel (such as switching the f0j_source from gpaw to gpaw_mpi in jupyter without kernel restart)'
 
@@ -614,7 +614,7 @@ def calc_f0j(
     with open('step2.py', 'w') as fo:
         fo.write(step2_script)
     print('  partitioning started at ', datetime.datetime.now())
-    res = subprocess.run('python step2.py', shell=True)
+    res = subprocess.run('python step2.py', shell=True, env=exec_env)
     assert res.returncode == 0, 'step 2 failed for some reason'
     with open('f0j.pic', 'rb') as fo:
         f0j = pickle.load(fo)
@@ -716,7 +716,7 @@ def calc_f0j_core(
     with open('core.py', 'w') as fo:
         fo.write(core_script)
 
-    res = subprocess.run('python core.py', shell=True)
+    res = subprocess.run('python core.py', shell=True, env=exec_env)
 
     if res.returncode == 1:
         raise ValueError('Something went wrong in the core calculation. For debugging try if you can run the single core calculation')

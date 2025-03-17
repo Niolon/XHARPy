@@ -9,6 +9,7 @@
 **/build
 **/xharpy_output
 **/.vscode
+xharpy.egg-info/*
 
 # Temporary file of gpaw_mpi
 step1.py

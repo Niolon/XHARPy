@@ -167,7 +167,6 @@ def calc_f0j(
     f0j = np.zeros((symm_mats_vecs[0].shape[0], len(labels), index_vec_h.shape[0]), dtype=np.complex128)
 
     # assign everything to the f0j_array
-    vec_h_read = read_df[['refl_h', 'refl_k', 'refl_l']].values
     for symm_index, (symm_matrix, _) in enumerate(zip(*symm_mats_vecs)):
         #symm_df = read_df.copy()
         symm_df = resort_df.copy()

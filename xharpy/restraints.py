@@ -5,7 +5,6 @@ working implementation."""
 
 from collections import namedtuple
 from .common_jax import jnp as np
-import pandas as pd
 import warnings
 from .conversion import ucif2ucart
 

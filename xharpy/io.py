@@ -17,11 +17,11 @@ from .defaults import (
 from .conversion import cell_constants_to_M
 try:
     from .refine import calc_f
-except:
+except ModuleNotFoundError:
     warnings.warn('Refine module could not be imported, jax is probably missing')
 
 from .structure.common import (
-    AtomInstructions, FixedValue, RefinedValue
+    AtomInstructions
 )
 from .structure.initialise import (
     create_construction_instructions, ConstrainedValues
@@ -32,10 +32,10 @@ from .structure.construct import (
 )
 try:
     from .quality import calculate_quality_indicators
-except:
+except ModuleNotFoundError:
     warnings.warn('quality module could not be imported, jax is probably missing')
 
-from .conversion import calc_sin_theta_ov_lambda, cell_constants_to_M
+from .conversion import calc_sin_theta_ov_lambda
 
 def ciflike_to_dict(
     filename: str,
@@ -381,15 +381,15 @@ def cif2data(
         adp_table.columns = [label.replace('atom_site_aniso_', '') for label in adp_table.columns]
         atom_table = pd.merge(atom_table, adp_table, on='label', how='left').copy() # put adp parameters into table
 
-    try:
-        disp_corr_table = [table for table in cif['loops'] if 'atom_type_scat_dispersion_real' in table.columns][0].copy()
+    disp_corr_tables = [table for table in cif['loops'] if 'atom_type_scat_dispersion_real' in table.columns]
+    if len(disp_corr_tables) == 0:
+        warnings.warn('Could not find anomalous dispersion factors in cif file. You need to add them manually')
+    else:
+        disp_corr_table = disp_corr_tables[0].copy()       
         disp_corr_table.columns = [label.replace('atom_', '') for label in disp_corr_table.columns]
 
         atom_table = pd.merge(atom_table, disp_corr_table, on='type_symbol', how='left') # add f' and f'' parameters
-    except:
-        warnings.warn('Could not find anomalous dispersion factors in cif file. You need to add them manually')
 
-    #cell_mat_g_star = np.einsum('ja, jb -> ab', cell_mat_f, cell_mat_f)
     symmetry_table = [table for table in cif['loops'] if 'space_group_symop_operation_xyz' in table.columns or 'symmetry_equiv_pos_as_xyz' in table.columns][0].copy()
     symmetry_table = symmetry_table.rename({'symmetry_equiv_pos_as_xyz': 'space_group_symop_operation_xyz'}, axis=1)
     symm_list = [symm_to_matrix_vector(instruction) for instruction in symmetry_table['space_group_symop_operation_xyz'].values]
@@ -401,7 +401,7 @@ def cif2data(
 
     try:
         wavelength = cif['diffrn_radiation_wavelength']
-    except:
+    except KeyError:
         warnings.warn('No wavelength found in cif file. You need to add it manually!')
         wavelength = None
     return atom_table, cell, cell_esd, symm_mats_vecs, symm_strings, wavelength
@@ -1680,7 +1680,7 @@ def create_extinction_entries(
         method = 'none'
         coeff = '.'
     else:
-        extinction_parameter = get_parameter_index('extinction', refinement_dict)
+        extinction_parameter = get_parameter_index('extinction', refinement_dict)[0]
         exti = float(parameters[extinction_parameter])
         esd = float(np.sqrt(var_cov_mat[extinction_parameter, extinction_parameter]))
         coeff = value_with_esd(np.array([exti]), np.array([esd]))[0]
@@ -1821,8 +1821,6 @@ def write_cif(
         from .f0j_sources.gpaw_source import generate_cif_output
     elif f0j_source == 'gpaw_mpi':
         from .f0j_sources.gpaw_mpi_source import generate_cif_output
-    elif f0j_source == 'gpaw_spherical':
-        from .f0j_sources.gpaw_spherical_source import generate_cif_output
     elif f0j_source == 'qe':
         from .f0j_sources.qe_source import generate_cif_output
     elif f0j_source == 'tsc_file':
@@ -2032,7 +2030,6 @@ def add_density_entries_from_fcf(
     reader = reflection_file_reader.cif_reader(fcf6_path)
     arrays = reader.build_miller_arrays()[next(iter(reader.build_miller_arrays()))]
     fobs = arrays['_refln_F_squared_meas'].f_sq_as_f()
-    fcalc = arrays['_refln_F_calc']
     diff = fobs.f_obs_minus_f_calc(1.0, arrays['_refln_F_calc'])
     diff_map = diff.fft_map()
     diff_map.apply_volume_scaling()
@@ -2240,7 +2237,7 @@ def cif2tsc(
             reslim = 1 / r_star.max() - 0.01
         elif any('diffrn_refln_index_h' in loop.columns for loop in cif['loops']):
             diffrn_refln_table = next(loop for loop in cif['loops'] if 'diffrn_refln_index_h' in loop.columns)
-            hkl = refln_table[['diffrn_refln_index_h', 'diffrn_refln_index_k', 'diffrn_refln_index_l']].values
+            hkl = diffrn_refln_table[['diffrn_refln_index_h', 'diffrn_refln_index_k', 'diffrn_refln_index_l']].values
             r_star = np.linalg.norm(np.einsum('xy, zy -> zx', cell_mat_f, hkl), axis=1)
             reslim = 1 / r_star.max() - 0.01
         else:
@@ -2264,8 +2261,6 @@ def cif2tsc(
         from .f0j_sources.gpaw_source import calc_f0j, calc_f0j_core
     elif f0j_source == 'iam':
         from .f0j_sources.iam_source import calc_f0j, calc_f0j_core
-    elif f0j_source == 'gpaw_spherical':
-        from .f0j_sources.gpaw_spherical_source import calc_f0j, calc_f0j_core
     elif f0j_source == 'qe':
         from .f0j_sources.qe_source import calc_f0j, calc_f0j_core
     elif f0j_source == 'gpaw_mpi':

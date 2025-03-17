@@ -12,7 +12,7 @@ from .defaults import get_parameter_index, get_value_or_default
 
 import pandas as pd
 from typing import Tuple, List, Dict, Any, Union
-from .conversion import calc_sin_theta_ov_lambda, cell_constants_to_M, calc_sin_theta_ov_lambda
+from .conversion import cell_constants_to_M, calc_sin_theta_ov_lambda
 import numpy as np
 import warnings
 
@@ -218,9 +218,7 @@ def calculate_drk(
             res_max = df['sint/lambda'].max()
             limits = np.linspace(res_min, res_max, n_bins + 1)
         except (TypeError, ValueError):
-            try:
-                assert not isinstance(bins, str) # this would
-            except:
+            if not isinstance(bins, str):
                 raise TypeError('bins has to be either an integer number, a float number or a list-like')
         except AssertionError:
             # bins is float so a step size
@@ -278,7 +276,7 @@ def generate_hm(
     """
     try: 
         from iotbx import reflection_file_reader
-    except:
+    except ModuleNotFoundError:
         raise ModuleNotFoundError('cctbx is needed for this feature')
     reader = reflection_file_reader.cif_reader(fcf_path)
     arrays = reader.build_miller_arrays()[next(iter(reader.build_miller_arrays()))]
@@ -287,7 +285,7 @@ def generate_hm(
         fcalc = arrays['_refln_F_calc']
     except ValueError:
         raise ValueError('No _refln_F_calc in fcf, an fcf6 is needed')
-    diff = fobs.f_obs_minus_f_calc(1.0, arrays['_refln_F_calc'])
+    diff = fobs.f_obs_minus_f_calc(1.0, fcalc)
     diff_map = diff.fft_map(map_factor)
     diff_map.apply_volume_scaling()
     real = diff_map.real_map_unpadded()
@@ -337,7 +335,7 @@ def calculate_egross(
     """
     try: 
         from iotbx import reflection_file_reader
-    except:
+    except ModuleNotFoundError:
         raise ModuleNotFoundError('cctbx is needed for this feature')
     reader = reflection_file_reader.cif_reader(fcf_path)
     arrays = reader.build_miller_arrays()[next(iter(reader.build_miller_arrays()))]
@@ -346,7 +344,7 @@ def calculate_egross(
         fcalc = arrays['_refln_F_calc']
     except ValueError:
         raise ValueError('No _refln_F_calc in fcf, an fcf6 is needed')
-    diff = fobs.f_obs_minus_f_calc(1.0, arrays['_refln_F_calc'])
+    diff = fobs.f_obs_minus_f_calc(1.0, fcalc)
     diff_map = diff.fft_map(map_factor)
     #diff_map.apply_volume_scaling()
     real = diff_map.real_map_unpadded()
@@ -375,7 +373,6 @@ def diff_density_values(
     reader = reflection_file_reader.cif_reader(fcf_path)
     arrays = reader.build_miller_arrays()[next(iter(reader.build_miller_arrays()))]
     fobs = arrays['_refln_F_squared_meas'].f_sq_as_f()
-    fcalc = arrays['_refln_F_calc']
     diff = fobs.f_obs_minus_f_calc(1.0, arrays['_refln_F_calc'])
     diff_map = diff.fft_map(map_factor)
     diff_map.apply_volume_scaling()

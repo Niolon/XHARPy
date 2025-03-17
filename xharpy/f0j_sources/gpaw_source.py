@@ -16,8 +16,6 @@ from gpaw.utilities.partition import AtomPartition
 from gpaw.mpi import world
 from gpaw.io.logger import GPAWLogger
 
-import ase
-from ase import Atoms
 from ase.spacegroup import crystal
 
 from scipy.interpolate import interp1d
@@ -35,16 +33,16 @@ class HirshfeldDensity(RealSpaceDensity):
     def __init__(self, calculator, log=None):
         self.calculator = calculator
         dens = calculator.density
-        try:
-            RealSpaceDensity.__init__(self, dens.gd, dens.finegd,
-                                    dens.nspins, collinear=True, charge=0.0,
-                                    stencil=dens.stencil,
-                                    redistributor=dens.redistributor)
-        except:
-            RealSpaceDensity.__init__(self, dens.gd, dens.finegd,
-                                    dens.nspins, collinear=True, charge=0.0,
-                                    stencil=2,
-                                    redistributor=dens.redistributor)
+        if hasattr(dens, 'stencil'):
+            stencil = dens.stencil
+        else:
+            stencil = 2
+
+        RealSpaceDensity.__init__(self, dens.gd, dens.finegd,
+                                dens.nspins, collinear=True, charge=0.0,
+                                stencil=stencil,
+                                redistributor=dens.redistributor)
+
         self.log = GPAWLogger(world=world)
         if log is None:
             self.log.fd = None
@@ -107,12 +105,12 @@ class HirshfeldDensity(RealSpaceDensity):
         self.set_mixer(None)
         rank_a = self.gd.get_ranks_from_positions(spos_ac)
         self.set_positions(spos_ac, AtomPartition(self.gd.comm, rank_a))
-        try:
+        if all(hasattr(setup, 'phit_j') for setup in self.setups):
             basis_functions = BasisFunctions(self.gd,
                                             [setup.phit_j
                                             for setup in self.setups],
                                             cut=True)
-        except:
+        else:
             basis_functions = BasisFunctions(self.gd,
                                             [setup.basis_functions_J
                                             for setup in self.setups],

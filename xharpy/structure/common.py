@@ -3,11 +3,10 @@ are not specialised in any way.
 """
 
 
-import warnings
 from collections import namedtuple
-from typing import Dict, Tuple, Union
+from typing import Dict, Tuple
 from ..better_abc import ABCMeta, abstract_attribute, abstractmethod
-from ..common_jax import jax, jnp
+from ..common_jax import jnp
 from dataclasses import dataclass
 
 AtomInstructions = namedtuple('AtomInstructions', [

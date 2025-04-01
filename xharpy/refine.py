@@ -532,9 +532,8 @@ def refine(
             Source of the atomic form factors. The computation_dict 
             will be passed on to this method. See the individual files in
             f0j_sources for more information, by default 'gpaw'
-            Tested options: 'gpaw', 'iam', 'gpaw_mpi'
-            Some limitations: 'gpaw_spherical'
-            Still untested: 'qe'
+            Tested options: 'gpaw', 'iam', 'gpaw_mpi', 'qe', 'tsc_file'
+            Experimental options: 'nosphera2_orca', 'custom_function'
           - reload_step:   
             Starting with this step the computation will try to reuse the 
             density, if this is implemented in the source, by default 1

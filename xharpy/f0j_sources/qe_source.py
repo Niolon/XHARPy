@@ -349,8 +349,12 @@ def qe_density(
             out_pp_w = os.path.join(cwd, out_pp)
         res = subprocess.call(rf'{pw_executable} -i {in_pw_w} > {out_pw_w}', shell=True)
         assert res in (0, 2), 'Calculation did not finish'
+        if os.path.exists(os.path.join(cwd, 'CRASH')):
+            raise FileExistsError('CRASH exists so the pw.x calculation failed')
         res = subprocess.call(rf'{pp_executable} -i {in_pp_w} > {out_pp_w}', shell=True)
         assert res == 0, 'Density generation failed'
+        if os.path.exists(os.path.join(cwd, 'CRASH')):
+            raise FileExistsError('CRASH exists so the pp.x calculation failed')
     else:
         subprocess.call(
             [f'{pw_executable} -x OMP_NUM_THREADS={omp_num_threads} -i {in_pw} > {out_pw}'],
@@ -374,9 +378,9 @@ def qe_density(
     if not is_atomic:
         with open(out_pw) as fo:
             pw_content = fo.read()
-        is_converged = re.search('convergence has been achieved in\s+\d+\s+iterations', pw_content) is not None
+        is_converged = re.search(r'convergence has been achieved in\s+\d+\s+iterations', pw_content) is not None
         if is_converged:
-            final_energy = re.findall('!\s+total energy\s+=\s+(\-?[\d]*\.\d+) Ry', pw_content)[-1]
+            final_energy = re.findall(r'!\s+total energy\s+=\s+(\-?[\d]*\.\d+) Ry', pw_content)[-1]
             print(f'  convergence has been achieved with energy of {final_energy} Ry')
         else:
             non_conv = computation_dict.get('non_convergence', 'exception')
@@ -689,11 +693,12 @@ def calc_f0j(
             density=density,
             overall_hdensity=overall_hdensity
         )
-
-        with Pool(mpicores) as p:
-            f0j_atoms = p.starmap(single_core_function_red, enumerate(indexes[0] for indexes in f0j_indexes))
-        for atom_index, f0j_atom in enumerate(f0j_atoms):
-            f0j[:, atom_index, :] = f0j_atom
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            with Pool(mpicores) as p:
+                f0j_atoms = p.starmap(single_core_function_red, enumerate(indexes[0] for indexes in f0j_indexes))
+            for atom_index, f0j_atom in enumerate(f0j_atoms):
+                f0j[:, atom_index, :] = f0j_atom
     elif symm_equiv == 'averaged':
         h, k, l = np.meshgrid(*map(lambda n: np.fft.fftfreq(n, 1/n).astype(np.int64), density.shape), indexing='ij')
         for atom_index, symm_atom_indexes in enumerate(f0j_indexes):

@@ -1,0 +1,19 @@
+name: xharpy
+channels:
+  - conda-forge
+dependencies:
+  - ase
+  - cctbx-base
+  - gpaw
+  - jax
+  - jupyter
+  - matplotlib
+  - numpy
+  - python
+  - qe
+  - ruff
+  - scipy
+  - pandas
+  - tqdm
+  - tzdata
+prefix: /home/niklas/miniforge3/envs/xharpy

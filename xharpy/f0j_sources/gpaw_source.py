@@ -410,9 +410,11 @@ def calc_f0j(
             for symm_matrix, symm_atom_index in zip(symm_mats_vecs[0], symm_atom_indexes):
                 h_density = density * partitioning.hdensity.get_density([symm_atom_index], gridrefinement=gridinterpolation, skip_core=explicit_core)[0] / overall_hdensity
                 frac_position = symm_positions[symm_atom_index]
-                h_rot, k_rot, l_rot = np.einsum('zx, xy -> zy', index_vec_h, symm_matrix).T.astype(np.int64)
+                hkl_all = np.vstack((h[None,:],k[None,:],l[None,:]))
+                h_rot, k_rot, l_rot = np.einsum('x..., xy -> y...', hkl_all, symm_matrix).astype(np.int64)
                 phase_to_zero = np.exp(-2j * np.pi * (frac_position[0] * h + frac_position[1] * k + frac_position[2] * l))
-                f0j_sum += (np.fft.ifftn(h_density) * phase_to_zero * np.prod(h.shape))[h_rot, k_rot, l_rot]
+                f0j_symm1 = np.fft.ifftn(h_density) * phase_to_zero * np.prod(h.shape)
+                f0j_sum += f0j_symm1[h_rot, k_rot, l_rot]
             f0j_sum /= len(symm_atom_indexes)
 
             for symm_index, symm_matrix in enumerate(symm_mats_vecs[0]):

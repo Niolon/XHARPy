@@ -5,7 +5,7 @@ def test_xharpy_installation():
     This function tests:
     1. JAX installation
     2. GPAW installation
-    3. Quantum Espresso installation
+    3. Quantum Espresso installation (pw.x and pp.x)
     4. XHARPy installation
     
     Returns:
@@ -19,13 +19,15 @@ def test_xharpy_installation():
     from pathlib import Path
     import importlib
     from importlib.util import find_spec
+    import subprocess
+    import warnings
     
     # For nice output formatting
     from IPython.display import display, HTML, Markdown
     
     results = []
     all_pass = True
-    print('ping')
+    
     # Helper function for formatted output
     def print_result(component, status, message=""):
         color = "green" if status else "red"
@@ -62,12 +64,14 @@ def test_xharpy_installation():
         if not gpaw_spec:
             raise ImportError("GPAW not found")
         
-        # Try to import GPAW and create a simple calculator
+        # Try to import GPAW
         import gpaw
-        from gpaw import GPAW
         
         # Check GPAW version
         gpaw_version = gpaw.__version__
+        
+        # Try to import a key module that XHARPy would use
+        from xharpy.f0j_sources.gpaw_source import calc_f0j
         
         gpaw_ok = print_result("GPAW", True, f"Successfully imported (version {gpaw_version})")
     except Exception as e:
@@ -75,36 +79,78 @@ def test_xharpy_installation():
         all_pass = False
     
     # 3. Test Quantum Espresso installation
+    qe_pw_ok = qe_pp_ok = False
     try:
-        # Check if basic QE commands are available
-        import subprocess
-        
         # Create a temporary directory for QE tests
         temp_dir = tempfile.mkdtemp()
+        
+        # Test pw.x is available
         try:
-            # Test pw.x is available by checking version
             result = subprocess.run(
-                ["pw.x", "-v"], 
+                ["which", "pw.x"], 
                 capture_output=True, 
                 text=True, 
                 check=False
             )
             
-            if result.returncode != 0:
-                raise RuntimeError("Could not execute pw.x")
+            if result.returncode == 0 and result.stdout.strip():
+                pw_path = result.stdout.strip()
+                qe_pw_ok = True
+                pw_message = f"Found at {pw_path}"
+            else:
+                pw_message = "Not found in PATH"
+                qe_pw_ok = False
+        except Exception as e:
+            pw_message = f"Error checking: {str(e)}"
+            qe_pw_ok = False
             
-            qe_version = result.stdout.strip() if result.stdout else "Unknown version"
+        # Test pp.x is available
+        try:
+            result = subprocess.run(
+                ["which", "pp.x"], 
+                capture_output=True, 
+                text=True, 
+                check=False
+            )
             
-            # Try to import QE-related module from XHARPy
+            if result.returncode == 0 and result.stdout.strip():
+                pp_path = result.stdout.strip()
+                qe_pp_ok = True
+                pp_message = f"Found at {pp_path}"
+            else:
+                pp_message = "Not found in PATH"
+                qe_pp_ok = False
+        except Exception as e:
+            pp_message = f"Error checking: {str(e)}"
+            qe_pp_ok = False
+            
+        # Try to import QE-related module from XHARPy
+        qe_module_ok = False
+        try:
             from xharpy.f0j_sources.qe_source import calc_f0j_core
+            qe_module_ok = True
+        except Exception as e:
+            qe_module_message = f"Could not import XHARPy QE module: {str(e)}"
             
-            qe_ok = print_result("Quantum Espresso", True, f"Successfully detected QE command line tools")
-        finally:
-            # Clean up temp directory
-            shutil.rmtree(temp_dir)
+        # Overall QE status
+        qe_status = qe_pw_ok and qe_pp_ok and qe_module_ok
+        
+        if qe_status:
+            print_result("Quantum Espresso", True, f"pw.x and pp.x found, XHARPy QE module loaded")
+        else:
+            message = []
+            message.append(f"pw.x: {'✓' if qe_pw_ok else '✗'} {pw_message}")
+            message.append(f"pp.x: {'✓' if qe_pp_ok else '✗'} {pp_message}")
+            message.append(f"XHARPy QE module: {'✓' if qe_module_ok else '✗'}")
+            print_result("Quantum Espresso", False, "<br>".join(message))
+            all_pass = False
+        
     except Exception as e:
-        qe_ok = print_result("Quantum Espresso", False, f"Error: {str(e)}")
+        print_result("Quantum Espresso", False, f"Error: {str(e)}")
         all_pass = False
+    finally:
+        # Clean up temp directory
+        shutil.rmtree(temp_dir)
     
     # 4. Test XHARPy installation
     try:
@@ -121,7 +167,12 @@ def test_xharpy_installation():
         from xharpy.io import cif2data
         from xharpy.structure.common import AtomInstructions
         
-        xharpy_version = getattr(xharpy, "XHARPY_VERSION", "Unknown")
+        # Get XHARPy version from defaults.py
+        try:
+            from xharpy.defaults import XHARPY_VERSION
+            xharpy_version = XHARPY_VERSION
+        except ImportError:
+            xharpy_version = "Unknown"
         
         xharpy_ok = print_result("XHARPy", True, f"Successfully imported (version {xharpy_version})")
     except Exception as e:
@@ -129,7 +180,16 @@ def test_xharpy_installation():
         all_pass = False
     
     # Display overall result
-    overall_status = "All components installed successfully!" if all_pass else "Some components are missing or not working properly!"
+    if all_pass:
+        overall_status = "All components installed successfully! You are ready for the workshop."
+    else:
+        # If only QE is missing, it's still mostly OK
+        if not (qe_pw_ok and qe_pp_ok) and jax_ok and gpaw_ok and xharpy_ok:
+            overall_status = "Most components are installed correctly! The Quantum Espresso examples may not work, but GPAW examples should work fine."
+            all_pass = True  # Consider this a partial pass
+        else:
+            overall_status = "Some essential components are missing or not working properly!"
+            
     overall_color = "green" if all_pass else "red"
     
     # Format and display all results

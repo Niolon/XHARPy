@@ -2254,7 +2254,7 @@ def cif2tsc(
     lmax = int(np.ceil(1 / reslim / c_star)) + 1
     h, k, l = np.meshgrid(np.arange(-hmax, hmax + 1), np.arange(-kmax, kmax + 1), np.arange(-lmax, lmax + 1))
     index_vec_h = np.array([h.ravel(), k.ravel(), l.ravel()]).T
-    index_vec_h = index_vec_h[calc_sin_theta_ov_lambda(cell_mat_f, index_vec_h) <= 0.5 / reslim].copy()
+    index_vec_h = index_vec_h[calc_sin_theta_ov_lambda(cell_mat_f, index_vec_h) <= (0.5 / reslim)].copy()
 
     construction_instructions, parameters = create_construction_instructions(
         atom_table, {}, {}, cell

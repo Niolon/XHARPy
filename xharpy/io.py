@@ -1712,9 +1712,11 @@ def generate_core_refinement_string(refinement_dict, parameters, var_cov_mat):
     grid and added to the partitioned valence density
   - Core density was always fully assigned to the respective atom"""
     elif core == 'scale':
-        core_parameter = get_parameter_index('core', refinement_dict)
-        core_str = value_with_esd(float(parameters[core_parameter]),
-                                  float(np.sqrt(var_cov_mat[core_parameter, core_parameter])))
+        core_parameter = get_parameter_index('core', refinement_dict)[0]
+        core_val = float(parameters[core_parameter])
+        core_esd = float(np.sqrt(var_cov_mat[core_parameter, core_parameter]))
+
+        core_str = value_with_esd(np.array([core_val]), np.array([core_esd]))
         return f"""  - Frozen core density was integrated separately on a spherical grid
   - An overall core scaling factor was refined to {core_str}"""
     else:

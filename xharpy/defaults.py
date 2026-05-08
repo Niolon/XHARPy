@@ -46,7 +46,7 @@ def get_value_or_default(
 def get_parameter_index(
     parameter_name: str, 
     refinement_dict: Dict[str, Any]
-) -> Union[int, None]:
+) -> Union[int, jnp.ndarray]:
     """Return the index of the parameter for the given refinement dict
 
     Parameters
